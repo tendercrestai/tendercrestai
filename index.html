@@ -730,12 +730,26 @@
   <script>
     let isSubmitting = false;
 
-    // Automatically switch to Client Portal tab if returning from Stripe checkout or via #portal anchor
+    // Automatically switch tabs and prefill data from outreach links or Stripe return
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('session_id') || window.location.hash === '#portal') {
+
+      // 1. Magic Prefill for cold outreach campaign links
+      const prefillEmail = urlParams.get('email');
+      const prefillCompany = urlParams.get('company');
+
+      if (prefillEmail) {
+        document.getElementById('submitter-email').value = decodeURIComponent(prefillEmail);
+      }
+      if (prefillCompany) {
+        document.getElementById('company-name').value = decodeURIComponent(prefillCompany);
+      }
+
+      // 2. Direct tab routing
+      if (urlParams.get('session_id') || window.location.hash === '#portal' || prefillEmail) {
         switchTab('portal');
       }
+
       handleSectorChange();
     });
 
@@ -809,7 +823,7 @@
       const emailField = document.getElementById('submitter-email');
       const companyField = document.getElementById('company-name');
 
-      // Keep whatever email/company the tester entered, or set clear placeholder
+      // Keep whatever email/company the tester entered, or set clean placeholder
       if (!companyField.value.trim()) {
         companyField.value = "Apex Cloud Solutions LLC";
       }
@@ -844,9 +858,9 @@ SLA GUARANTEE: Contractual 99.99% uptime with 10-minute P1 incident response tie
 SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for all healthcare engagements.`;
       }
 
-      // If email is empty, focus on it so the tester knows to receive the output
+      // If email is empty, guide the tester so they receive their generated output
       if (!emailField.value.trim()) {
-        emailField.placeholder = "Enter your email to receive generated proposal...";
+        emailField.placeholder = "Enter your work email to receive generated proposal...";
         emailField.focus();
       }
 
