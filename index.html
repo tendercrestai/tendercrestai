@@ -390,6 +390,12 @@
       color: #065f46;
     }
 
+    .alert-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+
     .billing-manage-banner {
       margin-top: 2rem;
       background: var(--slate-100);
@@ -816,11 +822,13 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
 
       } catch (err) {
         alertBox.style.display = 'block';
-        alertBox.className = 'alert-banner';
-        alertBox.style.background = '#fef2f2';
-        alertBox.style.border = '1px solid #fecaca';
-        alertBox.style.color = '#991b1b';
-        alertBox.innerHTML = `Submission error: ${err.message}. Please check your connection or contact support.`;
+        alertBox.className = 'alert-banner alert-error';
+        alertBox.innerHTML = `
+          <strong>Submission Error:</strong> ${err.message}<br><br>
+          <a href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00" target="_blank" rel="noopener noreferrer" style="color: #991b1b; font-weight: 700; text-decoration: underline;">
+            Manage / Reactivate Subscription in Stripe Billing Portal &rarr;
+          </a>
+        `;
         submitBtn.disabled = false;
         submitBtn.innerText = '🚀 Submit Solicitation to AI Engine';
       }
