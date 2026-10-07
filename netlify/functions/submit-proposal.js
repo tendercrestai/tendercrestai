@@ -1,9 +1,9 @@
 exports.handler = async function (event, context) {
-  // Only allow POST
+  // 1. Only allow POST
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Allow": "POST" },
       body: JSON.stringify({ error: "Method Not Allowed" })
     };
   }
@@ -14,49 +14,51 @@ exports.handler = async function (event, context) {
   const PROPOSALS_TABLE_ID = "tblkL2ct7mYtUTu9S";
 
   try {
-    const payload = JSON.parse(event.body);
+    const payload = JSON.parse(event.body || "{}");
 
-    if (!payload.proposalName || !payload.submitterEmail || !payload.rfpText) {
+    const proposalName = (payload.proposalName || "").trim();
+    const cleanEmail = (payload.submitterEmail || "").trim().toLowerCase();
+    const rfpText = (payload.rfpText || "").trim();
+    const orgName = (payload.organizationName || "Independent Contractor").trim();
+    const proposalSector = payload.proposalSector || "Commercial / Enterprise RFP";
+    let qualifications = (payload.qualifications || "").trim();
+
+    if (!proposalName || !cleanEmail || !rfpText) {
       return {
         statusCode: 400,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Missing required fields: Proposal Name, Email, or RFP Content." })
+        body: JSON.stringify({ error: "Missing required fields: Title, Email, or RFP Content." })
       };
     }
 
-    const cleanEmail = payload.submitterEmail.trim().toLowerCase();
-    const orgName = (payload.organizationName || "Independent Contractor").trim();
-
-    // 1. Look up existing company by Billing Email with deterministic sorting
+    // 2. High-speed lookup: Query ONLY Quota Status & Credentials fields to minimize latency
     const filterFormula = encodeURIComponent(`LOWER({Billing Email}) = '${cleanEmail}'`);
-    const searchRes = await fetch(
-      `https://api.airtable.com/v0/${BASE_ID}/${COMPANIES_TABLE_ID}?filterByFormula=${filterFormula}&sort%5B0%5D%5Bfield%5D=Created&sort%5B0%5D%5Bdirection%5D=desc`,
-      {
-        headers: { Authorization: `Bearer ${AIRTABLE_PAT}` }
-      }
-    );
+    const searchUrl = `https://api.airtable.com/v0/${BASE_ID}/${COMPANIES_TABLE_ID}?filterByFormula=${filterFormula}&maxRecords=1&sort%5B0%5D%5Bfield%5D=Created&sort%5B0%5D%5Bdirection%5D=desc&fields%5B%5D=Quota+Status&fields%5B%5D=Company+Credentials+Digest`;
+
+    const searchRes = await fetch(searchUrl, {
+      headers: { Authorization: `Bearer ${AIRTABLE_PAT}` }
+    });
 
     const searchData = await searchRes.json();
     let companyRecordId = null;
 
     if (searchData.records && searchData.records.length > 0) {
-      // Pick the primary active record
       const companyRecord = searchData.records[0];
       companyRecordId = companyRecord.id;
       const quotaStatus = companyRecord.fields["Quota Status"];
+      const credentialsDigest = companyRecord.fields["Company Credentials Digest"];
 
-      // Block if subscription is canceled, past due, or missing
+      // Enforcement of subscription status
       if (quotaStatus === "SUBSCRIPTION_INACTIVE") {
         return {
           statusCode: 403,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            error: "Your subscription is currently inactive, canceled, or past due. Please reactivate your plan via the Billing Portal to generate proposals."
+            error: "Your subscription is currently inactive or canceled. Please reactivate via the Billing Portal to submit proposals."
           })
         };
       }
 
-      // Block if monthly credits are exhausted
       if (quotaStatus === "QUOTA_EXCEEDED") {
         return {
           statusCode: 429,
@@ -66,8 +68,13 @@ exports.handler = async function (event, context) {
           })
         };
       }
+
+      // Auto-inject verified company digest if qualifications were left blank
+      if (!qualifications && credentialsDigest) {
+        qualifications = credentialsDigest;
+      }
     } else {
-      // New user onboarding via Developer Test Pass ($0 tier) -> Provision verified company record
+      // Auto-provision Free Developer Test Pass account
       const createCompRes = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${COMPANIES_TABLE_ID}`, {
         method: "POST",
         headers: {
@@ -89,20 +96,20 @@ exports.handler = async function (event, context) {
         return {
           statusCode: 500,
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ error: "Failed to initialize company provisioning record. Please retry." })
+          body: JSON.stringify({ error: "Failed to initialize company account. Please retry." })
         };
       }
       companyRecordId = newCompData.id;
     }
 
-    // 2. Prepare Proposal record payload
+    // 3. Insert proposal record into pipeline
     const postFields = {
-      "Proposal Name": payload.proposalName.trim(),
+      "Proposal Name": proposalName,
       "Submitter Email": cleanEmail,
       "Submitting Organization Name": orgName,
-      "RFP Text Content": payload.rfpText.trim(),
-      "Proposal Specific Qualifications": (payload.qualifications || "").trim(),
-      "Proposal Sector": payload.proposalSector || "Commercial / Enterprise RFP",
+      "RFP Text Content": rfpText,
+      "Proposal Specific Qualifications": qualifications,
+      "Proposal Sector": proposalSector,
       "Pipeline Status": "Uploaded"
     };
 
@@ -110,7 +117,6 @@ exports.handler = async function (event, context) {
       postFields["Company"] = [companyRecordId];
     }
 
-    // 3. Insert Proposal into Proposals Pipeline table
     const insertRes = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${PROPOSALS_TABLE_ID}`, {
       method: "POST",
       headers: {
@@ -141,7 +147,7 @@ exports.handler = async function (event, context) {
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: err.message })
+      body: JSON.stringify({ error: err.message || "Internal Server Error" })
     };
   }
 };
