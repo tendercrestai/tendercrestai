@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TenderCrest AI | AI-assisted RFP Proposal Drafts</title>
-  <meta name="description" content="Turn government and commercial RFP requirements into structured proposal drafts with TenderCrest AI. Compare monthly plans and explore sample inputs.">
+  <meta name="description" content="Turn government and commercial RFP requirements into structured proposal drafts with TenderCrest AI. Compare monthly plans and test live proposal generation.">
   <link rel="canonical" href="https://tendercrestai.netlify.app/">
   <meta property="og:type" content="website">
   <meta property="og:title" content="TenderCrest AI | AI-assisted RFP Proposal Drafts">
@@ -471,6 +471,7 @@
       color: var(--primary-hover);
       text-decoration: underline;
     }
+
     .skip-link { position: absolute; left: 1rem; top: -5rem; z-index: 100; background: white; padding: 1rem; }
     .skip-link:focus { top: 1rem; }
     :focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
@@ -488,6 +489,22 @@
     details p { margin-top: .75rem; color: var(--slate-600); }
     .demo-notice { padding: 1rem; margin-bottom: 1.5rem; border: 1px solid #fbbf24; border-radius: 8px; background: #fffbeb; color: #92400e; }
     .btn:disabled { opacity: .65; cursor: wait; }
+
+    .demo-preview {
+      margin-top: 1.5rem; padding: 1.25rem; border: 1px solid #a7f3d0;
+      border-radius: var(--radius); background: #f0fdf4;
+    }
+    .demo-preview[hidden] { display: none; }
+    .demo-preview-output {
+      margin-top: 1rem; padding: 1rem; border: 1px solid var(--slate-200);
+      border-radius: 8px; background: var(--white);
+    }
+    .demo-preview-output pre {
+      margin-top: 0.75rem; white-space: pre-wrap; overflow-wrap: anywhere;
+      font: 0.875rem/1.6 'JetBrains Mono', monospace; color: var(--slate-700);
+    }
+    .demo-preview-note { margin-top: 0.75rem; font-size: 0.8rem; color: var(--slate-600); }
+
     @media (max-width: 720px) {
       .nav-container { padding: 1rem; }
       .nav-right { width: 100%; flex-wrap: wrap; }
@@ -508,24 +525,6 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
     }
-    .pricing-card.demo-card {
-      border: 2px dashed var(--accent-green);
-      background: linear-gradient(180deg, #f0fdf4 0%, var(--white) 38%);
-    }
-    .demo-preview {
-      margin-top: 1.5rem; padding: 1.25rem; border: 1px solid #a7f3d0;
-      border-radius: var(--radius); background: #f0fdf4;
-    }
-    .demo-preview[hidden] { display: none; }
-    .demo-preview-output {
-      margin-top: 1rem; padding: 1rem; border: 1px solid var(--slate-200);
-      border-radius: 8px; background: var(--white);
-    }
-    .demo-preview-output pre {
-      margin-top: 0.75rem; white-space: pre-wrap; overflow-wrap: anywhere;
-      font: 0.875rem/1.6 'JetBrains Mono', monospace; color: var(--slate-700);
-    }
-    .demo-preview-note { margin-top: 0.75rem; font-size: 0.8rem; color: var(--slate-600); }
   </style>
 </head>
 <body>
@@ -607,22 +606,29 @@
       </div>
 
       <div class="pricing-grid">
-        <!-- FREE TIER: LOCAL SAMPLE PREVIEW -->
-        <div class="pricing-card demo-card">
-          <div class="badge-pill" style="align-self: flex-start;">FREE SAMPLE PREVIEW</div>
-          <div class="card-title">Try the Demo</div>
-          <div class="card-desc">Explore the workspace and view a sample compliance outline with fictional proposal data.</div>
+        <!-- TIER 1: DEVELOPER LIVE TEST PASS ($0) -->
+        <div class="pricing-card test-card">
+          <div class="badge-pill" style="align-self: flex-start;">DEVELOPER LIVE TEST PASS</div>
+          <div class="card-title">Instant Free Onboarding</div>
+          <div class="card-desc">Test the full autonomous workflow from subscription to inbox delivery without entering payment details.</div>
+          
           <div class="price-wrap">
             <span class="price-num">$0</span>
-            <span class="price-period">/ preview</span>
+            <span class="price-period">/ test session</span>
           </div>
-          <button type="button" class="btn btn-green" onclick="startFreeDemo('gov')">Preview a Government RFP</button>
-          <button type="button" class="btn btn-outline" style="margin-top: 0.6rem;" onclick="startFreeDemo('commercial')">Preview a Commercial RFP</button>
-          <p class="demo-preview-note">No account or payment details required. The sample runs in your browser and does not submit or email anything.</p>
+
+          <form class="card-form" onsubmit="handleTestActivation(event)">
+            <input type="text" id="test-company" class="input-field" placeholder="Your Company Name" required>
+            <input type="email" id="test-email" class="input-field" placeholder="Your Work Email" required>
+            <button type="submit" class="btn btn-green">⚡ Activate Free Test &amp; Submit</button>
+          </form>
+
+          <p style="font-size: 0.75rem; color: var(--slate-500); text-align: center;">Instant direct creation &amp; auto-provisioning</p>
+
           <ul class="features-list">
-            <li><span class="check-icon">✓</span> Fictional sample inputs</li>
-            <li><span class="check-icon">✓</span> Example compliance outline</li>
-            <li><span class="check-icon">✓</span> No charge and no account creation</li>
+            <li><span class="check-icon">✓</span> <strong>5 Full RFP</strong> Generation Credits</li>
+            <li><span class="check-icon">✓</span> Public &amp; Commercial Scope Parsing</li>
+            <li><span class="check-icon">✓</span> Direct Proposal Email Delivery</li>
           </ul>
         </div>
 
@@ -688,7 +694,7 @@
             <li><span class="check-icon">✓</span> <strong>60 Proposals</strong> per month</li>
             <li><span class="check-icon">✓</span> Dedicated Knowledge Base Digest</li>
             <li><span class="check-icon">✓</span> Company qualifications in each proposal</li>
-            <li><span class="check-icon">✓</span> Proposal drafts for high-volume workflows</li>
+            <li><span class="check-icon">✓</span> Priority GPT-4.1 generation queue</li>
           </ul>
         </div>
       </div>
@@ -715,7 +721,7 @@
         <div class="portal-top-bar">
           <div>
             <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 0.35rem;">Create a proposal draft</h2>
-            <p style="font-size: 0.85rem; color: var(--slate-600);">Use the billing email associated with your account. Add your requirements and qualifications to queue a draft for email delivery. Sample buttons only fill the form.</p>
+            <p style="font-size: 0.85rem; color: var(--slate-600);">Input your target RFP requirements and company credentials. Our engine compiles the proposal narrative and delivers it directly to your inbox.</p>
           </div>
           <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
             <button type="button" class="btn btn-outline" style="white-space: nowrap; width: auto;" onclick="loadSampleData('gov')">
@@ -733,7 +739,7 @@
         <form id="rfp-form" onsubmit="handleProposalSubmit(event)">
           <div class="form-group">
             <label for="proposal-sector">Proposal Type / Target Sector *</label>
-            <span class="hint" id="sector-hint">Choose the type of solicitation you are responding to.</span>
+            <span class="hint" id="sector-hint">Adjusts prompt weighting for strict federal Section L&amp;M or commercial SLA/ROI narratives.</span>
             <select id="proposal-sector" aria-describedby="sector-hint" class="input-field" onchange="handleSectorChange()" required>
               <option value="Public Sector / Gov (Section L&M)">Public Sector / Gov (Section L&amp;M Compliance)</option>
               <option value="Commercial / Enterprise RFP">Commercial / Enterprise RFP (Private B2B)</option>
@@ -744,7 +750,7 @@
 
           <div class="form-group">
             <label for="submitter-email">Billing / Submitter Email *</label>
-            <span class="hint">Use your account billing email. The generated draft will be delivered to this address.</span>
+            <span class="hint">Your completed proposal draft and compliance matrix will be emailed here.</span>
             <input type="email" id="submitter-email" maxlength="254" class="input-field" placeholder="e.g. proposals@yourcompany.com" required>
           </div>
 
@@ -770,13 +776,14 @@
 
           <div class="form-group">
             <label for="proposal-qualifications">Proposal Specific Qualifications, Certifications &amp; Key Personnel</label>
-            <span class="hint">Include accurate past performance, current certifications, and relevant personnel. If blank, available account credentials may be used.</span>
+            <span class="hint">Optional if already stored in your company knowledge base; otherwise injects past performance and credentials directly.</span>
             <textarea id="proposal-qualifications" maxlength="30000" class="input-field" placeholder="e.g. Relevant customer wins, active SOC 2 / ISO certifications, key team credentials, SLAs..."></textarea>
           </div>
 
           <p class="review-note">Only submit information you are authorized to share. Do not include passwords, patient data, classified information, or other restricted material. Review all AI-generated content before using it.</p>
-          <button type="submit" id="submit-btn" class="btn btn-primary" style="font-size: 1rem; padding: 1rem;">Queue proposal draft</button>
+          <button type="submit" id="submit-btn" class="btn btn-primary" style="font-size: 1rem; padding: 1rem;">🚀 Submit Solicitation to AI Engine</button>
         </form>
+
         <section id="demo-preview" class="demo-preview" aria-live="polite" hidden>
           <h3>Free sample preview</h3>
           <p>This is a static example shown locally in your browser. It does not use AI, create an Airtable record, consume a proposal credit, or send email.</p>
@@ -784,7 +791,7 @@
             <strong id="demo-preview-title">Illustrative output</strong>
             <pre id="demo-preview-content"></pre>
           </div>
-          <p class="demo-preview-note">All company names, qualifications, and solicitation details in this sample are fictional. For live proposal generation, use an eligible account and the “Queue proposal draft” form.</p>
+          <p class="demo-preview-note">All company names, qualifications, and solicitation details in this sample are fictional. For live proposal generation, submit using the form above.</p>
         </section>
       </div>
     </section>
@@ -821,22 +828,22 @@
       const prefillCompany = urlParams.get('company');
 
       if (prefillEmail) {
-        document.getElementById('submitter-email').value = prefillEmail;
+        document.getElementById('submitter-email').value = decodeURIComponent(prefillEmail);
       }
       if (prefillCompany) {
-        document.getElementById('company-name').value = prefillCompany;
+        document.getElementById('company-name').value = decodeURIComponent(prefillCompany);
       }
 
       // 2. Direct tab routing
       if (urlParams.get('session_id') || window.location.hash === '#portal' || prefillEmail) {
         switchTab('portal');
-      }
-
-      else {
-        switchTab(['overview', 'pricing', 'portal'].includes(window.location.hash.slice(1)) ? window.location.hash.slice(1) : 'overview', false);
+      } else {
+        const hash = window.location.hash.slice(1);
+        switchTab(['overview', 'pricing', 'portal'].includes(hash) ? hash : 'overview', false);
       }
       handleSectorChange();
     });
+
     window.addEventListener('hashchange', () => {
       const route = window.location.hash.slice(1);
       if (['overview', 'pricing', 'portal'].includes(route)) switchTab(route, false);
@@ -903,12 +910,24 @@
       }
     }
 
+    function handleTestActivation(e) {
+      e.preventDefault();
+      const comp = document.getElementById('test-company').value.trim();
+      const email = document.getElementById('test-email').value.trim();
+
+      if (!comp || !email) return;
+
+      document.getElementById('company-name').value = comp;
+      document.getElementById('submitter-email').value = email;
+
+      switchTab('portal');
+    }
+
     function loadSampleData(type = 'gov') {
       document.getElementById('demo-notice').hidden = false;
       const emailField = document.getElementById('submitter-email');
       const companyField = document.getElementById('company-name');
 
-      // Keep whatever email/company the tester entered, or set clean placeholder
       if (!companyField.value.trim()) {
         companyField.value = "Apex Cloud Solutions LLC";
       }
@@ -943,7 +962,6 @@ SLA GUARANTEE: Contractual 99.99% uptime with 10-minute P1 incident response tie
 SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for all healthcare engagements.`;
       }
 
-      // If email is empty, guide the tester so they receive their generated output
       if (!emailField.value.trim()) {
         emailField.placeholder = "Enter your work email to receive generated proposal...";
         emailField.focus();
@@ -951,53 +969,6 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
 
       handleSectorChange();
       updateWordCount();
-    }
-
-    function startFreeDemo(type = 'gov') {
-      switchTab('portal');
-      loadSampleData(type);
-      const panel = document.getElementById('demo-preview');
-      const title = document.getElementById('demo-preview-title');
-      const content = document.getElementById('demo-preview-content');
-      const examples = {
-        gov: {
-          title: 'Government RFP · illustrative compliance outline',
-          text: `SAMPLE REQUIREMENT: SOC 2 Type II or ISO 27001
-REVIEW CHECK: Confirm the certificate is current and covers the proposed service.
-
-SAMPLE REQUIREMENT: NIST SP 800-53 alignment
-REVIEW CHECK: Map each applicable control to a named policy, process, or technical safeguard.
-
-SAMPLE REQUIREMENT: CISSP lead cloud architect with 10+ years of experience
-REVIEW CHECK: Verify the named person’s certification and employment history.
-
-SAMPLE REQUIREMENT: Public-sector cloud migration over $500,000 in the last 36 months
-REVIEW CHECK: Confirm the customer, contract value, completion date, and reference permission.
-
-SAMPLE EVALUATOR FOCUS: Provide traceable evidence for each mandatory requirement; flag any unsupported claim for human review.`
-        },
-        commercial: {
-          title: 'Commercial RFP · illustrative review outline',
-          text: `SAMPLE REQUIREMENT: Migrate enterprise data within 90 days
-REVIEW CHECK: Add a phased schedule, dependencies, and acceptance criteria.
-
-SAMPLE REQUIREMENT: HIPAA, SOC 2 Type II, and HITRUST
-REVIEW CHECK: Confirm current evidence and the scope of each certification or validation.
-
-SAMPLE REQUIREMENT: 24/7 support with a 15-minute P1 response target
-REVIEW CHECK: Show staffing coverage, escalation steps, and the contractual SLA.
-
-SAMPLE REQUIREMENT: Transparent subscription and consumption pricing
-REVIEW CHECK: Separate recurring fees, usage assumptions, and one-time implementation costs.
-
-SAMPLE EVALUATOR FOCUS: Tie each response to verified evidence and identify assumptions that need customer confirmation.`
-        }
-      };
-      const example = examples[type === 'commercial' ? 'commercial' : 'gov'];
-      title.textContent = example.title;
-      content.textContent = example.text;
-      panel.hidden = false;
-      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     async function handleProposalSubmit(e) {
@@ -1014,7 +985,6 @@ SAMPLE EVALUATOR FOCUS: Tie each response to verified evidence and identify assu
       const qualifications = document.getElementById('proposal-qualifications').value.trim();
       const proposalSector = document.getElementById('proposal-sector').value;
 
-      // Client-side guard rails to prevent unnecessary function execution
       if (!proposalName || !submitterEmail || !organizationName || !rfpText) {
         alert("Please fill in all mandatory fields (Title, Submitter Email, Organization, and RFP Requirements).");
         return;
@@ -1023,7 +993,7 @@ SAMPLE EVALUATOR FOCUS: Tie each response to verified evidence and identify assu
       isSubmitting = true;
       submitBtn.disabled = true;
       document.getElementById('rfp-form').setAttribute('aria-busy', 'true');
-      submitBtn.innerText = 'Queuing proposal draft...';
+      submitBtn.innerText = 'Dispatching to Autonomous Engine...';
       alertBox.style.display = 'none';
 
       const payload = {
@@ -1052,13 +1022,18 @@ SAMPLE EVALUATOR FOCUS: Tie each response to verified evidence and identify assu
 
         alertBox.style.display = 'block';
         alertBox.className = 'alert-banner alert-success';
-        alertBox.textContent = 'Proposal queued: ' + payload.proposalName + '. Your draft will be sent to ' + payload.submitterEmail + ' when processing completes. Check your spam folder and review the draft before use.';
+        alertBox.innerHTML = `
+          <strong>✓ Solicitation Successfully Queued!</strong><br>
+          Your RFP (<em>${payload.proposalName}</em>) is now in progress.<br><br>
+          ⏱️ <strong>What happens next:</strong> Our dual-pass engine is parsing requirements and tailoring your narrative for <strong>${payload.proposalSector}</strong>.<br>
+          📬 <strong>Delivery:</strong> Expect an email at <strong>${payload.submitterEmail}</strong> in approximately <strong>60–90 seconds</strong> (please check your spam/junk folder as well).
+        `;
         alertBox.focus();
 
         submitBtn.innerText = '✓ Queued in Engine';
         setTimeout(() => {
           submitBtn.disabled = false;
-          submitBtn.innerText = 'Queue another draft';
+          submitBtn.innerText = '🚀 Submit Another Solicitation';
           isSubmitting = false;
           document.getElementById('rfp-form').setAttribute('aria-busy', 'false');
         }, 4000);
@@ -1066,10 +1041,15 @@ SAMPLE EVALUATOR FOCUS: Tie each response to verified evidence and identify assu
       } catch (err) {
         alertBox.style.display = 'block';
         alertBox.className = 'alert-banner alert-error';
-        alertBox.textContent = 'Unable to queue the proposal: ' + err.message;
+        alertBox.innerHTML = `
+          <strong>Submission Blocked:</strong> ${err.message}<br><br>
+          <a href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00" target="_blank" rel="noopener noreferrer" style="color: #991b1b; font-weight: 700; text-decoration: underline;">
+            Open Stripe Billing Portal to Update / Upgrade Plan &rarr;
+          </a>
+        `;
         alertBox.focus();
         submitBtn.disabled = false;
-        submitBtn.innerText = 'Queue proposal draft';
+        submitBtn.innerText = '🚀 Submit Solicitation to AI Engine';
         isSubmitting = false;
         document.getElementById('rfp-form').setAttribute('aria-busy', 'false');
       }
@@ -1077,4 +1057,3 @@ SAMPLE EVALUATOR FOCUS: Tie each response to verified evidence and identify assu
   </script>
 </body>
 </html>
-
