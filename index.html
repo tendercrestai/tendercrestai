@@ -630,7 +630,8 @@
         <a 
           href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00" 
           target="_blank" 
-          rel="noopener noreferrer"
+          rel="noopener noreferrer" 
+          id="billing-portal-cta"
         >
           Open Stripe Customer Billing Portal &rarr;
         </a>
@@ -660,8 +661,8 @@
         <form id="rfp-form" onsubmit="handleProposalSubmit(event)">
           <div class="form-group">
             <label for="proposal-sector">Proposal Type / Target Sector *</label>
-            <span class="hint">Adjusts the AI prompt architecture to prioritize Section L&amp;M federal matrices or commercial ROI/SLA narratives.</span>
-            <select id="proposal-sector" class="input-field" required>
+            <span class="hint" id="sector-hint">Adjusts prompt weighting for strict federal Section L&amp;M or commercial SLA/ROI narratives.</span>
+            <select id="proposal-sector" class="input-field" onchange="handleSectorChange()" required>
               <option value="Public Sector / Gov (Section L&M)">Public Sector / Gov (Section L&amp;M Compliance)</option>
               <option value="Commercial / Enterprise RFP">Commercial / Enterprise RFP (Private B2B)</option>
               <option value="SaaS / Tech Vendor Evaluation">SaaS / Tech Vendor Evaluation &amp; Security</option>
@@ -697,7 +698,7 @@
 
           <div class="form-group">
             <label for="proposal-qualifications">Proposal Specific Qualifications, Certifications &amp; Key Personnel</label>
-            <span class="hint">Injected into the generation engine to ground your response in verified past performance and eliminate generic placeholders.</span>
+            <span class="hint">Optional if already stored in your company knowledge base; otherwise injects past performance and credentials directly.</span>
             <textarea id="proposal-qualifications" class="input-field" placeholder="e.g. Relevant customer wins, active SOC 2 / ISO certifications, key team credentials, SLAs..."></textarea>
           </div>
 
@@ -727,12 +728,15 @@
   </footer>
 
   <script>
+    let isSubmitting = false;
+
     // Automatically switch to Client Portal tab if returning from Stripe checkout or via #portal anchor
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('session_id') || window.location.hash === '#portal') {
         switchTab('portal');
       }
+      handleSectorChange();
     });
 
     function switchTab(tabId) {
@@ -747,6 +751,20 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    function handleSectorChange() {
+      const sector = document.getElementById('proposal-sector').value;
+      const hint = document.getElementById('rfp-content-hint');
+      if (sector.includes('Gov')) {
+        hint.innerText = "Targeting Public Sector: Paste Section L (Instructions) and Section M (Evaluation Factors) along with Mandatory Pass/Fail Qualifications.";
+      } else if (sector.includes('Commercial')) {
+        hint.innerText = "Targeting Commercial Enterprise: Paste Statement of Work (SOW), SLA uptime requirements, and vendor selection criteria.";
+      } else if (sector.includes('SaaS')) {
+        hint.innerText = "Targeting Tech Evaluation: Include security controls, cloud infrastructure, API capabilities, and data residency criteria.";
+      } else {
+        hint.innerText = "Paste RFP requirements, eligibility guidelines, and evaluation rubrics.";
+      }
+    }
+
     function updateWordCount() {
       const text = document.getElementById('rfp-content').value.trim();
       const words = text.length > 0 ? text.split(/\s+/).length : 0;
@@ -758,10 +776,10 @@
       countDisplay.innerText = `${words.toLocaleString()} words | ${chars.toLocaleString()} characters`;
 
       if (words > 0 && words < 100) {
-        recDisplay.innerText = "💡 Recommended: Add more scope/scoring details for higher fidelity.";
+        recDisplay.innerText = "💡 Tip: Include evaluation criteria and pass/fail thresholds for maximum scoring.";
         recDisplay.style.color = "#d97706";
       } else if (words > 12000) {
-        recDisplay.innerText = "⚠️ High token volume: Emphasize Sections L & M for optimal focus.";
+        recDisplay.innerText = "⚠️ High token volume: Prioritize core SOW & evaluation sections for optimal focus.";
         recDisplay.style.color = "#dc2626";
       } else {
         recDisplay.innerText = "";
@@ -815,24 +833,42 @@ REQUIREMENTS:
 SLA GUARANTEE: Contractual 99.99% uptime with 10-minute P1 incident response tier.
 SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for all healthcare engagements.`;
       }
+      handleSectorChange();
       updateWordCount();
     }
 
     async function handleProposalSubmit(e) {
       e.preventDefault();
+      if (isSubmitting) return;
+
       const submitBtn = document.getElementById('submit-btn');
       const alertBox = document.getElementById('status-alert');
 
+      const proposalName = document.getElementById('proposal-name').value.trim();
+      const submitterEmail = document.getElementById('submitter-email').value.trim();
+      const organizationName = document.getElementById('company-name').value.trim();
+      const rfpText = document.getElementById('rfp-content').value.trim();
+      const qualifications = document.getElementById('proposal-qualifications').value.trim();
+      const proposalSector = document.getElementById('proposal-sector').value;
+
+      // Client-side guard rails to prevent unnecessary function execution
+      if (!proposalName || !submitterEmail || !rfpText) {
+        alert("Please fill in all mandatory fields.");
+        return;
+      }
+
+      isSubmitting = true;
       submitBtn.disabled = true;
       submitBtn.innerText = 'Dispatching to Autonomous Engine...';
+      alertBox.style.display = 'none';
 
       const payload = {
-        proposalSector: document.getElementById('proposal-sector').value,
-        proposalName: document.getElementById('proposal-name').value.trim(),
-        submitterEmail: document.getElementById('submitter-email').value.trim(),
-        organizationName: document.getElementById('company-name').value.trim(),
-        rfpText: document.getElementById('rfp-content').value.trim(),
-        qualifications: document.getElementById('proposal-qualifications').value.trim()
+        proposalSector,
+        proposalName,
+        submitterEmail,
+        organizationName,
+        rfpText,
+        qualifications
       };
 
       try {
@@ -861,7 +897,8 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
         setTimeout(() => {
           submitBtn.disabled = false;
           submitBtn.innerText = '🚀 Submit Another Solicitation';
-        }, 5000);
+          isSubmitting = false;
+        }, 4000);
 
       } catch (err) {
         alertBox.style.display = 'block';
@@ -874,6 +911,7 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
         `;
         submitBtn.disabled = false;
         submitBtn.innerText = '🚀 Submit Solicitation to AI Engine';
+        isSubmitting = false;
       }
     }
   </script>
