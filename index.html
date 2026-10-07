@@ -508,6 +508,24 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
     }
+    .pricing-card.demo-card {
+      border: 2px dashed var(--accent-green);
+      background: linear-gradient(180deg, #f0fdf4 0%, var(--white) 38%);
+    }
+    .demo-preview {
+      margin-top: 1.5rem; padding: 1.25rem; border: 1px solid #a7f3d0;
+      border-radius: var(--radius); background: #f0fdf4;
+    }
+    .demo-preview[hidden] { display: none; }
+    .demo-preview-output {
+      margin-top: 1rem; padding: 1rem; border: 1px solid var(--slate-200);
+      border-radius: 8px; background: var(--white);
+    }
+    .demo-preview-output pre {
+      margin-top: 0.75rem; white-space: pre-wrap; overflow-wrap: anywhere;
+      font: 0.875rem/1.6 'JetBrains Mono', monospace; color: var(--slate-700);
+    }
+    .demo-preview-note { margin-top: 0.75rem; font-size: 0.8rem; color: var(--slate-600); }
   </style>
 </head>
 <body>
@@ -589,6 +607,25 @@
       </div>
 
       <div class="pricing-grid">
+        <!-- FREE TIER: LOCAL SAMPLE PREVIEW -->
+        <div class="pricing-card demo-card">
+          <div class="badge-pill" style="align-self: flex-start;">FREE SAMPLE PREVIEW</div>
+          <div class="card-title">Try the Demo</div>
+          <div class="card-desc">Explore the workspace and view a sample compliance outline with fictional proposal data.</div>
+          <div class="price-wrap">
+            <span class="price-num">$0</span>
+            <span class="price-period">/ preview</span>
+          </div>
+          <button type="button" class="btn btn-green" onclick="startFreeDemo('gov')">Preview a Government RFP</button>
+          <button type="button" class="btn btn-outline" style="margin-top: 0.6rem;" onclick="startFreeDemo('commercial')">Preview a Commercial RFP</button>
+          <p class="demo-preview-note">No account or payment details required. The sample runs in your browser and does not submit or email anything.</p>
+          <ul class="features-list">
+            <li><span class="check-icon">✓</span> Fictional sample inputs</li>
+            <li><span class="check-icon">✓</span> Example compliance outline</li>
+            <li><span class="check-icon">✓</span> No charge and no account creation</li>
+          </ul>
+        </div>
+
         <!-- TIER 2: PRO TIER ($299/mo) -->
         <div class="pricing-card">
           <div class="card-title">Pro Plan</div>
@@ -740,6 +777,15 @@
           <p class="review-note">Only submit information you are authorized to share. Do not include passwords, patient data, classified information, or other restricted material. Review all AI-generated content before using it.</p>
           <button type="submit" id="submit-btn" class="btn btn-primary" style="font-size: 1rem; padding: 1rem;">Queue proposal draft</button>
         </form>
+        <section id="demo-preview" class="demo-preview" aria-live="polite" hidden>
+          <h3>Free sample preview</h3>
+          <p>This is a static example shown locally in your browser. It does not use AI, create an Airtable record, consume a proposal credit, or send email.</p>
+          <div class="demo-preview-output">
+            <strong id="demo-preview-title">Illustrative output</strong>
+            <pre id="demo-preview-content"></pre>
+          </div>
+          <p class="demo-preview-note">All company names, qualifications, and solicitation details in this sample are fictional. For live proposal generation, use an eligible account and the “Queue proposal draft” form.</p>
+        </section>
       </div>
     </section>
   </main>
@@ -907,6 +953,53 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
       updateWordCount();
     }
 
+    function startFreeDemo(type = 'gov') {
+      switchTab('portal');
+      loadSampleData(type);
+      const panel = document.getElementById('demo-preview');
+      const title = document.getElementById('demo-preview-title');
+      const content = document.getElementById('demo-preview-content');
+      const examples = {
+        gov: {
+          title: 'Government RFP · illustrative compliance outline',
+          text: `SAMPLE REQUIREMENT: SOC 2 Type II or ISO 27001
+REVIEW CHECK: Confirm the certificate is current and covers the proposed service.
+
+SAMPLE REQUIREMENT: NIST SP 800-53 alignment
+REVIEW CHECK: Map each applicable control to a named policy, process, or technical safeguard.
+
+SAMPLE REQUIREMENT: CISSP lead cloud architect with 10+ years of experience
+REVIEW CHECK: Verify the named person’s certification and employment history.
+
+SAMPLE REQUIREMENT: Public-sector cloud migration over $500,000 in the last 36 months
+REVIEW CHECK: Confirm the customer, contract value, completion date, and reference permission.
+
+SAMPLE EVALUATOR FOCUS: Provide traceable evidence for each mandatory requirement; flag any unsupported claim for human review.`
+        },
+        commercial: {
+          title: 'Commercial RFP · illustrative review outline',
+          text: `SAMPLE REQUIREMENT: Migrate enterprise data within 90 days
+REVIEW CHECK: Add a phased schedule, dependencies, and acceptance criteria.
+
+SAMPLE REQUIREMENT: HIPAA, SOC 2 Type II, and HITRUST
+REVIEW CHECK: Confirm current evidence and the scope of each certification or validation.
+
+SAMPLE REQUIREMENT: 24/7 support with a 15-minute P1 response target
+REVIEW CHECK: Show staffing coverage, escalation steps, and the contractual SLA.
+
+SAMPLE REQUIREMENT: Transparent subscription and consumption pricing
+REVIEW CHECK: Separate recurring fees, usage assumptions, and one-time implementation costs.
+
+SAMPLE EVALUATOR FOCUS: Tie each response to verified evidence and identify assumptions that need customer confirmation.`
+        }
+      };
+      const example = examples[type === 'commercial' ? 'commercial' : 'gov'];
+      title.textContent = example.title;
+      content.textContent = example.text;
+      panel.hidden = false;
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
     async function handleProposalSubmit(e) {
       e.preventDefault();
       if (isSubmitting) return;
@@ -984,3 +1077,4 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
   </script>
 </body>
 </html>
+
