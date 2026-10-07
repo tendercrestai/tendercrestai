@@ -55,6 +55,8 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
     }
 
     .brand {
@@ -77,6 +79,12 @@
       justify-content: center;
       color: var(--white);
       font-size: 1rem;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
     }
 
     .nav-tabs {
@@ -102,6 +110,29 @@
     .nav-tab-btn.active {
       background: var(--white);
       color: var(--primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .nav-portal-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.85rem;
+      font-size: 0.825rem;
+      font-weight: 600;
+      color: var(--slate-600);
+      background: var(--slate-100);
+      border: 1px solid var(--slate-200);
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .nav-portal-link:hover {
+      background: var(--white);
+      color: var(--slate-900);
+      border-color: var(--slate-300);
       box-shadow: var(--shadow-sm);
     }
 
@@ -359,6 +390,34 @@
       color: #065f46;
     }
 
+    .billing-manage-banner {
+      margin-top: 2rem;
+      background: var(--slate-100);
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .billing-manage-banner p {
+      font-size: 0.9rem;
+      color: var(--slate-700);
+    }
+
+    .billing-manage-banner a {
+      color: var(--primary);
+      font-weight: 700;
+      text-decoration: underline;
+    }
+
+    .billing-manage-banner a:hover {
+      color: var(--primary-hover);
+    }
+
     footer {
       border-top: 1px solid var(--slate-200);
       background: var(--white);
@@ -367,6 +426,28 @@
       font-size: 0.85rem;
       color: var(--slate-500);
       margin-top: auto;
+    }
+
+    .footer-link {
+      color: inherit;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-link:hover {
+      color: var(--slate-900);
+    }
+
+    .footer-portal-link {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+
+    .footer-portal-link:hover {
+      color: var(--primary-hover);
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -378,10 +459,21 @@
         <div class="brand-icon">⚡</div>
         <span>TenderCrestBid AI</span>
       </a>
-      <div class="nav-tabs">
-        <button class="nav-tab-btn" id="tab-btn-overview" onclick="switchTab('overview')">Platform Overview</button>
-        <button class="nav-tab-btn active" id="tab-btn-pricing" onclick="switchTab('pricing')">Pricing &amp; Plans</button>
-        <button class="nav-tab-btn" id="tab-btn-portal" onclick="switchTab('portal')">Client Portal</button>
+      <div class="nav-right">
+        <div class="nav-tabs">
+          <button class="nav-tab-btn" id="tab-btn-overview" onclick="switchTab('overview')">Platform Overview</button>
+          <button class="nav-tab-btn active" id="tab-btn-pricing" onclick="switchTab('pricing')">Pricing &amp; Plans</button>
+          <button class="nav-tab-btn" id="tab-btn-portal" onclick="switchTab('portal')">Client Portal</button>
+        </div>
+        <a 
+          href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          class="nav-portal-link" 
+          title="Update payment methods, view invoices, or cancel plan"
+        >
+          💳 Billing Portal
+        </a>
       </div>
     </div>
   </header>
@@ -514,6 +606,20 @@
           </ul>
         </div>
       </div>
+
+      <!-- BILLING MANAGEMENT BANNER -->
+      <div class="billing-manage-banner">
+        <p>
+          Need to manage payment methods, download invoices, or cancel your active subscription?
+        </p>
+        <a 
+          href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00" 
+          target="_blank" 
+          rel="noopener noreferrer"
+        >
+          Open Stripe Customer Billing Portal &rarr;
+        </a>
+      </div>
     </section>
 
     <!-- TAB 3: CLIENT PORTAL -->
@@ -569,10 +675,18 @@
   <footer>
     <div style="max-width: 1280px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
       <div>&copy; 2026 TenderCrestBid AI. All rights reserved.</div>
-      <div style="display: flex; gap: 1.5rem;">
-        <a href="#" onclick="switchTab('overview')" style="color: inherit; text-decoration: none;">Overview</a>
-        <a href="#" onclick="switchTab('pricing')" style="color: inherit; text-decoration: none;">Pricing</a>
-        <a href="#" onclick="switchTab('portal')" style="color: inherit; text-decoration: none;">Portal</a>
+      <div style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
+        <a href="#" onclick="switchTab('overview')" class="footer-link">Overview</a>
+        <a href="#" onclick="switchTab('pricing')" class="footer-link">Pricing</a>
+        <a href="#" onclick="switchTab('portal')" class="footer-link">Portal</a>
+        <a 
+          href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          class="footer-portal-link"
+        >
+          Manage / Cancel Subscription
+        </a>
       </div>
     </div>
   </footer>
