@@ -350,6 +350,7 @@
 
     .form-group {
       margin-bottom: 1.5rem;
+      position: relative;
     }
 
     .form-group label {
@@ -365,6 +366,14 @@
       font-size: 0.775rem;
       color: var(--slate-500);
       margin-bottom: 0.4rem;
+    }
+
+    .counter-bar {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--slate-500);
+      margin-top: 0.4rem;
     }
 
     textarea.input-field {
@@ -679,7 +688,11 @@
           <div class="form-group">
             <label for="rfp-content">Solicitation Requirements (Scope, SOW, or Evaluation Criteria) *</label>
             <span class="hint" id="rfp-content-hint">Paste the statement of work, mandatory requirements, and evaluation scoring rubric.</span>
-            <textarea id="rfp-content" class="input-field" placeholder="Paste RFP or tender text here..." required></textarea>
+            <textarea id="rfp-content" class="input-field" placeholder="Paste RFP or tender text here..." oninput="updateWordCount()" required></textarea>
+            <div class="counter-bar">
+              <span id="word-count-display">0 words | 0 characters</span>
+              <span id="scope-recommendation"></span>
+            </div>
           </div>
 
           <div class="form-group">
@@ -714,6 +727,14 @@
   </footer>
 
   <script>
+    // Automatically switch to Client Portal tab if returning from Stripe checkout or via #portal anchor
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('session_id') || window.location.hash === '#portal') {
+        switchTab('portal');
+      }
+    });
+
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-tab-btn').forEach(el => el.classList.remove('active'));
@@ -724,6 +745,27 @@
       if (targetContent) targetContent.classList.add('active');
       if (targetBtn) targetBtn.classList.add('active');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function updateWordCount() {
+      const text = document.getElementById('rfp-content').value.trim();
+      const words = text.length > 0 ? text.split(/\s+/).length : 0;
+      const chars = text.length;
+
+      const countDisplay = document.getElementById('word-count-display');
+      const recDisplay = document.getElementById('scope-recommendation');
+
+      countDisplay.innerText = `${words.toLocaleString()} words | ${chars.toLocaleString()} characters`;
+
+      if (words > 0 && words < 100) {
+        recDisplay.innerText = "💡 Recommended: Add more scope/scoring details for higher fidelity.";
+        recDisplay.style.color = "#d97706";
+      } else if (words > 12000) {
+        recDisplay.innerText = "⚠️ High token volume: Emphasize Sections L & M for optimal focus.";
+        recDisplay.style.color = "#dc2626";
+      } else {
+        recDisplay.innerText = "";
+      }
     }
 
     function handleTestActivation(e) {
@@ -773,6 +815,7 @@ REQUIREMENTS:
 SLA GUARANTEE: Contractual 99.99% uptime with 10-minute P1 incident response tier.
 SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for all healthcare engagements.`;
       }
+      updateWordCount();
     }
 
     async function handleProposalSubmit(e) {
@@ -824,9 +867,9 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
         alertBox.style.display = 'block';
         alertBox.className = 'alert-banner alert-error';
         alertBox.innerHTML = `
-          <strong>Submission Error:</strong> ${err.message}<br><br>
+          <strong>Submission Blocked:</strong> ${err.message}<br><br>
           <a href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00" target="_blank" rel="noopener noreferrer" style="color: #991b1b; font-weight: 700; text-decoration: underline;">
-            Manage / Reactivate Subscription in Stripe Billing Portal &rarr;
+            Open Stripe Billing Portal to Update / Upgrade Plan &rarr;
           </a>
         `;
         submitBtn.disabled = false;
