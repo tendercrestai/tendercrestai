@@ -440,6 +440,64 @@
       color: var(--primary-hover);
     }
 
+    .legal-notice-box {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: 1rem;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      color: #78350f;
+      margin: 1.5rem 0;
+    }
+
+    .legal-notice-box strong {
+      color: #92400e;
+      display: block;
+      margin-bottom: 0.35rem;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      z-index: 200;
+      backdrop-filter: blur(2px);
+    }
+    .modal-overlay[hidden] { display: none; }
+    .modal-box {
+      background: var(--white);
+      max-width: 760px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      border-radius: var(--radius);
+      padding: 2rem;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+    }
+    .modal-close-btn {
+      position: absolute;
+      top: 1rem; right: 1rem;
+      background: var(--slate-100);
+      border: none;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--slate-600);
+    }
+    .modal-box h2 { font-size: 1.35rem; margin-bottom: 1rem; color: var(--slate-900); }
+    .modal-box h3 { font-size: 1rem; margin-top: 1.25rem; margin-bottom: 0.4rem; color: var(--slate-800); }
+    .modal-box p, .modal-box li { font-size: 0.85rem; color: var(--slate-600); line-height: 1.6; }
+    .modal-box ul { padding-left: 1.25rem; margin-top: 0.5rem; }
+
     footer {
       border-top: 1px solid var(--slate-200);
       background: var(--white);
@@ -454,10 +512,12 @@
       color: inherit;
       text-decoration: none;
       transition: color 0.2s;
+      cursor: pointer;
     }
 
     .footer-link:hover {
       color: var(--slate-900);
+      text-decoration: underline;
     }
 
     .footer-portal-link {
@@ -490,21 +550,6 @@
     .demo-notice { padding: 1rem; margin-bottom: 1.5rem; border: 1px solid #fbbf24; border-radius: 8px; background: #fffbeb; color: #92400e; }
     .btn:disabled { opacity: .65; cursor: wait; }
 
-    .demo-preview {
-      margin-top: 1.5rem; padding: 1.25rem; border: 1px solid #a7f3d0;
-      border-radius: var(--radius); background: #f0fdf4;
-    }
-    .demo-preview[hidden] { display: none; }
-    .demo-preview-output {
-      margin-top: 1rem; padding: 1rem; border: 1px solid var(--slate-200);
-      border-radius: 8px; background: var(--white);
-    }
-    .demo-preview-output pre {
-      margin-top: 0.75rem; white-space: pre-wrap; overflow-wrap: anywhere;
-      font: 0.875rem/1.6 'JetBrains Mono', monospace; color: var(--slate-700);
-    }
-    .demo-preview-note { margin-top: 0.75rem; font-size: 0.8rem; color: var(--slate-600); }
-
     @media (max-width: 720px) {
       .nav-container { padding: 1rem; }
       .nav-right { width: 100%; flex-wrap: wrap; }
@@ -521,9 +566,6 @@
       .input-field { font-size: 1rem; }
       .counter-bar { flex-direction: column; gap: .3rem; }
       footer { padding: 1.5rem 1rem; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
     }
   </style>
 </head>
@@ -773,6 +815,9 @@
               <span id="word-count-display">0 words | 0 characters</span>
               <span id="scope-recommendation"></span>
             </div>
+            <p style="font-size: 0.75rem; color: #dc2626; margin-top: 0.35rem;">
+              ⚠️ <strong>Strict Security Policy:</strong> Do not input classified data (ITAR, EAR, CUI), HIPAA protected health info, passwords, or third-party trade secrets.
+            </p>
           </div>
 
           <div class="form-group">
@@ -781,22 +826,43 @@
             <textarea id="proposal-qualifications" maxlength="30000" class="input-field" placeholder="e.g. Relevant customer wins, active SOC 2 / ISO certifications, key team credentials, SLAs..."></textarea>
           </div>
 
-          <p class="review-note">Only submit information you are authorized to share. Do not include passwords, patient data, classified information, or other restricted material. Review all AI-generated content before using it.</p>
+          <!-- LEGAL COMPLIANCE & LIMITATION OF LIABILITY BOX -->
+          <div class="legal-notice-box">
+            <strong>Mandatory Procurement Review &amp; Limitation of Liability:</strong>
+            TenderCrest AI provides automated first-pass proposal drafts intended solely as an editorial baseline for human review. 
+            TenderCrest AI does not guarantee solicitation compliance, does not submit proposals on your behalf, and disclaims any warranty regarding contract awards, proposal responsiveness, or evaluation scoring. 
+            The submitting organization retains sole legal and factual responsibility for verifying all statements, pricing figures, statutory FAR representations, and mandatory requirements prior to submission to any procuring authority.
+          </div>
+
           <button type="submit" id="submit-btn" class="btn btn-primary" style="font-size: 1rem; padding: 1rem;">🚀 Submit Solicitation to AI Engine</button>
         </form>
-
-        <section id="demo-preview" class="demo-preview" aria-live="polite" hidden>
-          <h3>Free sample preview</h3>
-          <p>This is a static example shown locally in your browser. It does not use AI, create an Airtable record, consume a proposal credit, or send email.</p>
-          <div class="demo-preview-output">
-            <strong id="demo-preview-title">Illustrative output</strong>
-            <pre id="demo-preview-content"></pre>
-          </div>
-          <p class="demo-preview-note">All company names, qualifications, and solicitation details in this sample are fictional. For live proposal generation, submit using the form above.</p>
-        </section>
       </div>
     </section>
   </main>
+
+  <!-- TERMS OF SERVICE & PRIVACY POLICY MODAL -->
+  <div id="legal-modal" class="modal-overlay" hidden onclick="closeLegalModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <button type="button" class="modal-close-btn" onclick="closeLegalModal()">✕</button>
+      <h2>Terms of Service &amp; Compliance Policy</h2>
+      <p><em>Last updated: October 2026</em></p>
+      
+      <h3>1. Preliminary Nature of AI Working Drafts</h3>
+      <p>TenderCrest AI provides automated drafting assistance for proposals, tenders, and grants. All generated output constitutes an unverified working draft. The platform does not independently audit government procurement regulations (including FAR, DFARS, or state codes) or commercial terms.</p>
+      
+      <h3>2. User Review &amp; Responsibility</h3>
+      <p>Customer assumes sole and exclusive responsibility for verifying the accuracy, truthfulness, and completeness of all technical claims, qualifications, pricing, and compliance representations before submitting any proposal to a prospective client or government agency. User agrees not to submit false claims under the False Claims Act (31 U.S.C. § 3729) or related statutes.</p>
+      
+      <h3>3. Prohibited Data Submissions</h3>
+      <p>Users must not input Classified National Security Information, Controlled Unclassified Information (CUI), Export Controlled data (ITAR/EAR), Protected Health Information (PHI under HIPAA), or confidential trade secrets belonging to third parties.</p>
+
+      <h3>4. Limitation of Liability &amp; Disclaimer of Warranties</h3>
+      <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, TENDERCREST AI IS PROVIDED "AS IS". WE EXPRESSLY DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL TENDERCREST AI OR ITS FOUNDERS BE LIABLE FOR INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES (INCLUDING LOST PROFITS, LOST CONTRACT OPPORTUNITIES, OR PROCUREMENT DISQUALIFICATION). OUR TOTAL AGGREGATE LIABILITY SHALL NOT EXCEED THE TOTAL FEES PAID BY USER TO TENDERCREST AI IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM.</p>
+
+      <h3>5. Customer Indemnification</h3>
+      <p>Customer agrees to defend, indemnify, and hold harmless TenderCrest AI from and against any third-party claims, government investigations, fines, or damages arising out of or relating to any proposal or solicitation submitted by Customer.</p>
+    </div>
+  </div>
 
   <footer>
     <div style="max-width: 1280px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
@@ -805,6 +871,7 @@
         <a href="#overview" onclick="switchTab('overview')" class="footer-link">Overview</a>
         <a href="#pricing" onclick="switchTab('pricing')" class="footer-link">Pricing</a>
         <a href="#portal" onclick="switchTab('portal')" class="footer-link">Portal</a>
+        <a href="javascript:void(0)" onclick="openLegalModal()" class="footer-link">Terms &amp; Disclaimers</a>
         <a 
           href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00" 
           target="_blank" 
@@ -820,11 +887,18 @@
   <script>
     let isSubmitting = false;
 
+    function openLegalModal() {
+      document.getElementById('legal-modal').hidden = false;
+    }
+
+    function closeLegalModal() {
+      document.getElementById('legal-modal').hidden = true;
+    }
+
     // Automatically switch tabs and prefill data from outreach links or Stripe return
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
 
-      // 1. Magic Prefill for cold outreach campaign links
       const prefillEmail = urlParams.get('email');
       const prefillCompany = urlParams.get('company');
 
@@ -835,7 +909,6 @@
         document.getElementById('company-name').value = decodeURIComponent(prefillCompany);
       }
 
-      // 2. Direct tab routing
       if (urlParams.get('session_id') || window.location.hash === '#portal' || prefillEmail) {
         switchTab('portal');
       } else {
