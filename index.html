@@ -754,14 +754,20 @@
     function handleSectorChange() {
       const sector = document.getElementById('proposal-sector').value;
       const hint = document.getElementById('rfp-content-hint');
+      const rfpContent = document.getElementById('rfp-content');
+
       if (sector.includes('Gov')) {
         hint.innerText = "Targeting Public Sector: Paste Section L (Instructions) and Section M (Evaluation Factors) along with Mandatory Pass/Fail Qualifications.";
+        rfpContent.placeholder = "Paste government RFP, Section L & M requirements, and evaluation scoring rubric here...";
       } else if (sector.includes('Commercial')) {
         hint.innerText = "Targeting Commercial Enterprise: Paste Statement of Work (SOW), SLA uptime requirements, and vendor selection criteria.";
+        rfpContent.placeholder = "Paste commercial RFP, SOW scope, timeline, and SLA requirements here...";
       } else if (sector.includes('SaaS')) {
         hint.innerText = "Targeting Tech Evaluation: Include security controls, cloud infrastructure, API capabilities, and data residency criteria.";
+        rfpContent.placeholder = "Paste tech evaluation criteria, security questionnaire prompts, and integration requirements here...";
       } else {
         hint.innerText = "Paste RFP requirements, eligibility guidelines, and evaluation rubrics.";
+        rfpContent.placeholder = "Paste solicitation or grant application requirements here...";
       }
     }
 
@@ -800,11 +806,17 @@
     }
 
     function loadSampleData(type = 'gov') {
+      const emailField = document.getElementById('submitter-email');
+      const companyField = document.getElementById('company-name');
+
+      // Keep whatever email/company the tester entered, or set clear placeholder
+      if (!companyField.value.trim()) {
+        companyField.value = "Apex Cloud Solutions LLC";
+      }
+
       if (type === 'gov') {
         document.getElementById('proposal-sector').value = "Public Sector / Gov (Section L&M)";
         document.getElementById('proposal-name').value = "Regional Transit Modernization RFP-2026-T1";
-        document.getElementById('company-name').value = "Apex Cloud Solutions LLC";
-        document.getElementById('submitter-email').value = "randomseattle88@gmail.com";
         document.getElementById('rfp-content').value = `SOLICITATION: Regional Transit Authority Cloud Modernization RFP-2026-T1
 ESTIMATED BUDGET: $950,000
 MANDATORY MINIMUM REQUIREMENTS:
@@ -819,8 +831,6 @@ KEY STAFF: Marcus Vance (CISSP, AWS Certified Solutions Architect Professional) 
       } else {
         document.getElementById('proposal-sector').value = "Commercial / Enterprise RFP";
         document.getElementById('proposal-name').value = "OmniGlobal Health - Enterprise Data Warehouse RFP-2026";
-        document.getElementById('company-name').value = "Apex Cloud Solutions LLC";
-        document.getElementById('submitter-email').value = "randomseattle88@gmail.com";
         document.getElementById('rfp-content').value = `COMMERCIAL SOLICITATION: OmniGlobal Health Enterprise Data Platform RFP
 TARGET GOAL: Centralize multi-facility clinical databases into a unified Snowflake lakehouse.
 REQUIREMENTS:
@@ -833,6 +843,13 @@ REQUIREMENTS:
 SLA GUARANTEE: Contractual 99.99% uptime with 10-minute P1 incident response tier.
 SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for all healthcare engagements.`;
       }
+
+      // If email is empty, focus on it so the tester knows to receive the output
+      if (!emailField.value.trim()) {
+        emailField.placeholder = "Enter your email to receive generated proposal...";
+        emailField.focus();
+      }
+
       handleSectorChange();
       updateWordCount();
     }
@@ -853,7 +870,7 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
 
       // Client-side guard rails to prevent unnecessary function execution
       if (!proposalName || !submitterEmail || !rfpText) {
-        alert("Please fill in all mandatory fields.");
+        alert("Please fill in all mandatory fields (Title, Submitter Email, and RFP Requirements).");
         return;
       }
 
