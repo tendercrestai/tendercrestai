@@ -20,11 +20,12 @@ exports.handler = async function (event, context) {
       return {
         statusCode: 400,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Missing required fields." })
+        body: JSON.stringify({ error: "Missing required fields: Proposal Name, Email, or RFP Content." })
       };
     }
 
     const cleanEmail = payload.submitterEmail.trim().toLowerCase();
+    const orgName = (payload.organizationName || "Independent Contractor").trim();
 
     // 1. Look up existing company by Billing Email
     const filterFormula = encodeURIComponent(`LOWER({Billing Email}) = '${cleanEmail}'`);
@@ -39,50 +40,73 @@ exports.handler = async function (event, context) {
     let companyRecordId = null;
 
     if (searchData.records && searchData.records.length > 0) {
-      // Pick the most relevant record
+      // Pick the primary active record
       const companyRecord = searchData.records[0];
       companyRecordId = companyRecord.id;
       const quotaStatus = companyRecord.fields["Quota Status"];
 
-      // Block if inactive or out of credits
+      // Block if inactive, canceled, or past due
       if (quotaStatus === "SUBSCRIPTION_INACTIVE") {
         return {
           statusCode: 403,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            error: "Subscription is inactive or canceled. Please renew via the Billing Portal to submit proposals."
+            error: "Your subscription is currently inactive, canceled, or past due. Please reactivate your plan via the Billing Portal to generate proposals."
           })
         };
       }
 
+      // Block if monthly credits are exhausted
       if (quotaStatus === "QUOTA_EXCEEDED") {
         return {
           statusCode: 429,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            error: "Monthly proposal quota reached for this billing cycle. Please upgrade your plan in the Billing Portal."
+            error: "Monthly proposal quota reached for this billing cycle. Please upgrade your tier via the Billing Portal to continue."
           })
         };
+      }
+    } else {
+      // New user onboarding via Developer Test Pass ($0 tier) -> Provision company record
+      const createCompRes = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${COMPANIES_TABLE_ID}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${AIRTABLE_PAT}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          fields: {
+            "Company Name": orgName,
+            "Billing Email": cleanEmail,
+            "Status": "Trialing",
+            "Subscription Tier": "Pro ($299/mo)"
+          }
+        })
+      });
+
+      const newCompData = await createCompRes.json();
+      if (createCompRes.ok && newCompData.id) {
+        companyRecordId = newCompData.id;
       }
     }
 
     // 2. Prepare Proposal record payload
     const postFields = {
-      "Proposal Name": payload.proposalName,
+      "Proposal Name": payload.proposalName.trim(),
       "Submitter Email": cleanEmail,
-      "Submitting Organization Name": payload.organizationName || "",
-      "RFP Text Content": payload.rfpText,
-      "Proposal Specific Qualifications": payload.qualifications || "",
+      "Submitting Organization Name": orgName,
+      "RFP Text Content": payload.rfpText.trim(),
+      "Proposal Specific Qualifications": (payload.qualifications || "").trim(),
       "Proposal Sector": payload.proposalSector || "Commercial / Enterprise RFP",
       "Pipeline Status": "Uploaded"
     };
 
-    // If company exists, link to the single existing record (prevents duplicates)
+    // Link to company record
     if (companyRecordId) {
       postFields["Company"] = [companyRecordId];
     }
 
-    // 3. Insert Proposal into pipeline
+    // 3. Insert Proposal into Proposals Pipeline table
     const insertRes = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${PROPOSALS_TABLE_ID}`, {
       method: "POST",
       headers: {
