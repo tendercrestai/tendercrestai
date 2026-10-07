@@ -3,7 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TenderCrest AI | Autonomous Government & Enterprise RFP Proposal Engine</title>
+  <title>TenderCrest AI | AI-assisted RFP Proposal Drafts</title>
+  <meta name="description" content="Turn government and commercial RFP requirements into structured proposal drafts with TenderCrest AI. Compare monthly plans and explore sample inputs.">
+  <link rel="canonical" href="https://tendercrestai.netlify.app/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="TenderCrest AI | AI-assisted RFP Proposal Drafts">
+  <meta property="og:description" content="Structure RFP requirements, supply your company qualifications, and receive a proposal draft for review.">
+  <meta property="og:url" content="https://tendercrestai.netlify.app/">
+  <meta name="twitter:card" content="summary">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -464,22 +471,60 @@
       color: var(--primary-hover);
       text-decoration: underline;
     }
+    .skip-link { position: absolute; left: 1rem; top: -5rem; z-index: 100; background: white; padding: 1rem; }
+    .skip-link:focus { top: 1rem; }
+    :focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+    .input-field:focus-visible { outline: 3px solid var(--primary); }
+    .hero-actions { display: flex; justify-content: center; gap: 1rem; margin: 1.5rem auto 1rem; }
+    .hero-actions .btn { width: auto; min-height: 44px; }
+    .review-note { color: var(--slate-600); font-size: .85rem; margin: 1rem 0; }
+    .page-title { font-size: 2.25rem; line-height: 1.2; margin-bottom: 1rem; }
+    .section-title { font-size: 1.25rem; margin-bottom: 1rem; }
+    .workflow { background: white; border: 1px solid var(--slate-200); border-radius: var(--radius); padding: 2rem; margin-top: 2rem; }
+    .workflow ol { padding-left: 1.5rem; margin: 1rem 0; }
+    .workflow li { margin: .75rem 0; color: var(--slate-600); }
+    details { padding-top: 1rem; border-top: 1px solid var(--slate-200); }
+    summary { cursor: pointer; font-weight: 700; }
+    details p { margin-top: .75rem; color: var(--slate-600); }
+    .demo-notice { padding: 1rem; margin-bottom: 1.5rem; border: 1px solid #fbbf24; border-radius: 8px; background: #fffbeb; color: #92400e; }
+    .btn:disabled { opacity: .65; cursor: wait; }
+    @media (max-width: 720px) {
+      .nav-container { padding: 1rem; }
+      .nav-right { width: 100%; flex-wrap: wrap; }
+      .nav-tabs { width: 100%; gap: .15rem; }
+      .nav-tab-btn { flex: 1; min-width: 0; padding: .65rem .3rem; font-size: .75rem; min-height: 44px; }
+      main { padding: 1.5rem 1rem; }
+      h1, .page-title { font-size: 1.8rem; }
+      .section-header { margin-bottom: 1.75rem; }
+      .hero-actions { flex-direction: column; }
+      .hero-actions .btn { width: 100%; }
+      .pricing-grid { grid-template-columns: minmax(0, 1fr); }
+      .portal-box, .workflow { padding: 1.25rem; }
+      .portal-top-bar { flex-direction: column; }
+      .input-field { font-size: 1rem; }
+      .counter-bar { flex-direction: column; gap: .3rem; }
+      footer { padding: 1.5rem 1rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+    }
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
 
   <header>
     <div class="nav-container">
-      <a href="#" class="brand" onclick="switchTab('overview')">
+      <a href="#overview" class="brand" onclick="switchTab('overview')">
         <div class="brand-icon">⚡</div>
         <span>TenderCrest AI</span>
       </a>
       <div class="nav-right">
-        <div class="nav-tabs">
-          <button class="nav-tab-btn" id="tab-btn-overview" onclick="switchTab('overview')">Platform Overview</button>
-          <button class="nav-tab-btn active" id="tab-btn-pricing" onclick="switchTab('pricing')">Pricing &amp; Plans</button>
-          <button class="nav-tab-btn" id="tab-btn-portal" onclick="switchTab('portal')">Client Portal</button>
-        </div>
+        <nav class="nav-tabs" aria-label="Main navigation">
+          <button class="nav-tab-btn active" id="tab-btn-overview" aria-controls="tab-overview" aria-pressed="true" onclick="switchTab('overview')">Platform Overview</button>
+          <button class="nav-tab-btn" id="tab-btn-pricing" aria-controls="tab-pricing" aria-pressed="false" onclick="switchTab('pricing')">Pricing &amp; Plans</button>
+          <button class="nav-tab-btn" id="tab-btn-portal" aria-controls="tab-portal" aria-pressed="false" onclick="switchTab('portal')">Proposal Workspace</button>
+        </nav>
         <a 
           href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00" 
           target="_blank" 
@@ -493,68 +538,57 @@
     </div>
   </header>
 
-  <main>
+  <main id="main-content" tabindex="-1">
     <!-- TAB 1: OVERVIEW -->
-    <section id="tab-overview" class="tab-content">
+    <section id="tab-overview" class="tab-content active">
       <div class="section-header">
-        <span class="badge-pill">Autonomous Proposal Operations</span>
-        <h1>Capture Public Sector &amp; Enterprise Contracts in Minutes</h1>
-        <p class="subtitle">From strict federal Section L &amp; M compliance matrices to competitive commercial vendor RFPs: cross-reference verified company performance and generate winning narratives straight to your inbox.</p>
+        <span class="badge-pill">AI-assisted proposal drafting</span>
+        <h1>Turn complex RFPs into structured proposal drafts</h1>
+        <p class="subtitle">Bring your solicitation requirements and company qualifications together. Create a structured first draft for government or commercial bids, then review it with your team before submission.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#pricing" onclick="switchTab('pricing')">Compare plans</a>
+          <a class="btn btn-outline" href="#portal" onclick="switchTab('portal'); loadSampleData('gov')">Explore sample inputs</a>
+        </div>
+        <p class="review-note">AI-generated drafts require human review. TenderCrest AI does not submit bids or guarantee contract awards.</p>
       </div>
 
+      <h2 class="section-title">Built around your proposal workflow</h2>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
         <div style="background: var(--white); padding: 1.5rem; border-radius: var(--radius); border: 1px solid var(--slate-200);">
           <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📊</div>
           <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Gov &amp; Commercial Matrices</h3>
-          <p style="font-size: 0.875rem; color: var(--slate-600);">Auto-generates strict pass/fail criteria, executive summaries, SOW responses, and pricing breakdowns across public and private tenders.</p>
+          <p style="font-size: 0.875rem; color: var(--slate-600);">Organize mandatory requirements and evaluation criteria into a draft response structure for public and private tenders.</p>
         </div>
         <div style="background: var(--white); padding: 1.5rem; border-radius: var(--radius); border: 1px solid var(--slate-200);">
           <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🛡️</div>
           <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Knowledge Base Ingestion</h3>
-          <p style="font-size: 0.875rem; color: var(--slate-600);">Seamlessly incorporates your company's case studies, certifications (SOC 2, ISO 27001, FedRAMP), and tech stack without hallucinations.</p>
+          <p style="font-size: 0.875rem; color: var(--slate-600);">Supply relevant case studies, current certifications, and team qualifications. Verify every claim and citation in the generated draft.</p>
         </div>
         <div style="background: var(--white); padding: 1.5rem; border-radius: var(--radius); border: 1px solid var(--slate-200);">
           <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">⚡</div>
-          <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Autonomous Delivery</h3>
-          <p style="font-size: 0.875rem; color: var(--slate-600);">Full Markdown drafts and executive summaries are compiled and delivered straight to your email within minutes.</p>
+          <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Draft delivery</h3>
+          <p style="font-size: 0.875rem; color: var(--slate-600);">Receive the generated draft by email for editing and review. Processing time varies with the scope of your solicitation.</p>
         </div>
+      </div>
+      <div class="workflow">
+        <h2>From requirements to a reviewable draft</h2>
+        <ol>
+          <li><strong>Provide the scope.</strong> Paste the solicitation, mandatory requirements, and evaluation criteria.</li>
+          <li><strong>Add your evidence.</strong> Include relevant company experience and verified qualifications.</li>
+          <li><strong>Review the output.</strong> Check the emailed draft for accuracy, missing requirements, and final pricing.</li>
+        </ol>
+        <details><summary>What does the sample demonstrate?</summary><p>The sample buttons populate fictional RFP inputs in the workspace. They do not generate a proposal until you submit, and they do not create an account or subscription.</p></details>
       </div>
     </section>
 
     <!-- TAB 2: PRICING & PLANS -->
-    <section id="tab-pricing" class="tab-content active">
+    <section id="tab-pricing" class="tab-content">
       <div class="section-header">
-        <h1>Simple, Predictable Monthly Billing</h1>
-        <p class="subtitle">No annual lock-in or surprise overage charges. Choose your plan and start submitting proposals today.</p>
+        <h2 class="page-title">Monthly plans for your proposal workload</h2>
+        <p class="subtitle">Compare proposal allowances below. Prices are in USD per month; applicable taxes and any currency conversion are shown at checkout.</p>
       </div>
 
       <div class="pricing-grid">
-        <!-- TIER 1: DEVELOPER TEST PASS ($0) -->
-        <div class="pricing-card test-card">
-          <div class="badge-pill" style="align-self: flex-start;">DEVELOPER LIVE TEST PASS</div>
-          <div class="card-title">Instant Free Onboarding</div>
-          <div class="card-desc">Test the full autonomous workflow from subscription to inbox delivery without entering payment details.</div>
-          
-          <div class="price-wrap">
-            <span class="price-num">$0</span>
-            <span class="price-period">/ test session</span>
-          </div>
-
-          <form class="card-form" onsubmit="handleTestActivation(event)">
-            <input type="text" id="test-company" class="input-field" placeholder="Your Company Name" required>
-            <input type="email" id="test-email" class="input-field" placeholder="Your Work Email" required>
-            <button type="submit" class="btn btn-green">⚡ Activate Free Test &amp; Submit</button>
-          </form>
-
-          <p style="font-size: 0.75rem; color: var(--slate-500); text-align: center;">Instant direct creation &amp; auto-provisioning</p>
-
-          <ul class="features-list">
-            <li><span class="check-icon">✓</span> 5 Full RFP Generation Credits</li>
-            <li><span class="check-icon">✓</span> Public &amp; Commercial Scope Parsing</li>
-            <li><span class="check-icon">✓</span> Direct Gmail API Delivery</li>
-          </ul>
-        </div>
-
         <!-- TIER 2: PRO TIER ($299/mo) -->
         <div class="pricing-card">
           <div class="card-title">Pro Plan</div>
@@ -562,18 +596,18 @@
           
           <div class="price-wrap">
             <span class="price-num">$299</span>
-            <span class="price-period">/ month</span>
+            <span class="price-period">USD / month</span>
           </div>
 
           <div style="margin-bottom: 1.25rem;">
-            <a href="https://buy.stripe.com/dRm9AT6PcaJT44U622dby00" class="btn btn-primary" target="_blank">Subscribe via Stripe</a>
+            <a href="https://buy.stripe.com/dRm9AT6PcaJT44U622dby00" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Choose plan</a>
           </div>
 
           <ul class="features-list">
             <li><span class="check-icon">✓</span> <strong>5 Proposals</strong> per month</li>
-            <li><span class="check-icon">✓</span> Automated Stripe Webhook Lifecycle</li>
+            <li><span class="check-icon">✓</span> Manage billing and cancellation through Stripe</li>
             <li><span class="check-icon">✓</span> Government &amp; Enterprise Matrix Extraction</li>
-            <li><span class="check-icon">✓</span> Standard GPT-4.1 generation queue</li>
+            <li><span class="check-icon">✓</span> Email delivery of generated drafts</li>
           </ul>
         </div>
 
@@ -584,17 +618,17 @@
           
           <div class="price-wrap">
             <span class="price-num">$699</span>
-            <span class="price-period">/ month</span>
+            <span class="price-period">USD / month</span>
           </div>
 
           <div style="margin-bottom: 1.25rem;">
-            <a href="https://buy.stripe.com/eVqfZh4H44lv8laaiidby01" class="btn btn-primary" target="_blank">Subscribe via Stripe</a>
+            <a href="https://buy.stripe.com/eVqfZh4H44lv8laaiidby01" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Choose plan</a>
           </div>
 
           <ul class="features-list">
             <li><span class="check-icon">✓</span> <strong>20 Proposals</strong> per month</li>
-            <li><span class="check-icon">✓</span> Automated Stripe Webhook Lifecycle</li>
-            <li><span class="check-icon">✓</span> Multi-user domain authorization</li>
+            <li><span class="check-icon">✓</span> Manage billing and cancellation through Stripe</li>
+            <li><span class="check-icon">✓</span> Government and commercial RFP inputs</li>
             <li><span class="check-icon">✓</span> Full past performance knowledge base</li>
           </ul>
         </div>
@@ -606,18 +640,18 @@
           
           <div class="price-wrap">
             <span class="price-num">$1,299</span>
-            <span class="price-period">/ month</span>
+            <span class="price-period">USD / month</span>
           </div>
 
           <div style="margin-bottom: 1.25rem;">
-            <a href="https://buy.stripe.com/14AdR92yW4lvcBq0HIdby02" class="btn btn-primary" target="_blank">Subscribe via Stripe</a>
+            <a href="https://buy.stripe.com/14AdR92yW4lvcBq0HIdby02" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Choose plan</a>
           </div>
 
           <ul class="features-list">
             <li><span class="check-icon">✓</span> <strong>60 Proposals</strong> per month</li>
             <li><span class="check-icon">✓</span> Dedicated Knowledge Base Digest</li>
-            <li><span class="check-icon">✓</span> Unlimited Sub-accounts under domain</li>
-            <li><span class="check-icon">✓</span> Priority GPT-4.1 generation queue</li>
+            <li><span class="check-icon">✓</span> Company qualifications in each proposal</li>
+            <li><span class="check-icon">✓</span> Proposal drafts for high-volume workflows</li>
           </ul>
         </div>
       </div>
@@ -643,8 +677,8 @@
       <div class="portal-box">
         <div class="portal-top-bar">
           <div>
-            <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 0.35rem;">Submit Solicitation for Generation</h2>
-            <p style="font-size: 0.85rem; color: var(--slate-600);">Input target RFP requirements and company credentials. Our engine compiles the proposal narrative and delivers it directly to your inbox.</p>
+            <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 0.35rem;">Create a proposal draft</h2>
+            <p style="font-size: 0.85rem; color: var(--slate-600);">Use the billing email associated with your account. Add your requirements and qualifications to queue a draft for email delivery. Sample buttons only fill the form.</p>
           </div>
           <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
             <button type="button" class="btn btn-outline" style="white-space: nowrap; width: auto;" onclick="loadSampleData('gov')">
@@ -656,13 +690,14 @@
           </div>
         </div>
 
-        <div id="status-alert" class="alert-banner alert-success"></div>
+        <div id="status-alert" class="alert-banner alert-success" role="status" aria-live="polite" aria-atomic="true" tabindex="-1"></div>
+        <p id="demo-notice" class="demo-notice" hidden>Fictional sample data loaded. Replace all company credentials and claims with your own verified information before submitting.</p>
 
         <form id="rfp-form" onsubmit="handleProposalSubmit(event)">
           <div class="form-group">
             <label for="proposal-sector">Proposal Type / Target Sector *</label>
-            <span class="hint" id="sector-hint">Adjusts prompt weighting for strict federal Section L&amp;M or commercial SLA/ROI narratives.</span>
-            <select id="proposal-sector" class="input-field" onchange="handleSectorChange()" required>
+            <span class="hint" id="sector-hint">Choose the type of solicitation you are responding to.</span>
+            <select id="proposal-sector" aria-describedby="sector-hint" class="input-field" onchange="handleSectorChange()" required>
               <option value="Public Sector / Gov (Section L&M)">Public Sector / Gov (Section L&amp;M Compliance)</option>
               <option value="Commercial / Enterprise RFP">Commercial / Enterprise RFP (Private B2B)</option>
               <option value="SaaS / Tech Vendor Evaluation">SaaS / Tech Vendor Evaluation &amp; Security</option>
@@ -672,24 +707,24 @@
 
           <div class="form-group">
             <label for="submitter-email">Billing / Submitter Email *</label>
-            <span class="hint">Your completed proposal draft and compliance matrix will be emailed here.</span>
-            <input type="email" id="submitter-email" class="input-field" placeholder="e.g. proposals@yourcompany.com" required>
+            <span class="hint">Use your account billing email. The generated draft will be delivered to this address.</span>
+            <input type="email" id="submitter-email" maxlength="254" class="input-field" placeholder="e.g. proposals@yourcompany.com" required>
           </div>
 
           <div class="form-group">
             <label for="company-name">Organization Name *</label>
-            <input type="text" id="company-name" class="input-field" placeholder="e.g. Acme Cloud & Defense Solutions LLC" required>
+            <input type="text" id="company-name" maxlength="200" class="input-field" placeholder="e.g. Acme Cloud & Defense Solutions LLC" required>
           </div>
 
           <div class="form-group">
             <label for="proposal-name">Proposal / Solicitation Title *</label>
-            <input type="text" id="proposal-name" class="input-field" placeholder="e.g. Department of Transportation Cloud Modernization RFP-2026" required>
+            <input type="text" id="proposal-name" maxlength="300" class="input-field" placeholder="e.g. Department of Transportation Cloud Modernization RFP-2026" required>
           </div>
 
           <div class="form-group">
             <label for="rfp-content">Solicitation Requirements (Scope, SOW, or Evaluation Criteria) *</label>
             <span class="hint" id="rfp-content-hint">Paste the statement of work, mandatory requirements, and evaluation scoring rubric.</span>
-            <textarea id="rfp-content" class="input-field" placeholder="Paste RFP or tender text here..." oninput="updateWordCount()" required></textarea>
+            <textarea id="rfp-content" aria-describedby="rfp-content-hint word-count-display" maxlength="100000" class="input-field" placeholder="Paste RFP or tender text here..." oninput="updateWordCount()" required></textarea>
             <div class="counter-bar">
               <span id="word-count-display">0 words | 0 characters</span>
               <span id="scope-recommendation"></span>
@@ -698,11 +733,12 @@
 
           <div class="form-group">
             <label for="proposal-qualifications">Proposal Specific Qualifications, Certifications &amp; Key Personnel</label>
-            <span class="hint">Optional if already stored in your company knowledge base; otherwise injects past performance and credentials directly.</span>
-            <textarea id="proposal-qualifications" class="input-field" placeholder="e.g. Relevant customer wins, active SOC 2 / ISO certifications, key team credentials, SLAs..."></textarea>
+            <span class="hint">Include accurate past performance, current certifications, and relevant personnel. If blank, available account credentials may be used.</span>
+            <textarea id="proposal-qualifications" maxlength="30000" class="input-field" placeholder="e.g. Relevant customer wins, active SOC 2 / ISO certifications, key team credentials, SLAs..."></textarea>
           </div>
 
-          <button type="submit" id="submit-btn" class="btn btn-primary" style="font-size: 1rem; padding: 1rem;">🚀 Submit Solicitation to AI Engine</button>
+          <p class="review-note">Only submit information you are authorized to share. Do not include passwords, patient data, classified information, or other restricted material. Review all AI-generated content before using it.</p>
+          <button type="submit" id="submit-btn" class="btn btn-primary" style="font-size: 1rem; padding: 1rem;">Queue proposal draft</button>
         </form>
       </div>
     </section>
@@ -712,9 +748,9 @@
     <div style="max-width: 1280px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
       <div>&copy; 2026 TenderCrest AI. All rights reserved.</div>
       <div style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
-        <a href="#" onclick="switchTab('overview')" class="footer-link">Overview</a>
-        <a href="#" onclick="switchTab('pricing')" class="footer-link">Pricing</a>
-        <a href="#" onclick="switchTab('portal')" class="footer-link">Portal</a>
+        <a href="#overview" onclick="switchTab('overview')" class="footer-link">Overview</a>
+        <a href="#pricing" onclick="switchTab('pricing')" class="footer-link">Pricing</a>
+        <a href="#portal" onclick="switchTab('portal')" class="footer-link">Portal</a>
         <a 
           href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00" 
           target="_blank" 
@@ -739,10 +775,10 @@
       const prefillCompany = urlParams.get('company');
 
       if (prefillEmail) {
-        document.getElementById('submitter-email').value = decodeURIComponent(prefillEmail);
+        document.getElementById('submitter-email').value = prefillEmail;
       }
       if (prefillCompany) {
-        document.getElementById('company-name').value = decodeURIComponent(prefillCompany);
+        document.getElementById('company-name').value = prefillCompany;
       }
 
       // 2. Direct tab routing
@@ -750,18 +786,33 @@
         switchTab('portal');
       }
 
+      else {
+        switchTab(['overview', 'pricing', 'portal'].includes(window.location.hash.slice(1)) ? window.location.hash.slice(1) : 'overview', false);
+      }
       handleSectorChange();
     });
+    window.addEventListener('hashchange', () => {
+      const route = window.location.hash.slice(1);
+      if (['overview', 'pricing', 'portal'].includes(route)) switchTab(route, false);
+    });
 
-    function switchTab(tabId) {
+    function switchTab(tabId, updateHash = true) {
+      if (!['overview', 'pricing', 'portal'].includes(tabId)) return;
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.nav-tab-btn').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-tab-btn').forEach(el => {
+        el.classList.remove('active');
+        el.setAttribute('aria-pressed', 'false');
+      });
 
       const targetContent = document.getElementById(`tab-${tabId}`);
       const targetBtn = document.getElementById(`tab-btn-${tabId}`);
 
       if (targetContent) targetContent.classList.add('active');
-      if (targetBtn) targetBtn.classList.add('active');
+      if (targetBtn) {
+        targetBtn.classList.add('active');
+        targetBtn.setAttribute('aria-pressed', 'true');
+      }
+      if (updateHash && window.location.hash !== '#' + tabId) history.pushState(null, '', '#' + tabId);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -806,20 +857,8 @@
       }
     }
 
-    function handleTestActivation(e) {
-      e.preventDefault();
-      const comp = document.getElementById('test-company').value.trim();
-      const email = document.getElementById('test-email').value.trim();
-
-      if (!comp || !email) return;
-
-      document.getElementById('company-name').value = comp;
-      document.getElementById('submitter-email').value = email;
-
-      switchTab('portal');
-    }
-
     function loadSampleData(type = 'gov') {
+      document.getElementById('demo-notice').hidden = false;
       const emailField = document.getElementById('submitter-email');
       const companyField = document.getElementById('company-name');
 
@@ -883,14 +922,15 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
       const proposalSector = document.getElementById('proposal-sector').value;
 
       // Client-side guard rails to prevent unnecessary function execution
-      if (!proposalName || !submitterEmail || !rfpText) {
-        alert("Please fill in all mandatory fields (Title, Submitter Email, and RFP Requirements).");
+      if (!proposalName || !submitterEmail || !organizationName || !rfpText) {
+        alert("Please fill in all mandatory fields (Title, Submitter Email, Organization, and RFP Requirements).");
         return;
       }
 
       isSubmitting = true;
       submitBtn.disabled = true;
-      submitBtn.innerText = 'Dispatching to Autonomous Engine...';
+      document.getElementById('rfp-form').setAttribute('aria-busy', 'true');
+      submitBtn.innerText = 'Queuing proposal draft...';
       alertBox.style.display = 'none';
 
       const payload = {
@@ -909,7 +949,9 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
           body: JSON.stringify(payload)
         });
 
-        const data = await res.json();
+        const data = await res.json().catch(() => {
+          throw new Error('The server returned an unexpected response. Please try again later.');
+        });
 
         if (!res.ok) {
           throw new Error(data.error || 'Server error while registering proposal');
@@ -917,32 +959,26 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
 
         alertBox.style.display = 'block';
         alertBox.className = 'alert-banner alert-success';
-        alertBox.innerHTML = `
-          <strong>✓ Solicitation Successfully Queued!</strong><br>
-          Your RFP (<em>${payload.proposalName}</em>) is now in progress.<br><br>
-          ⏱️ <strong>What happens next:</strong> Our dual-pass engine is parsing requirements and tailoring your narrative for <strong>${payload.proposalSector}</strong>.<br>
-          📬 <strong>Delivery:</strong> Expect an email at <strong>${payload.submitterEmail}</strong> in approximately <strong>60–90 seconds</strong> (please also check your spam/junk folder).
-        `;
-        
+        alertBox.textContent = 'Proposal queued: ' + payload.proposalName + '. Your draft will be sent to ' + payload.submitterEmail + ' when processing completes. Check your spam folder and review the draft before use.';
+        alertBox.focus();
+
         submitBtn.innerText = '✓ Queued in Engine';
         setTimeout(() => {
           submitBtn.disabled = false;
-          submitBtn.innerText = '🚀 Submit Another Solicitation';
+          submitBtn.innerText = 'Queue another draft';
           isSubmitting = false;
+          document.getElementById('rfp-form').setAttribute('aria-busy', 'false');
         }, 4000);
 
       } catch (err) {
         alertBox.style.display = 'block';
         alertBox.className = 'alert-banner alert-error';
-        alertBox.innerHTML = `
-          <strong>Submission Blocked:</strong> ${err.message}<br><br>
-          <a href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00" target="_blank" rel="noopener noreferrer" style="color: #991b1b; font-weight: 700; text-decoration: underline;">
-            Open Stripe Billing Portal to Update / Upgrade Plan &rarr;
-          </a>
-        `;
+        alertBox.textContent = 'Unable to queue the proposal: ' + err.message;
+        alertBox.focus();
         submitBtn.disabled = false;
-        submitBtn.innerText = '🚀 Submit Solicitation to AI Engine';
+        submitBtn.innerText = 'Queue proposal draft';
         isSubmitting = false;
+        document.getElementById('rfp-form').setAttribute('aria-busy', 'false');
       }
     }
   </script>
