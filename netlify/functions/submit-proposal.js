@@ -27,10 +27,10 @@ exports.handler = async function (event, context) {
     const cleanEmail = payload.submitterEmail.trim().toLowerCase();
     const orgName = (payload.organizationName || "Independent Contractor").trim();
 
-    // 1. Look up existing company by Billing Email
+    // 1. Look up existing company by Billing Email with deterministic sorting
     const filterFormula = encodeURIComponent(`LOWER({Billing Email}) = '${cleanEmail}'`);
     const searchRes = await fetch(
-      `https://api.airtable.com/v0/${BASE_ID}/${COMPANIES_TABLE_ID}?filterByFormula=${filterFormula}`,
+      `https://api.airtable.com/v0/${BASE_ID}/${COMPANIES_TABLE_ID}?filterByFormula=${filterFormula}&sort%5B0%5D%5Bfield%5D=Created&sort%5B0%5D%5Bdirection%5D=desc`,
       {
         headers: { Authorization: `Bearer ${AIRTABLE_PAT}` }
       }
@@ -45,7 +45,7 @@ exports.handler = async function (event, context) {
       companyRecordId = companyRecord.id;
       const quotaStatus = companyRecord.fields["Quota Status"];
 
-      // Block if inactive, canceled, or past due
+      // Block if subscription is canceled, past due, or missing
       if (quotaStatus === "SUBSCRIPTION_INACTIVE") {
         return {
           statusCode: 403,
@@ -67,7 +67,7 @@ exports.handler = async function (event, context) {
         };
       }
     } else {
-      // New user onboarding via Developer Test Pass ($0 tier) -> Provision company record
+      // New user onboarding via Developer Test Pass ($0 tier) -> Provision verified company record
       const createCompRes = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${COMPANIES_TABLE_ID}`, {
         method: "POST",
         headers: {
@@ -85,9 +85,14 @@ exports.handler = async function (event, context) {
       });
 
       const newCompData = await createCompRes.json();
-      if (createCompRes.ok && newCompData.id) {
-        companyRecordId = newCompData.id;
+      if (!createCompRes.ok || !newCompData.id) {
+        return {
+          statusCode: 500,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ error: "Failed to initialize company provisioning record. Please retry." })
+        };
       }
+      companyRecordId = newCompData.id;
     }
 
     // 2. Prepare Proposal record payload
@@ -101,7 +106,6 @@ exports.handler = async function (event, context) {
       "Pipeline Status": "Uploaded"
     };
 
-    // Link to company record
     if (companyRecordId) {
       postFields["Company"] = [companyRecordId];
     }
