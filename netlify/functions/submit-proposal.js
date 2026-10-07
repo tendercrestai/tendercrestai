@@ -1,5 +1,5 @@
 exports.handler = async function (event, context) {
-  // 1. Only allow POST
+  // Only allow POST
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
@@ -31,7 +31,7 @@ exports.handler = async function (event, context) {
       };
     }
 
-    // 2. High-speed lookup: Query ONLY Quota Status & Credentials fields to minimize latency
+    // 1. High-speed lookup: Query ONLY Quota Status & Credentials fields to minimize latency & Netlify runtime
     const filterFormula = encodeURIComponent(`LOWER({Billing Email}) = '${cleanEmail}'`);
     const searchUrl = `https://api.airtable.com/v0/${BASE_ID}/${COMPANIES_TABLE_ID}?filterByFormula=${filterFormula}&maxRecords=1&sort%5B0%5D%5Bfield%5D=Created&sort%5B0%5D%5Bdirection%5D=desc&fields%5B%5D=Quota+Status&fields%5B%5D=Company+Credentials+Digest`;
 
@@ -48,7 +48,7 @@ exports.handler = async function (event, context) {
       const quotaStatus = companyRecord.fields["Quota Status"];
       const credentialsDigest = companyRecord.fields["Company Credentials Digest"];
 
-      // Enforcement of subscription status
+      // Block if subscription is inactive, canceled, or past due
       if (quotaStatus === "SUBSCRIPTION_INACTIVE") {
         return {
           statusCode: 403,
@@ -59,6 +59,7 @@ exports.handler = async function (event, context) {
         };
       }
 
+      // Block if monthly proposal quota is exhausted
       if (quotaStatus === "QUOTA_EXCEEDED") {
         return {
           statusCode: 429,
@@ -102,7 +103,7 @@ exports.handler = async function (event, context) {
       companyRecordId = newCompData.id;
     }
 
-    // 3. Insert proposal record into pipeline
+    // 2. Insert proposal record into pipeline
     const postFields = {
       "Proposal Name": proposalName,
       "Submitter Email": cleanEmail,
