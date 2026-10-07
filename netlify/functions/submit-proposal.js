@@ -31,6 +31,7 @@ exports.handler = async function (event, context) {
         "Submitting Organization Name": payload.organizationName,
         "RFP Text Content": payload.rfpText,
         "Proposal Specific Qualifications": payload.qualifications || "",
+        "Proposal Sector": payload.proposalSector || "Commercial / Enterprise RFP",
         "Pipeline Status": "Uploaded"
       }
     };
