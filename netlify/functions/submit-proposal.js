@@ -95,32 +95,67 @@ exports.handler = async function (event) {
     }
 
     const accounts = await search.json();
+    let company;
+
     if (!Array.isArray(accounts.records) || accounts.records.length === 0) {
-      return reply(403, {
-        error: "No provisioned account was found. Use your subscription billing email, or activate a plan before submitting."
+      // Self-serve free trial: no prior Airtable provisioning or paid subscription is required.
+      // Airtable formulas grant Trialing accounts 60 proposals and a 30-day trial window.
+      const trial = await fetch(root + "/tbliWnP6ThqA02G5L", {
+        method: "POST",
+        headers,
+        signal: AbortSignal.timeout(10000),
+        body: JSON.stringify({
+          fields: {
+            "Company Name": orgName,
+            "Billing Email": cleanEmail,
+            "Subscription Tier": "Enterprise ($1,299/mo)",
+            "Status": "Trialing",
+            "Amount Paid": 0
+          }
+        })
       });
+
+      if (!trial.ok) {
+        return reply(503, { error: "Free trial activation is temporarily unavailable. Please try again later." });
+      }
+
+      const createdTrial = await trial.json();
+      if (!createdTrial.id) {
+        return reply(503, { error: "Free trial activation returned an unexpected response. Please try again later." });
+      }
+
+      // Read back computed quota fields before queuing the first proposal.
+      const trialCheck = await fetch(root + "/tbliWnP6ThqA02G5L/" + encodeURIComponent(createdTrial.id) +
+        "?fields%5B%5D=Company+Name&fields%5B%5D=Quota+Status&fields%5B%5D=Company+Credentials+Digest&fields%5B%5D=Remaining+Proposals", {
+          headers,
+          signal: AbortSignal.timeout(10000)
+        });
+      if (!trialCheck.ok) {
+        return reply(503, { error: "Your free trial was activated, but its quota is still initializing. Please try again shortly." });
+      }
+      company = await trialCheck.json();
+    } else {
+      // Reuse an existing account for the exact email, preferring the matching organization.
+      let matchingRecords = accounts.records.filter(r => {
+        const cName = (r.fields["Company Name"] || "").trim().toLowerCase();
+        return cName === orgName.toLowerCase();
+      });
+
+      if (matchingRecords.length === 0) {
+        matchingRecords = accounts.records;
+      }
+
+      // Pick the most eligible account: ACTIVE first, followed by highest remaining proposals.
+      company = matchingRecords.sort((a, b) => {
+        const aActive = a.fields["Quota Status"] === "ACTIVE" ? 1 : 0;
+        const bActive = b.fields["Quota Status"] === "ACTIVE" ? 1 : 0;
+        if (bActive !== aActive) return bActive - aActive;
+        return (b.fields["Remaining Proposals"] || 0) - (a.fields["Remaining Proposals"] || 0);
+      })[0];
     }
-
-    // Filter to prioritize exact company name match if multiple exist under same billing email
-    let matchingRecords = accounts.records.filter(r => {
-      const cName = (r.fields["Company Name"] || "").trim().toLowerCase();
-      return cName === orgName.toLowerCase();
-    });
-
-    if (matchingRecords.length === 0) {
-      matchingRecords = accounts.records;
-    }
-
-    // Pick the most eligible account: ACTIVE first, followed by highest remaining proposals
-    const company = matchingRecords.sort((a, b) => {
-      const aActive = a.fields["Quota Status"] === "ACTIVE" ? 1 : 0;
-      const bActive = b.fields["Quota Status"] === "ACTIVE" ? 1 : 0;
-      if (bActive !== aActive) return bActive - aActive;
-      return (b.fields["Remaining Proposals"] || 0) - (a.fields["Remaining Proposals"] || 0);
-    })[0];
 
     if (!company || !company.id || !company.fields) {
-      return reply(503, { error: "Your account is not ready for submissions. Please contact support." });
+      return reply(503, { error: "Your trial account is not ready for submissions. Please try again later." });
     }
 
     const quota = company.fields["Quota Status"];
@@ -171,3 +206,4 @@ exports.handler = async function (event) {
     return reply(503, { error: "Proposal submission is temporarily unavailable. Please try again later." });
   }
 };
+
