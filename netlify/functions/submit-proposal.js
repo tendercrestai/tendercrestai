@@ -206,4 +206,3 @@ exports.handler = async function (event) {
     return reply(503, { error: "Proposal submission is temporarily unavailable. Please try again later." });
   }
 };
-
