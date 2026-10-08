@@ -33,3 +33,4 @@ The Automation 1 draft was updated to use exact billing-email matching and to st
 Test
 
 Submit a proposal with a valid email that is not already in Companies. Confirm Airtable creates one Trialing company row, links the proposal to it, and the existing automation produces and emails the output.
+
