@@ -81,9 +81,8 @@ exports.handler = async function (event) {
   try {
     // Escape formula literals for Airtable
     const escapedEmail = cleanEmail.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-    const escapedOrg = orgName.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 
-    // Fetch accounts matching email; include Company Name for accurate disambiguation
+    // Fetch accounts matching the exact billing email
     const formula = encodeURIComponent("LOWER({Billing Email}) = '" + escapedEmail + "'");
     const searchUrl = root + "/tbliWnP6ThqA02G5L?filterByFormula=" + formula +
       "&fields%5B%5D=Company+Name&fields%5B%5D=Quota+Status&fields%5B%5D=Company+Credentials+Digest&fields%5B%5D=Remaining+Proposals";
@@ -96,10 +95,10 @@ exports.handler = async function (event) {
 
     const accounts = await search.json();
     let company;
+    let newTrial = false;
 
     if (!Array.isArray(accounts.records) || accounts.records.length === 0) {
-      // Self-serve free trial: no prior Airtable provisioning or paid subscription is required.
-      // Airtable formulas grant Trialing accounts 60 proposals and a 30-day trial window.
+      // Create a free trial for a new email; no prior provisioning or paid subscription is required.
       const trial = await fetch(root + "/tbliWnP6ThqA02G5L", {
         method: "POST",
         headers,
@@ -124,18 +123,19 @@ exports.handler = async function (event) {
         return reply(503, { error: "Free trial activation returned an unexpected response. Please try again later." });
       }
 
-      // Read back computed quota fields before queuing the first proposal.
-      const trialCheck = await fetch(root + "/tbliWnP6ThqA02G5L/" + encodeURIComponent(createdTrial.id) +
-        "?fields%5B%5D=Company+Name&fields%5B%5D=Quota+Status&fields%5B%5D=Company+Credentials+Digest&fields%5B%5D=Remaining+Proposals", {
-          headers,
-          signal: AbortSignal.timeout(10000)
-        });
-      if (!trialCheck.ok) {
-        return reply(503, { error: "Your free trial was activated, but its quota is still initializing. Please try again shortly." });
-      }
-      company = await trialCheck.json();
+      // A new Trialing account receives 60 credits. Don't wait for Airtable's
+      // computed quota fields to refresh before queuing its first proposal.
+      company = {
+        ...createdTrial,
+        fields: {
+          ...(createdTrial.fields || {}),
+          "Quota Status": "ACTIVE",
+          "Remaining Proposals": 60
+        }
+      };
+      newTrial = true;
     } else {
-      // Reuse an existing account for the exact email, preferring the matching organization.
+      // Reuse an existing account for this email, preferring the matching organization.
       let matchingRecords = accounts.records.filter(r => {
         const cName = (r.fields["Company Name"] || "").trim().toLowerCase();
         return cName === orgName.toLowerCase();
@@ -145,7 +145,7 @@ exports.handler = async function (event) {
         matchingRecords = accounts.records;
       }
 
-      // Pick the most eligible account: ACTIVE first, followed by highest remaining proposals.
+      // Prefer ACTIVE accounts, then the account with the most remaining proposals.
       company = matchingRecords.sort((a, b) => {
         const aActive = a.fields["Quota Status"] === "ACTIVE" ? 1 : 0;
         const bActive = b.fields["Quota Status"] === "ACTIVE" ? 1 : 0;
@@ -158,15 +158,18 @@ exports.handler = async function (event) {
       return reply(503, { error: "Your trial account is not ready for submissions. Please try again later." });
     }
 
-    const quota = company.fields["Quota Status"];
-    if (quota === "SUBSCRIPTION_INACTIVE") {
-      return reply(403, { error: "Your subscription is inactive. Manage your subscription through the Billing Portal." });
-    }
-    if (quota === "QUOTA_EXCEEDED") {
-      return reply(429, { error: "Your monthly proposal allowance has been reached." });
-    }
-    if (quota !== "ACTIVE") {
-      return reply(503, { error: "Your account status is currently: " + (quota || "Pending") + ". Please check your active plan." });
+    // Enforce quota checks for existing accounts. A new trial can submit its first proposal immediately.
+    if (!newTrial) {
+      const quota = company.fields["Quota Status"];
+      if (quota === "SUBSCRIPTION_INACTIVE") {
+        return reply(403, { error: "Your subscription is inactive. Manage your subscription through the Billing Portal." });
+      }
+      if (quota === "QUOTA_EXCEEDED") {
+        return reply(429, { error: "Your monthly proposal allowance has been reached." });
+      }
+      if (quota !== "ACTIVE") {
+        return reply(503, { error: "Your account status is currently: " + (quota || "Pending") + ". Please check your active plan." });
+      }
     }
 
     const digest = company.fields["Company Credentials Digest"];
@@ -206,4 +209,3 @@ exports.handler = async function (event) {
     return reply(503, { error: "Proposal submission is temporarily unavailable. Please try again later." });
   }
 };
-
