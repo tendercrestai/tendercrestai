@@ -253,8 +253,11 @@
       show("account");
     }
 
-    $("workspaceBtn").addEventListener("click", () => {
-      location.href = "/#portal";
+     $("workspaceBtn").addEventListener("click", () => {
+      location.href =
+        new URLSearchParams(location.search).get("next") === "rfp-upload"
+          ? "/rfp-upload.html"
+          : "/#portal";
     });
 
     $("logoutBtn").addEventListener("click", async () => {
