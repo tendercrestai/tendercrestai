@@ -1,19 +1,21 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TenderCrest AI | AI-assisted RFP Proposal Drafts</title>
-  <meta name="description" content="Turn government and commercial RFP requirements into structured proposal drafts with TenderCrest AI. Compare monthly plans and test live proposal generation.">
+  <meta name="description" content="Turn government and commercial RFP requirements into structured proposal drafts with TenderCrest AI.">
   <link rel="canonical" href="https://tendercrestai.netlify.app/">
   <meta property="og:type" content="website">
   <meta property="og:title" content="TenderCrest AI | AI-assisted RFP Proposal Drafts">
-  <meta property="og:description" content="Structure RFP requirements, supply your company qualifications, and receive a proposal draft for review.">
+  <meta property="og:description" content="Structure RFP requirements and receive a proposal draft for review.">
   <meta property="og:url" content="https://tendercrestai.netlify.app/">
   <meta name="twitter:card" content="summary">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
   <style>
     :root {
       --primary: #2563eb;
@@ -30,17 +32,17 @@
       --slate-50: #f8fafc;
       --white: #ffffff;
       --radius: 12px;
-      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --shadow-sm: 0 1px 2px rgb(0 0 0 / .05);
+      --shadow: 0 4px 6px rgb(0 0 0 / .1);
+      --shadow-lg: 0 10px 15px rgb(0 0 0 / .1);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Plus Jakarta Sans', sans-serif;
       color: var(--slate-800);
-      background-color: var(--slate-50);
+      background: var(--slate-50);
       line-height: 1.5;
       min-height: 100vh;
       display: flex;
@@ -48,7 +50,7 @@
     }
 
     header {
-      background: var(--white);
+      background: white;
       border-bottom: 1px solid var(--slate-200);
       position: sticky;
       top: 0;
@@ -57,7 +59,7 @@
 
     .nav-container {
       max-width: 1280px;
-      margin: 0 auto;
+      margin: auto;
       padding: 1rem 1.5rem;
       display: flex;
       justify-content: space-between;
@@ -69,7 +71,7 @@
     .brand {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: .75rem;
       text-decoration: none;
       font-weight: 800;
       font-size: 1.25rem;
@@ -79,43 +81,42 @@
     .brand-icon {
       width: 32px;
       height: 32px;
-      background: linear-gradient(135deg, var(--primary), #3b82f6);
+      background: linear-gradient(135deg,#2563eb,#3b82f6);
       border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--white);
-      font-size: 1rem;
+      display: grid;
+      place-items: center;
+      color: white;
     }
 
     .nav-right {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: .75rem;
+      flex-wrap: wrap;
     }
 
     .nav-tabs {
       display: flex;
-      gap: 0.5rem;
+      gap: .5rem;
       background: var(--slate-100);
-      padding: 0.25rem;
+      padding: .25rem;
       border-radius: 10px;
     }
 
     .nav-tab-btn {
-      border: none;
+      border: 0;
       background: transparent;
-      padding: 0.5rem 1rem;
-      font-size: 0.875rem;
+      padding: .5rem 1rem;
+      font: inherit;
+      font-size: .875rem;
       font-weight: 600;
       color: var(--slate-600);
       border-radius: 8px;
       cursor: pointer;
-      transition: all 0.2s ease;
     }
 
     .nav-tab-btn.active {
-      background: var(--white);
+      background: white;
       color: var(--primary);
       box-shadow: var(--shadow-sm);
     }
@@ -123,71 +124,51 @@
     .nav-portal-link {
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
-      padding: 0.45rem 0.85rem;
-      font-size: 0.825rem;
-      font-weight: 600;
-      color: var(--slate-600);
+      padding: .5rem .85rem;
+      font-size: .825rem;
+      font-weight: 700;
+      color: var(--slate-700);
       background: var(--slate-100);
       border: 1px solid var(--slate-200);
       border-radius: 8px;
       text-decoration: none;
-      transition: all 0.2s ease;
       white-space: nowrap;
     }
 
-    .nav-portal-link:hover {
-      background: var(--white);
-      color: var(--slate-900);
-      border-color: var(--slate-300);
-      box-shadow: var(--shadow-sm);
-    }
+    .nav-portal-link:hover { background: white; }
 
     main {
       flex: 1;
       max-width: 1280px;
       width: 100%;
-      margin: 0 auto;
+      margin: auto;
       padding: 2.5rem 1.5rem;
     }
 
-    .tab-content {
-      display: none;
-      animation: fadeIn 0.25s ease-in-out;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    [hidden] { display: none !important; }
 
     .section-header {
       text-align: center;
       max-width: 780px;
-      margin: 0 auto 3rem auto;
+      margin: 0 auto 3rem;
     }
 
     .badge-pill {
       display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
       background: var(--accent-green-bg);
       color: #065f46;
-      font-size: 0.75rem;
+      font-size: .75rem;
       font-weight: 700;
-      letter-spacing: 0.05em;
       text-transform: uppercase;
-      padding: 0.25rem 0.75rem;
-      border-radius: 9999px;
+      padding: .35rem .75rem;
+      border-radius: 999px;
       margin-bottom: 1rem;
       border: 1px solid #a7f3d0;
     }
 
-    h1 {
+    h1, .page-title {
       font-size: 2.25rem;
       font-weight: 800;
       color: var(--slate-900);
@@ -195,123 +176,156 @@
       margin-bottom: 1rem;
     }
 
-    p.subtitle {
+    .subtitle {
       font-size: 1.1rem;
       color: var(--slate-600);
     }
 
-    .pricing-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1.5rem;
-      align-items: stretch;
-    }
-
-    .pricing-card {
-      background: var(--white);
-      border: 1px solid var(--slate-200);
-      border-radius: var(--radius);
-      padding: 1.75rem;
+    .hero-actions {
       display: flex;
-      flex-direction: column;
-      position: relative;
-      box-shadow: var(--shadow-sm);
-      transition: all 0.2s ease;
-    }
-
-    .pricing-card:hover {
-      box-shadow: var(--shadow-lg);
-      transform: translateY(-2px);
-    }
-
-    .pricing-card.test-card {
-      border: 2px dashed var(--accent-green);
-      background: linear-gradient(180deg, #f0fdf4 0%, var(--white) 35%);
-    }
-
-    .card-title {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: var(--slate-900);
-      margin-bottom: 0.5rem;
-    }
-
-    .card-desc {
-      font-size: 0.85rem;
-      color: var(--slate-600);
-      margin-bottom: 1.25rem;
-      min-height: 2.5rem;
-    }
-
-    .price-wrap {
-      margin-bottom: 1.25rem;
-    }
-
-    .price-num {
-      font-size: 2.25rem;
-      font-weight: 800;
-      color: var(--slate-900);
-    }
-
-    .price-period {
-      font-size: 0.9rem;
-      color: var(--slate-500);
-      font-weight: 500;
-    }
-
-    .card-form {
-      display: flex;
-      flex-direction: column;
-      gap: 0.6rem;
-      margin-bottom: 1.25rem;
-    }
-
-    .input-field {
-      width: 100%;
-      padding: 0.7rem 0.9rem;
-      border: 1px solid var(--slate-200);
-      border-radius: 8px;
-      font-size: 0.875rem;
-      font-family: inherit;
-      background: var(--white);
-      transition: border-color 0.2s;
-    }
-
-    .input-field:focus {
-      outline: none;
-      border-color: var(--primary);
+      justify-content: center;
+      gap: 1rem;
+      margin: 1.5rem auto;
     }
 
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
-      padding: 0.75rem 1.25rem;
-      font-size: 0.9rem;
+      gap: .5rem;
+      padding: .75rem 1.25rem;
+      font: inherit;
+      font-size: .9rem;
       font-weight: 700;
       border-radius: 8px;
-      border: none;
+      border: 0;
       cursor: pointer;
       text-decoration: none;
-      transition: all 0.2s ease;
+      transition: .2s;
       width: 100%;
     }
 
-    .btn-primary { background: var(--primary); color: var(--white); }
+    .btn-primary { background: var(--primary); color: white; }
     .btn-primary:hover { background: var(--primary-hover); }
-    .btn-green { background: var(--accent-green); color: var(--white); }
+    .btn-green { background: var(--accent-green); color: white; }
     .btn-green:hover { background: #059669; }
+
     .btn-outline {
       background: transparent;
       border: 1px solid var(--slate-200);
       color: var(--slate-600);
-      font-size: 0.8rem;
-      padding: 0.4rem 0.8rem;
+      font-size: .8rem;
+      padding: .5rem .8rem;
     }
-    .btn-outline:hover {
-      background: var(--slate-100);
-      color: var(--slate-900);
+
+    .btn:disabled { opacity: .6; cursor: wait; }
+    .hero-actions .btn { width: auto; }
+
+    .review-note {
+      color: var(--slate-600);
+      font-size: .85rem;
+      margin: 1rem 0;
+    }
+
+    .section-title { font-size: 1.25rem; margin-bottom: 1rem; }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(250px,1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .feature-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--slate-200);
+    }
+
+    .feature-card h3 { margin-bottom: .5rem; }
+    .feature-card p { color: var(--slate-600); font-size: .875rem; }
+
+    .workflow {
+      background: white;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius);
+      padding: 2rem;
+      margin-top: 2rem;
+    }
+
+    .workflow ol { padding-left: 1.5rem; margin: 1rem 0; }
+    .workflow li { margin: .75rem 0; color: var(--slate-600); }
+
+    details {
+      padding-top: 1rem;
+      border-top: 1px solid var(--slate-200);
+    }
+
+    summary { cursor: pointer; font-weight: 700; }
+    details p { margin-top: .75rem; color: var(--slate-600); }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(260px,1fr));
+      gap: 1.5rem;
+      align-items: stretch;
+    }
+
+    .pricing-card {
+      background: white;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .pricing-card:hover { box-shadow: var(--shadow-lg); }
+
+    .pricing-card.test-card {
+      border: 2px dashed var(--accent-green);
+      background: linear-gradient(180deg,#f0fdf4,white 35%);
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: .5rem;
+    }
+
+    .card-desc {
+      font-size: .85rem;
+      color: var(--slate-600);
+      margin-bottom: 1.25rem;
+      min-height: 2.5rem;
+    }
+
+    .price-wrap { margin-bottom: 1.25rem; }
+    .price-num { font-size: 2.25rem; font-weight: 800; }
+    .price-period { font-size: .9rem; color: var(--slate-500); }
+
+    .card-form {
+      display: flex;
+      flex-direction: column;
+      gap: .6rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .input-field {
+      width: 100%;
+      padding: .75rem .9rem;
+      border: 1px solid var(--slate-200);
+      border-radius: 8px;
+      font: inherit;
+      font-size: .875rem;
+      background: white;
+    }
+
+    .input-field:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
     }
 
     .features-list {
@@ -321,29 +335,21 @@
       border-top: 1px solid var(--slate-100);
       display: flex;
       flex-direction: column;
-      gap: 0.65rem;
-      font-size: 0.85rem;
+      gap: .65rem;
+      font-size: .85rem;
       color: var(--slate-600);
     }
 
-    .features-list li {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .check-icon {
-      color: var(--accent-green);
-      font-weight: 800;
-    }
+    .features-list li { display: flex; gap: .5rem; }
+    .check-icon { color: var(--accent-green); font-weight: 800; }
 
     .portal-box {
-      background: var(--white);
+      background: white;
       border: 1px solid var(--slate-200);
       border-radius: var(--radius);
       padding: 2.5rem;
       max-width: 800px;
-      margin: 0 auto;
+      margin: auto;
       box-shadow: var(--shadow-sm);
     }
 
@@ -351,51 +357,46 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 1.5rem;
       gap: 1rem;
+      margin-bottom: 1.5rem;
     }
 
-    .form-group {
-      margin-bottom: 1.5rem;
-      position: relative;
-    }
+    .form-group { margin-bottom: 1.5rem; }
 
     .form-group label {
       display: block;
       font-weight: 700;
-      font-size: 0.875rem;
-      margin-bottom: 0.4rem;
-      color: var(--slate-800);
+      font-size: .875rem;
+      margin-bottom: .4rem;
     }
 
     .form-group .hint {
       display: block;
-      font-size: 0.775rem;
+      font-size: .775rem;
       color: var(--slate-500);
-      margin-bottom: 0.4rem;
-    }
-
-    .counter-bar {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.75rem;
-      color: var(--slate-500);
-      margin-top: 0.4rem;
+      margin-bottom: .4rem;
     }
 
     textarea.input-field {
       resize: vertical;
       min-height: 120px;
       line-height: 1.4;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85rem;
+      font-family: 'JetBrains Mono',monospace;
+    }
+
+    .counter-bar {
+      display: flex;
+      justify-content: space-between;
+      font-size: .75rem;
+      color: var(--slate-500);
+      margin-top: .4rem;
     }
 
     .alert-banner {
       padding: 1.25rem;
       border-radius: 8px;
       margin-bottom: 1.5rem;
-      font-size: 0.875rem;
+      font-size: .875rem;
       display: none;
       line-height: 1.5;
     }
@@ -419,25 +420,11 @@
       border-radius: var(--radius);
       padding: 1.25rem;
       text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .billing-manage-banner p {
-      font-size: 0.9rem;
-      color: var(--slate-700);
     }
 
     .billing-manage-banner a {
       color: var(--primary);
       font-weight: 700;
-      text-decoration: underline;
-    }
-
-    .billing-manage-banner a:hover {
-      color: var(--primary-hover);
     }
 
     .legal-notice-box {
@@ -445,152 +432,129 @@
       border: 1px solid #fde68a;
       border-radius: 8px;
       padding: 1rem;
-      font-size: 0.8rem;
-      line-height: 1.5;
+      font-size: .8rem;
       color: #78350f;
       margin: 1.5rem 0;
     }
 
     .legal-notice-box strong {
-      color: #92400e;
       display: block;
-      margin-bottom: 0.35rem;
+      margin-bottom: .35rem;
     }
 
-    /* Modal Styles */
+    .demo-notice {
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid #fbbf24;
+      border-radius: 8px;
+      background: #fffbeb;
+      color: #92400e;
+    }
+
     .modal-overlay {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.6);
+      inset: 0;
+      background: rgba(15,23,42,.6);
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 1.5rem;
       z-index: 200;
-      backdrop-filter: blur(2px);
     }
-    .modal-overlay[hidden] { display: none; }
+
     .modal-box {
-      background: var(--white);
+      background: white;
       max-width: 760px;
       width: 100%;
       max-height: 85vh;
       overflow-y: auto;
       border-radius: var(--radius);
       padding: 2rem;
-      box-shadow: var(--shadow-lg);
       position: relative;
     }
+
     .modal-close-btn {
       position: absolute;
-      top: 1rem; right: 1rem;
+      top: 1rem;
+      right: 1rem;
+      border: 0;
       background: var(--slate-100);
-      border: none;
-      width: 32px; height: 32px;
       border-radius: 50%;
-      font-size: 1.1rem;
-      font-weight: 700;
+      width: 32px;
+      height: 32px;
       cursor: pointer;
-      color: var(--slate-600);
     }
-    .modal-box h2 { font-size: 1.35rem; margin-bottom: 1rem; color: var(--slate-900); }
-    .modal-box h3 { font-size: 1rem; margin-top: 1.25rem; margin-bottom: 0.4rem; color: var(--slate-800); }
-    .modal-box p, .modal-box li { font-size: 0.85rem; color: var(--slate-600); line-height: 1.6; }
-    .modal-box ul { padding-left: 1.25rem; margin-top: 0.5rem; }
+
+    .modal-box h2 { margin-bottom: 1rem; }
+    .modal-box h3 { margin: 1.25rem 0 .4rem; }
+    .modal-box p { font-size: .85rem; color: var(--slate-600); margin-bottom: .75rem; }
 
     footer {
       border-top: 1px solid var(--slate-200);
-      background: var(--white);
+      background: white;
       padding: 2rem 1.5rem;
-      text-align: center;
-      font-size: 0.85rem;
+      font-size: .85rem;
       color: var(--slate-500);
       margin-top: auto;
     }
 
-    .footer-link {
-      color: inherit;
-      text-decoration: none;
-      transition: color 0.2s;
-      cursor: pointer;
-    }
-
-    .footer-link:hover {
-      color: var(--slate-900);
-      text-decoration: underline;
-    }
-
-    .footer-portal-link {
-      color: var(--primary);
-      text-decoration: none;
-      font-weight: 600;
-      transition: color 0.2s;
-    }
-
-    .footer-portal-link:hover {
-      color: var(--primary-hover);
-      text-decoration: underline;
-    }
-
-    .skip-link { position: absolute; left: 1rem; top: -5rem; z-index: 100; background: white; padding: 1rem; }
+    .footer-link { color: inherit; text-decoration: none; }
+    .footer-portal-link { color: var(--primary); font-weight: 600; }
+    .skip-link { position: absolute; top: -5rem; left: 1rem; }
     .skip-link:focus { top: 1rem; }
     :focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
-    .input-field:focus-visible { outline: 3px solid var(--primary); }
-    .hero-actions { display: flex; justify-content: center; gap: 1rem; margin: 1.5rem auto 1rem; }
-    .hero-actions .btn { width: auto; min-height: 44px; }
-    .review-note { color: var(--slate-600); font-size: .85rem; margin: 1rem 0; }
-    .page-title { font-size: 2.25rem; line-height: 1.2; margin-bottom: 1rem; }
-    .section-title { font-size: 1.25rem; margin-bottom: 1rem; }
-    .workflow { background: white; border: 1px solid var(--slate-200); border-radius: var(--radius); padding: 2rem; margin-top: 2rem; }
-    .workflow ol { padding-left: 1.5rem; margin: 1rem 0; }
-    .workflow li { margin: .75rem 0; color: var(--slate-600); }
-    details { padding-top: 1rem; border-top: 1px solid var(--slate-200); }
-    summary { cursor: pointer; font-weight: 700; }
-    details p { margin-top: .75rem; color: var(--slate-600); }
-    .demo-notice { padding: 1rem; margin-bottom: 1.5rem; border: 1px solid #fbbf24; border-radius: 8px; background: #fffbeb; color: #92400e; }
-    .btn:disabled { opacity: .65; cursor: wait; }
 
-    @media (max-width: 720px) {
+    @media(max-width:720px) {
       .nav-container { padding: 1rem; }
-      .nav-right { width: 100%; flex-wrap: wrap; }
-      .nav-tabs { width: 100%; gap: .15rem; }
-      .nav-tab-btn { flex: 1; min-width: 0; padding: .65rem .3rem; font-size: .75rem; min-height: 44px; }
+      .nav-right { width: 100%; }
+      .nav-tabs { width: 100%; }
+      .nav-tab-btn { flex: 1; padding: .65rem .3rem; font-size: .75rem; }
       main { padding: 1.5rem 1rem; }
-      h1, .page-title { font-size: 1.8rem; }
-      .section-header { margin-bottom: 1.75rem; }
+      h1,.page-title { font-size: 1.8rem; }
       .hero-actions { flex-direction: column; }
       .hero-actions .btn { width: 100%; }
-      .pricing-grid { grid-template-columns: minmax(0, 1fr); }
-      .portal-box, .workflow { padding: 1.25rem; }
+      .pricing-grid { grid-template-columns: minmax(0,1fr); }
+      .portal-box,.workflow { padding: 1.25rem; }
       .portal-top-bar { flex-direction: column; }
       .input-field { font-size: 1rem; }
-      .counter-bar { flex-direction: column; gap: .3rem; }
-      footer { padding: 1.5rem 1rem; }
+      .counter-bar { flex-direction: column; }
     }
   </style>
 </head>
+
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
 
   <header>
     <div class="nav-container">
-      <a href="#overview" class="brand" onclick="switchTab('overview')">
+      <a href="#overview" class="brand" onclick="switchTab('overview'); return false;">
         <div class="brand-icon">⚡</div>
         <span>TenderCrest AI</span>
       </a>
+
       <div class="nav-right">
         <nav class="nav-tabs" aria-label="Main navigation">
-          <button class="nav-tab-btn active" id="tab-btn-overview" aria-controls="tab-overview" aria-pressed="true" onclick="switchTab('overview')">Platform Overview</button>
-          <button class="nav-tab-btn" id="tab-btn-pricing" aria-controls="tab-pricing" aria-pressed="false" onclick="switchTab('pricing')">Pricing &amp; Plans</button>
-          <button class="nav-tab-btn" id="tab-btn-portal" aria-controls="tab-portal" aria-pressed="false" onclick="switchTab('portal')">Proposal Workspace</button>
+          <button class="nav-tab-btn active" id="tab-btn-overview"
+            aria-controls="tab-overview" aria-pressed="true"
+            onclick="switchTab('overview')">Platform Overview</button>
+
+          <button class="nav-tab-btn" id="tab-btn-pricing"
+            aria-controls="tab-pricing" aria-pressed="false"
+            onclick="switchTab('pricing')">Pricing &amp; Plans</button>
+
+          <button class="nav-tab-btn" id="tab-btn-portal"
+            aria-controls="tab-portal" aria-pressed="false"
+            onclick="switchTab('portal')">Proposal Workspace</button>
         </nav>
-        <a 
-          href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          class="nav-portal-link" 
-          title="Update payment methods, view invoices, or cancel plan"
-        >
+
+        <!-- NEW CUSTOMER AUTH LINK -->
+        <a href="/auth.html" class="nav-portal-link" id="customer-auth-link">
+          👤 Customer Login / Sign Up
+        </a>
+
+        <a href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00"
+           target="_blank" rel="noopener noreferrer"
+           class="nav-portal-link">
           💳 Billing Portal
         </a>
       </div>
@@ -598,74 +562,108 @@
   </header>
 
   <main id="main-content" tabindex="-1">
-    <!-- TAB 1: OVERVIEW -->
+
+    <!-- OVERVIEW -->
     <section id="tab-overview" class="tab-content active">
       <div class="section-header">
         <span class="badge-pill">AI-assisted proposal drafting</span>
         <h1>Turn complex RFPs into structured proposal drafts</h1>
-        <p class="subtitle">Bring your solicitation requirements and company qualifications together. Create a structured first draft for government or commercial bids, then review it with your team before submission.</p>
+        <p class="subtitle">
+          Bring your solicitation requirements and company qualifications
+          together. Create a structured first draft for government or
+          commercial bids, then review it with your team before submission.
+        </p>
+
         <div class="hero-actions">
-          <a class="btn btn-primary" href="#pricing" onclick="switchTab('pricing')">Compare plans</a>
-          <a class="btn btn-outline" href="#portal" onclick="switchTab('portal'); loadSampleData('gov')">Explore sample inputs</a>
+          <a class="btn btn-primary" href="#pricing"
+             onclick="switchTab('pricing'); return false;">Compare plans</a>
+
+          <a class="btn btn-outline" href="#portal"
+             onclick="exploreSample(); return false;">Explore sample inputs</a>
         </div>
-        <p class="review-note">AI-generated drafts require human review. TenderCrest AI does not submit bids or guarantee contract awards.</p>
+
+        <p class="review-note">
+          AI-generated drafts require human review. TenderCrest AI does not
+          submit bids or guarantee contract awards.
+        </p>
       </div>
 
       <h2 class="section-title">Built around your proposal workflow</h2>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
-        <div style="background: var(--white); padding: 1.5rem; border-radius: var(--radius); border: 1px solid var(--slate-200);">
-          <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📊</div>
-          <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Gov &amp; Commercial Matrices</h3>
-          <p style="font-size: 0.875rem; color: var(--slate-600);">Organize mandatory requirements and evaluation criteria into a draft response structure for public and private tenders.</p>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div style="font-size:1.5rem">📊</div>
+          <h3>Gov &amp; Commercial Matrices</h3>
+          <p>Organize mandatory requirements and evaluation criteria into a draft response structure for public and private tenders.</p>
         </div>
-        <div style="background: var(--white); padding: 1.5rem; border-radius: var(--radius); border: 1px solid var(--slate-200);">
-          <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🛡️</div>
-          <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Knowledge Base Ingestion</h3>
-          <p style="font-size: 0.875rem; color: var(--slate-600);">Supply relevant case studies, current certifications, and team qualifications. Verify every claim and citation in the generated draft.</p>
+
+        <div class="feature-card">
+          <div style="font-size:1.5rem">🛡️</div>
+          <h3>Knowledge Base Ingestion</h3>
+          <p>Supply relevant case studies, current certifications, and team qualifications. Verify every claim and citation in the generated draft.</p>
         </div>
-        <div style="background: var(--white); padding: 1.5rem; border-radius: var(--radius); border: 1px solid var(--slate-200);">
-          <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">⚡</div>
-          <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Draft delivery</h3>
-          <p style="font-size: 0.875rem; color: var(--slate-600);">Receive the generated draft by email for editing and review. Processing time varies with the scope of your solicitation.</p>
+
+        <div class="feature-card">
+          <div style="font-size:1.5rem">⚡</div>
+          <h3>Draft delivery</h3>
+          <p>Receive the generated draft by email for editing and review. Processing time varies with the scope of your solicitation.</p>
         </div>
       </div>
+
       <div class="workflow">
         <h2>From requirements to a reviewable draft</h2>
         <ol>
-          <li><strong>Provide the scope.</strong> Paste the solicitation, mandatory requirements, and evaluation criteria.</li>
-          <li><strong>Add your evidence.</strong> Include relevant company experience and verified qualifications.</li>
-          <li><strong>Review the output.</strong> Check the emailed draft for accuracy, missing requirements, and final pricing.</li>
+          <li><strong>Provide the scope.</strong> Paste solicitation requirements and evaluation criteria.</li>
+          <li><strong>Add your evidence.</strong> Include verified company experience and qualifications.</li>
+          <li><strong>Review the output.</strong> Check the emailed draft for accuracy and completeness.</li>
         </ol>
-        <details><summary>What does the sample demonstrate?</summary><p>The sample buttons populate fictional RFP inputs in the workspace. They do not generate a proposal until you submit, and they do not create an account or subscription.</p></details>
+        <details>
+          <summary>What does the sample demonstrate?</summary>
+          <p>The sample buttons populate fictional RFP inputs. They do not generate a proposal until you submit, and they do not create a subscription.</p>
+        </details>
       </div>
     </section>
 
-    <!-- TAB 2: PRICING & PLANS -->
+    <!-- PRICING -->
     <section id="tab-pricing" class="tab-content">
       <div class="section-header">
         <h2 class="page-title">Monthly plans for your proposal workload</h2>
-        <p class="subtitle">Compare proposal allowances below. Prices are in USD per month; applicable taxes and any currency conversion are shown at checkout.</p>
+        <p class="subtitle">
+          Compare proposal allowances below. Prices are in USD per month;
+          applicable taxes and currency conversion are shown at checkout.
+        </p>
       </div>
 
       <div class="pricing-grid">
-        <!-- TIER 1: ENTERPRISE TEST PASS ($0) -->
+
+        <!-- ENTERPRISE TRIAL -->
         <div class="pricing-card test-card">
-          <div class="badge-pill" style="align-self: flex-start;">ENTERPRISE TEST PASS · $0</div>
+          <div class="badge-pill">ENTERPRISE TEST PASS · $0</div>
           <div class="card-title">Enterprise Trial Pass</div>
-          <div class="card-desc">Full Enterprise-tier generation capabilities enabled without requiring credit card or upfront billing.</div>
-          
+          <div class="card-desc">
+            Full Enterprise-tier generation capabilities enabled without
+            requiring credit card or upfront billing.
+          </div>
+
           <div class="price-wrap">
             <span class="price-num">$0</span>
             <span class="price-period">/ full access</span>
           </div>
 
           <form class="card-form" onsubmit="handleTestActivation(event)">
-            <input type="text" id="test-company" class="input-field" placeholder="Your Company Name" required>
-            <input type="email" id="test-email" class="input-field" placeholder="Your Work Email" required>
-            <button type="submit" class="btn btn-green">⚡ Launch Enterprise Workspace</button>
+            <input type="text" id="test-company" class="input-field"
+                   placeholder="Your Company Name" required>
+            <input type="email" id="test-email" class="input-field"
+                   placeholder="Your Work Email" required>
+            <button type="submit" class="btn btn-green">
+              ⚡ Launch Enterprise Workspace
+            </button>
           </form>
 
-          <p style="font-size: 0.75rem; color: var(--slate-500); text-align: center;">Instant direct enterprise provisioning</p>
+          <p style="font-size:.75rem;color:#64748b;text-align:center">
+            Workspace access requires a customer account.
+            Trial eligibility is determined by the backend.
+          </p>
 
           <ul class="features-list">
             <li><span class="check-icon">✓</span> <strong>60 Enterprise RFP</strong> Proposals / month</li>
@@ -675,20 +673,22 @@
           </ul>
         </div>
 
-        <!-- TIER 2: PRO TIER ($299/mo) -->
+        <!-- PRO -->
         <div class="pricing-card">
           <div class="card-title">Pro Plan</div>
-          <div class="card-desc">Ideal for boutique consultancies, agencies, and specialized contractors bidding on focused RFPs.</div>
-          
+          <div class="card-desc">
+            Ideal for boutique consultancies, agencies, and specialized
+            contractors bidding on focused RFPs.
+          </div>
           <div class="price-wrap">
             <span class="price-num">$299</span>
             <span class="price-period">USD / month</span>
           </div>
-
-          <div style="margin-bottom: 1.25rem;">
-            <a href="https://buy.stripe.com/dRm9AT6PcaJT44U622dby00" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Choose plan</a>
+          <div style="margin-bottom:1.25rem">
+            <a href="https://buy.stripe.com/dRm9AT6PcaJT44U622dby00"
+               class="btn btn-primary" target="_blank"
+               rel="noopener noreferrer">Choose plan</a>
           </div>
-
           <ul class="features-list">
             <li><span class="check-icon">✓</span> <strong>5 Proposals</strong> per month</li>
             <li><span class="check-icon">✓</span> Manage billing and cancellation through Stripe</li>
@@ -697,20 +697,22 @@
           </ul>
         </div>
 
-        <!-- TIER 3: GROWTH TIER ($699/mo) -->
+        <!-- GROWTH -->
         <div class="pricing-card">
           <div class="card-title">Growth Plan</div>
-          <div class="card-desc">For scaling B2B vendors and government primes submitting multiple competitive monthly proposals.</div>
-          
+          <div class="card-desc">
+            For scaling B2B vendors and government primes submitting multiple
+            competitive monthly proposals.
+          </div>
           <div class="price-wrap">
             <span class="price-num">$699</span>
             <span class="price-period">USD / month</span>
           </div>
-
-          <div style="margin-bottom: 1.25rem;">
-            <a href="https://buy.stripe.com/eVqfZh4H44lv8laaiidby01" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Choose plan</a>
+          <div style="margin-bottom:1.25rem">
+            <a href="https://buy.stripe.com/eVqfZh4H44lv8laaiidby01"
+               class="btn btn-primary" target="_blank"
+               rel="noopener noreferrer">Choose plan</a>
           </div>
-
           <ul class="features-list">
             <li><span class="check-icon">✓</span> <strong>20 Proposals</strong> per month</li>
             <li><span class="check-icon">✓</span> Manage billing and cancellation through Stripe</li>
@@ -719,20 +721,22 @@
           </ul>
         </div>
 
-        <!-- TIER 4: ENTERPRISE TIER ($1,299/mo) -->
+        <!-- ENTERPRISE -->
         <div class="pricing-card">
           <div class="card-title">Enterprise Plan</div>
-          <div class="card-desc">Maximum capacity for enterprise capture teams managing state, federal, and global commercial tenders.</div>
-          
+          <div class="card-desc">
+            Maximum capacity for enterprise capture teams managing state,
+            federal, and global commercial tenders.
+          </div>
           <div class="price-wrap">
             <span class="price-num">$1,299</span>
             <span class="price-period">USD / month</span>
           </div>
-
-          <div style="margin-bottom: 1.25rem;">
-            <a href="https://buy.stripe.com/14AdR92yW4lvcBq0HIdby02" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Choose plan</a>
+          <div style="margin-bottom:1.25rem">
+            <a href="https://buy.stripe.com/14AdR92yW4lvcBq0HIdby02"
+               class="btn btn-primary" target="_blank"
+               rel="noopener noreferrer">Choose plan</a>
           </div>
-
           <ul class="features-list">
             <li><span class="check-icon">✓</span> <strong>60 Proposals</strong> per month</li>
             <li><span class="check-icon">✓</span> Dedicated Knowledge Base Digest</li>
@@ -742,148 +746,253 @@
         </div>
       </div>
 
-      <!-- BILLING MANAGEMENT BANNER -->
       <div class="billing-manage-banner">
-        <p>
-          Need to manage payment methods, download invoices, or cancel your active subscription?
-        </p>
-        <a 
-          href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          id="billing-portal-cta"
-        >
+        <p>Need to manage payment methods, download invoices, or cancel your subscription?</p>
+        <a href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00"
+           target="_blank" rel="noopener noreferrer">
           Open Stripe Customer Billing Portal &rarr;
         </a>
       </div>
     </section>
 
-    <!-- TAB 3: CLIENT PORTAL -->
-    <section id="tab-portal" class="tab-content">
+    <!-- PROPOSAL WORKSPACE -->
+    <section id="tab-portal" class="tab-content" hidden>
       <div class="portal-box">
+
         <div class="portal-top-bar">
           <div>
-            <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 0.35rem;">Create a proposal draft</h2>
-            <p style="font-size: 0.85rem; color: var(--slate-600);">Input your target RFP requirements and company credentials. Our engine compiles the proposal narrative and delivers it directly to your inbox.</p>
+            <h2 style="font-size:1.5rem;font-weight:800;margin-bottom:.35rem">
+              Create a proposal draft
+            </h2>
+            <p style="font-size:.85rem;color:#475569">
+              Input your target RFP requirements and company credentials.
+              Our engine compiles the proposal narrative and delivers it to your inbox.
+            </p>
           </div>
-          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            <button type="button" class="btn btn-outline" style="white-space: nowrap; width: auto;" onclick="loadSampleData('gov')">
+
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+            <button type="button" class="btn btn-outline"
+                    style="width:auto" onclick="loadSampleData('gov')">
               🏛️ Demo Gov RFP
             </button>
-            <button type="button" class="btn btn-outline" style="white-space: nowrap; width: auto;" onclick="loadSampleData('commercial')">
+            <button type="button" class="btn btn-outline"
+                    style="width:auto" onclick="loadSampleData('commercial')">
               💼 Demo Commercial RFP
             </button>
           </div>
         </div>
 
-        <div id="status-alert" class="alert-banner alert-success" role="status" aria-live="polite" aria-atomic="true" tabindex="-1"></div>
-        <p id="demo-notice" class="demo-notice" hidden>Fictional sample data loaded. Replace all company credentials and claims with your own verified information before submitting.</p>
+        <p id="signed-in-email" class="review-note"></p>
+
+        <div id="status-alert" class="alert-banner alert-success"
+             role="status" aria-live="polite" tabindex="-1"></div>
+
+        <p id="demo-notice" class="demo-notice" hidden>
+          Fictional sample data loaded. Replace all company credentials
+          and claims with verified information before submitting.
+        </p>
 
         <form id="rfp-form" onsubmit="handleProposalSubmit(event)">
+
           <div class="form-group">
             <label for="proposal-sector">Proposal Type / Target Sector *</label>
-            <span class="hint" id="sector-hint">Adjusts prompt weighting for strict federal Section L&amp;M or commercial SLA/ROI narratives.</span>
-            <select id="proposal-sector" aria-describedby="sector-hint" class="input-field" onchange="handleSectorChange()" required>
-              <option value="Public Sector / Gov (Section L&M)">Public Sector / Gov (Section L&amp;M Compliance)</option>
-              <option value="Commercial / Enterprise RFP">Commercial / Enterprise RFP (Private B2B)</option>
-              <option value="SaaS / Tech Vendor Evaluation">SaaS / Tech Vendor Evaluation &amp; Security</option>
-              <option value="Grant / Non-Profit Application">Grant / Non-Profit Application</option>
+            <span class="hint" id="sector-hint">
+              Adjusts prompt weighting for federal Section L&amp;M or commercial SLA/ROI narratives.
+            </span>
+            <select id="proposal-sector" class="input-field"
+                    aria-describedby="sector-hint"
+                    onchange="handleSectorChange()" required>
+              <option value="Public Sector / Gov (Section L&M)">
+                Public Sector / Gov (Section L&amp;M Compliance)
+              </option>
+              <option value="Commercial / Enterprise RFP">
+                Commercial / Enterprise RFP (Private B2B)
+              </option>
+              <option value="SaaS / Tech Vendor Evaluation">
+                SaaS / Tech Vendor Evaluation &amp; Security
+              </option>
+              <option value="Grant / Non-Profit Application">
+                Grant / Non-Profit Application
+              </option>
             </select>
           </div>
 
           <div class="form-group">
             <label for="submitter-email">Billing / Submitter Email *</label>
-            <span class="hint">Your completed proposal draft and compliance matrix will be emailed here.</span>
-            <input type="email" id="submitter-email" maxlength="254" class="input-field" placeholder="e.g. proposals@yourcompany.com" required>
+            <span class="hint">
+              Your completed proposal draft and compliance matrix will be emailed here.
+            </span>
+            <input type="email" id="submitter-email" maxlength="254"
+                   class="input-field" required>
           </div>
 
           <div class="form-group">
             <label for="company-name">Organization Name *</label>
-            <input type="text" id="company-name" maxlength="200" class="input-field" placeholder="e.g. Acme Cloud & Defense Solutions LLC" required>
+            <input type="text" id="company-name" maxlength="200"
+                   class="input-field" required
+                   placeholder="e.g. Acme Cloud & Defense Solutions LLC">
           </div>
 
           <div class="form-group">
             <label for="proposal-name">Proposal / Solicitation Title *</label>
-            <input type="text" id="proposal-name" maxlength="300" class="input-field" placeholder="e.g. Department of Transportation Cloud Modernization RFP-2026" required>
+            <input type="text" id="proposal-name" maxlength="300"
+                   class="input-field" required
+                   placeholder="e.g. Cloud Modernization RFP-2026">
           </div>
 
           <div class="form-group">
-            <label for="rfp-content">Solicitation Requirements (Scope, SOW, or Evaluation Criteria) *</label>
-            <span class="hint" id="rfp-content-hint">Paste the statement of work, mandatory requirements, and evaluation scoring rubric.</span>
-            <textarea id="rfp-content" aria-describedby="rfp-content-hint word-count-display" maxlength="100000" class="input-field" placeholder="Paste RFP or tender text here..." oninput="updateWordCount()" required></textarea>
+            <label for="rfp-content">
+              Solicitation Requirements (Scope, SOW, or Evaluation Criteria) *
+            </label>
+            <span class="hint" id="rfp-content-hint">
+              Paste the statement of work, mandatory requirements,
+              and evaluation scoring rubric.
+            </span>
+            <textarea id="rfp-content" class="input-field"
+                      aria-describedby="rfp-content-hint word-count-display"
+                      maxlength="100000" required
+                      oninput="updateWordCount()"
+                      placeholder="Paste RFP or tender text here..."></textarea>
+
             <div class="counter-bar">
               <span id="word-count-display">0 words | 0 characters</span>
               <span id="scope-recommendation"></span>
             </div>
-            <p style="font-size: 0.75rem; color: #dc2626; margin-top: 0.35rem;">
-              ⚠️ <strong>Strict Security Policy:</strong> Do not input classified data (ITAR, EAR, CUI), HIPAA protected health info, passwords, or third-party trade secrets.
+
+            <p style="font-size:.75rem;color:#dc2626;margin-top:.35rem">
+              ⚠️ <strong>Strict Security Policy:</strong>
+              Do not input classified data (ITAR, EAR, CUI),
+              HIPAA protected health information, passwords,
+              or third-party trade secrets.
             </p>
           </div>
 
           <div class="form-group">
-            <label for="proposal-qualifications">Proposal Specific Qualifications, Certifications &amp; Key Personnel</label>
-            <span class="hint">Optional if already stored in your company knowledge base; otherwise injects past performance and credentials directly.</span>
-            <textarea id="proposal-qualifications" maxlength="30000" class="input-field" placeholder="e.g. Relevant customer wins, active SOC 2 / ISO certifications, key team credentials, SLAs..."></textarea>
+            <label for="proposal-qualifications">
+              Proposal Specific Qualifications, Certifications &amp; Key Personnel
+            </label>
+            <span class="hint">
+              Optional if already stored in your company knowledge base;
+              otherwise includes past performance and credentials directly.
+            </span>
+            <textarea id="proposal-qualifications" maxlength="30000"
+                      class="input-field"
+                      placeholder="Relevant customer wins, certifications, team credentials, SLAs..."></textarea>
           </div>
 
-          <!-- LEGAL COMPLIANCE & LIMITATION OF LIABILITY BOX -->
           <div class="legal-notice-box">
             <strong>Mandatory Procurement Review &amp; Limitation of Liability:</strong>
-            TenderCrest AI provides automated first-pass proposal drafts intended solely as an editorial baseline for human review. 
-            TenderCrest AI does not guarantee solicitation compliance, does not submit proposals on your behalf, and disclaims any warranty regarding contract awards, proposal responsiveness, or evaluation scoring. 
-            The submitting organization retains sole legal and factual responsibility for verifying all statements, pricing figures, statutory FAR representations, and mandatory requirements prior to submission to any procuring authority.
+            TenderCrest AI provides automated first-pass proposal drafts
+            intended solely as an editorial baseline for human review.
+            TenderCrest AI does not guarantee solicitation compliance,
+            does not submit proposals on your behalf, and disclaims any
+            warranty regarding contract awards, proposal responsiveness,
+            or evaluation scoring. The submitting organization retains
+            sole legal and factual responsibility for verifying all
+            statements, pricing figures, statutory FAR representations,
+            and mandatory requirements prior to submission.
           </div>
 
-          <button type="submit" id="submit-btn" class="btn btn-primary" style="font-size: 1rem; padding: 1rem;">🚀 Submit Solicitation to AI Engine</button>
+          <button type="submit" id="submit-btn" class="btn btn-primary"
+                  style="font-size:1rem;padding:1rem">
+            🚀 Submit Solicitation to AI Engine
+          </button>
         </form>
       </div>
     </section>
   </main>
 
-  <!-- TERMS OF SERVICE & PRIVACY POLICY MODAL -->
-  <div id="legal-modal" class="modal-overlay" hidden onclick="closeLegalModal(event)">
-    <div class="modal-box" onclick="event.stopPropagation()">
-      <button type="button" class="modal-close-btn" onclick="closeLegalModal()">✕</button>
-      <h2>Terms of Service &amp; Compliance Policy</h2>
+  <!-- LEGAL MODAL -->
+  <div id="legal-modal" class="modal-overlay" hidden
+       onclick="closeLegalModal(event)">
+    <div class="modal-box" role="dialog" aria-modal="true"
+         aria-labelledby="legal-title"
+         onclick="event.stopPropagation()">
+
+      <button type="button" class="modal-close-btn"
+              aria-label="Close legal terms"
+              onclick="closeLegalModal()">✕</button>
+
+      <h2 id="legal-title">Terms of Service &amp; Compliance Policy</h2>
       <p><em>Last updated: October 2026</em></p>
-      
+
       <h3>1. Preliminary Nature of AI Working Drafts</h3>
-      <p>TenderCrest AI provides automated drafting assistance for proposals, tenders, and grants. All generated output constitutes an unverified working draft. The platform does not independently audit government procurement regulations (including FAR, DFARS, or state codes) or commercial terms.</p>
-      
+      <p>
+        TenderCrest AI provides automated drafting assistance for proposals,
+        tenders, and grants. All generated output constitutes an unverified
+        working draft. The platform does not independently audit government
+        procurement regulations (including FAR, DFARS, or state codes)
+        or commercial terms.
+      </p>
+
       <h3>2. User Review &amp; Responsibility</h3>
-      <p>Customer assumes sole and exclusive responsibility for verifying the accuracy, truthfulness, and completeness of all technical claims, qualifications, pricing, and compliance representations before submitting any proposal to a prospective client or government agency. User agrees not to submit false claims under the False Claims Act (31 U.S.C. § 3729) or related statutes.</p>
-      
+      <p>
+        Customer assumes sole and exclusive responsibility for verifying
+        the accuracy, truthfulness, and completeness of all technical
+        claims, qualifications, pricing, and compliance representations
+        before submitting any proposal to a prospective client or
+        government agency. User agrees not to submit false claims
+        under the False Claims Act (31 U.S.C. § 3729) or related statutes.
+      </p>
+
       <h3>3. Prohibited Data Submissions</h3>
-      <p>Users must not input Classified National Security Information, Controlled Unclassified Information (CUI), Export Controlled data (ITAR/EAR), Protected Health Information (PHI under HIPAA), or confidential trade secrets belonging to third parties.</p>
+      <p>
+        Users must not input Classified National Security Information,
+        Controlled Unclassified Information (CUI), Export Controlled
+        data (ITAR/EAR), Protected Health Information (PHI under HIPAA),
+        or confidential trade secrets belonging to third parties.
+      </p>
 
       <h3>4. Limitation of Liability &amp; Disclaimer of Warranties</h3>
-      <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, TENDERCREST AI IS PROVIDED "AS IS". WE EXPRESSLY DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL TENDERCREST AI OR ITS FOUNDERS BE LIABLE FOR INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES (INCLUDING LOST PROFITS, LOST CONTRACT OPPORTUNITIES, OR PROCUREMENT DISQUALIFICATION). OUR TOTAL AGGREGATE LIABILITY SHALL NOT EXCEED THE TOTAL FEES PAID BY USER TO TENDERCREST AI IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM.</p>
+      <p>
+        TO THE MAXIMUM EXTENT PERMITTED BY LAW, TENDERCREST AI IS PROVIDED
+        "AS IS". WE EXPRESSLY DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED,
+        INCLUDING MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+        IN NO EVENT SHALL TENDERCREST AI OR ITS FOUNDERS BE LIABLE FOR
+        INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+        (INCLUDING LOST PROFITS, LOST CONTRACT OPPORTUNITIES,
+        OR PROCUREMENT DISQUALIFICATION). OUR TOTAL AGGREGATE LIABILITY
+        SHALL NOT EXCEED THE TOTAL FEES PAID BY USER TO TENDERCREST AI
+        IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM.
+      </p>
 
       <h3>5. Customer Indemnification</h3>
-      <p>Customer agrees to defend, indemnify, and hold harmless TenderCrest AI from and against any third-party claims, government investigations, fines, or damages arising out of or relating to any proposal or solicitation submitted by Customer.</p>
+      <p>
+        Customer agrees to defend, indemnify, and hold harmless
+        TenderCrest AI from and against any third-party claims,
+        government investigations, fines, or damages arising out of
+        or relating to any proposal or solicitation submitted by Customer.
+      </p>
     </div>
   </div>
 
   <footer>
-    <div style="max-width: 1280px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div style="max-width:1280px;margin:auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem">
       <div>&copy; 2026 TenderCrest AI. All rights reserved.</div>
-      <div style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
-        <a href="#overview" onclick="switchTab('overview')" class="footer-link">Overview</a>
-        <a href="#pricing" onclick="switchTab('pricing')" class="footer-link">Pricing</a>
-        <a href="#portal" onclick="switchTab('portal')" class="footer-link">Portal</a>
-        <a href="javascript:void(0)" onclick="openLegalModal()" class="footer-link">Terms &amp; Disclaimers</a>
-        <a 
-          href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          class="footer-portal-link"
-        >
-          Manage / Cancel Subscription
-        </a>
+
+      <div style="display:flex;gap:1.5rem;align-items:center;flex-wrap:wrap">
+        <a href="#overview" onclick="switchTab('overview');return false;"
+           class="footer-link">Overview</a>
+
+        <a href="#pricing" onclick="switchTab('pricing');return false;"
+           class="footer-link">Pricing</a>
+
+        <a href="#portal" onclick="switchTab('portal');return false;"
+           class="footer-link">Portal</a>
+
+        <a href="/auth.html" class="footer-link">My Account</a>
+
+        <a href="#" onclick="openLegalModal();return false;"
+           class="footer-link">Terms &amp; Disclaimers</a>
+
+        <a href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00"
+           target="_blank" rel="noopener noreferrer"
+           class="footer-portal-link">Manage / Cancel Subscription</a>
       </div>
     </div>
   </footer>
 
+  <!-- EXISTING SITE FUNCTIONS -->
   <script>
     let isSubmitting = false;
 
@@ -895,103 +1004,100 @@
       document.getElementById('legal-modal').hidden = true;
     }
 
-    // Automatically switch tabs and prefill data from outreach links or Stripe return
-    window.addEventListener('DOMContentLoaded', () => {
-      const urlParams = new URLSearchParams(window.location.search);
+    function displayTab(tabId, updateHash = true) {
+      if (!['overview','pricing','portal'].includes(tabId)) return;
 
-      const prefillEmail = urlParams.get('email');
-      const prefillCompany = urlParams.get('company');
-
-      if (prefillEmail) {
-        document.getElementById('submitter-email').value = decodeURIComponent(prefillEmail);
-      }
-      if (prefillCompany) {
-        document.getElementById('company-name').value = decodeURIComponent(prefillCompany);
-      }
-
-      if (urlParams.get('session_id') || window.location.hash === '#portal' || prefillEmail) {
-        switchTab('portal');
-      } else {
-        const hash = window.location.hash.slice(1);
-        switchTab(['overview', 'pricing', 'portal'].includes(hash) ? hash : 'overview', false);
-      }
-      handleSectorChange();
-    });
-
-    window.addEventListener('hashchange', () => {
-      const route = window.location.hash.slice(1);
-      if (['overview', 'pricing', 'portal'].includes(route)) switchTab(route, false);
-    });
-
-    function switchTab(tabId, updateHash = true) {
-      if (!['overview', 'pricing', 'portal'].includes(tabId)) return;
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.nav-tab-btn').forEach(el => {
+      document.querySelectorAll('.tab-content').forEach(el => {
         el.classList.remove('active');
-        el.setAttribute('aria-pressed', 'false');
       });
 
-      const targetContent = document.getElementById(`tab-${tabId}`);
-      const targetBtn = document.getElementById(`tab-btn-${tabId}`);
+      document.querySelectorAll('.nav-tab-btn').forEach(el => {
+        el.classList.remove('active');
+        el.setAttribute('aria-pressed','false');
+      });
 
-      if (targetContent) targetContent.classList.add('active');
-      if (targetBtn) {
-        targetBtn.classList.add('active');
-        targetBtn.setAttribute('aria-pressed', 'true');
+      const section = document.getElementById('tab-' + tabId);
+      const button = document.getElementById('tab-btn-' + tabId);
+
+      if (section) section.classList.add('active');
+
+      if (button) {
+        button.classList.add('active');
+        button.setAttribute('aria-pressed','true');
       }
-      if (updateHash && window.location.hash !== '#' + tabId) history.pushState(null, '', '#' + tabId);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      if (updateHash && location.hash !== '#' + tabId) {
+        history.pushState(null,'','#' + tabId);
+      }
+
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+
+    // Authentication wrapper is installed below.
+    function switchTab(tabId, updateHash = true) {
+      if (tabId === 'portal') {
+        window.location.href = '/auth.html';
+        return;
+      }
+      displayTab(tabId,updateHash);
+    }
+
+    function exploreSample() {
+      loadSampleData('gov');
+      switchTab('portal');
     }
 
     function handleSectorChange() {
       const sector = document.getElementById('proposal-sector').value;
       const hint = document.getElementById('rfp-content-hint');
-      const rfpContent = document.getElementById('rfp-content');
+      const input = document.getElementById('rfp-content');
 
       if (sector.includes('Gov')) {
-        hint.innerText = "Targeting Public Sector: Paste Section L (Instructions) and Section M (Evaluation Factors) along with Mandatory Pass/Fail Qualifications.";
-        rfpContent.placeholder = "Paste government RFP, Section L & M requirements, and evaluation scoring rubric here...";
+        hint.textContent = 'Targeting Public Sector: Paste Section L (Instructions), Section M (Evaluation Factors), and mandatory qualifications.';
+        input.placeholder = 'Paste government RFP, Section L & M requirements, and evaluation rubric here...';
       } else if (sector.includes('Commercial')) {
-        hint.innerText = "Targeting Commercial Enterprise: Paste Statement of Work (SOW), SLA uptime requirements, and vendor selection criteria.";
-        rfpContent.placeholder = "Paste commercial RFP, SOW scope, timeline, and SLA requirements here...";
+        hint.textContent = 'Targeting Commercial Enterprise: Paste SOW, SLA requirements, and vendor selection criteria.';
+        input.placeholder = 'Paste commercial RFP, SOW, timeline, and SLA requirements here...';
       } else if (sector.includes('SaaS')) {
-        hint.innerText = "Targeting Tech Evaluation: Include security controls, cloud infrastructure, API capabilities, and data residency criteria.";
-        rfpContent.placeholder = "Paste tech evaluation criteria, security questionnaire prompts, and integration requirements here...";
+        hint.textContent = 'Targeting Tech Evaluation: Include security controls, cloud infrastructure, API capabilities, and data residency criteria.';
+        input.placeholder = 'Paste tech evaluation criteria and security requirements here...';
       } else {
-        hint.innerText = "Paste RFP requirements, eligibility guidelines, and evaluation rubrics.";
-        rfpContent.placeholder = "Paste solicitation or grant application requirements here...";
+        hint.textContent = 'Paste RFP requirements, eligibility guidelines, and evaluation rubrics.';
+        input.placeholder = 'Paste solicitation or grant application requirements here...';
       }
     }
 
     function updateWordCount() {
       const text = document.getElementById('rfp-content').value.trim();
-      const words = text.length > 0 ? text.split(/\s+/).length : 0;
+      const words = text ? text.split(/\s+/).length : 0;
       const chars = text.length;
 
-      const countDisplay = document.getElementById('word-count-display');
-      const recDisplay = document.getElementById('scope-recommendation');
+      document.getElementById('word-count-display').textContent =
+        words.toLocaleString() + ' words | ' +
+        chars.toLocaleString() + ' characters';
 
-      countDisplay.innerText = `${words.toLocaleString()} words | ${chars.toLocaleString()} characters`;
+      const rec = document.getElementById('scope-recommendation');
 
       if (words > 0 && words < 100) {
-        recDisplay.innerText = "💡 Tip: Include evaluation criteria and pass/fail thresholds for maximum scoring.";
-        recDisplay.style.color = "#d97706";
+        rec.textContent = '💡 Include evaluation criteria and pass/fail thresholds.';
+        rec.style.color = '#d97706';
       } else if (words > 12000) {
-        recDisplay.innerText = "⚠️ High token volume: Prioritize core SOW & evaluation sections for optimal focus.";
-        recDisplay.style.color = "#dc2626";
+        rec.textContent = '⚠️ Prioritize core SOW and evaluation sections.';
+        rec.style.color = '#dc2626';
       } else {
-        recDisplay.innerText = "";
+        rec.textContent = '';
       }
     }
 
     function handleTestActivation(e) {
       e.preventDefault();
-      const comp = document.getElementById('test-company').value.trim();
+
+      const company = document.getElementById('test-company').value.trim();
       const email = document.getElementById('test-email').value.trim();
 
-      if (!comp || !email) return;
+      if (!company || !email) return;
 
-      document.getElementById('company-name').value = comp;
+      document.getElementById('company-name').value = company;
       document.getElementById('submitter-email').value = email;
 
       switchTab('portal');
@@ -999,17 +1105,23 @@
 
     function loadSampleData(type = 'gov') {
       document.getElementById('demo-notice').hidden = false;
+
       const emailField = document.getElementById('submitter-email');
       const companyField = document.getElementById('company-name');
 
       if (!companyField.value.trim()) {
-        companyField.value = "Apex Cloud Solutions LLC";
+        companyField.value = 'Apex Cloud Solutions LLC';
       }
 
       if (type === 'gov') {
-        document.getElementById('proposal-sector').value = "Public Sector / Gov (Section L&M)";
-        document.getElementById('proposal-name').value = "Regional Transit Modernization RFP-2026-T1";
-        document.getElementById('rfp-content').value = `SOLICITATION: Regional Transit Authority Cloud Modernization RFP-2026-T1
+        document.getElementById('proposal-sector').value =
+          'Public Sector / Gov (Section L&M)';
+
+        document.getElementById('proposal-name').value =
+          'Regional Transit Modernization RFP-2026-T1';
+
+        document.getElementById('rfp-content').value =
+`SOLICITATION: Regional Transit Authority Cloud Modernization RFP-2026-T1
 ESTIMATED BUDGET: $950,000
 MANDATORY MINIMUM REQUIREMENTS:
 1. Vendor must possess clean SOC 2 Type II or ISO 27001 certification.
@@ -1017,13 +1129,19 @@ MANDATORY MINIMUM REQUIREMENTS:
 3. Key staff must include a certified CISSP Lead Cloud Architect with 10+ years enterprise experience.
 4. Demonstrated past performance on public sector cloud migrations >$500,000 within last 36 months.`;
 
-        document.getElementById('proposal-qualifications').value = `PAST PERFORMANCE: Successfully completed 45 municipal cloud migrations to AWS GovCloud with zero downtime and 99.999% SLA uptime. Value: $1.1M.
+        document.getElementById('proposal-qualifications').value =
+`PAST PERFORMANCE: Successfully completed 45 municipal cloud migrations to AWS GovCloud with zero downtime and 99.999% SLA uptime. Value: $1.1M.
 AUDIT STATUS: Current SOC 2 Type II audit certified, ISO 27001 data center operations, full NIST 800-53 framework alignment.
 KEY STAFF: Marcus Vance (CISSP, AWS Certified Solutions Architect Professional) with 18+ years leading enterprise systems modernization.`;
       } else {
-        document.getElementById('proposal-sector').value = "Commercial / Enterprise RFP";
-        document.getElementById('proposal-name').value = "OmniGlobal Health - Enterprise Data Warehouse RFP-2026";
-        document.getElementById('rfp-content').value = `COMMERCIAL SOLICITATION: OmniGlobal Health Enterprise Data Platform RFP
+        document.getElementById('proposal-sector').value =
+          'Commercial / Enterprise RFP';
+
+        document.getElementById('proposal-name').value =
+          'OmniGlobal Health - Enterprise Data Warehouse RFP-2026';
+
+        document.getElementById('rfp-content').value =
+`COMMERCIAL SOLICITATION: OmniGlobal Health Enterprise Data Platform RFP
 TARGET GOAL: Centralize multi-facility clinical databases into a unified Snowflake lakehouse.
 REQUIREMENTS:
 1. Complete migration within 90 days with zero disruption to patient record access.
@@ -1031,18 +1149,30 @@ REQUIREMENTS:
 3. 24/7 dedicated enterprise support SLA with <15 min response time for P1 incidents.
 4. Transparent monthly subscription/consumption pricing breakdown.`;
 
-        document.getElementById('proposal-qualifications').value = `HEALTHCARE EXPERIENCE: Migrated 3 hospital networks totaling 4.2M patient records to Snowflake with 100% HIPAA compliance.
+        document.getElementById('proposal-qualifications').value =
+`HEALTHCARE EXPERIENCE: Migrated 3 hospital networks totaling 4.2M patient records to Snowflake with 100% HIPAA compliance.
 SLA GUARANTEE: Contractual 99.99% uptime with 10-minute P1 incident response tier.
 SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for all healthcare engagements.`;
       }
 
       if (!emailField.value.trim()) {
-        emailField.placeholder = "Enter your work email to receive generated proposal...";
-        emailField.focus();
+        emailField.placeholder = 'Enter your work email to receive generated proposal...';
       }
 
       handleSectorChange();
       updateWordCount();
+    }
+
+    function showSubmissionMessage(message, isError = false) {
+      const box = document.getElementById('status-alert');
+
+      box.style.display = 'block';
+      box.className = 'alert-banner ' +
+        (isError ? 'alert-error' : 'alert-success');
+
+      // Use textContent for untrusted server/user data.
+      box.textContent = message;
+      box.focus();
     }
 
     async function handleProposalSubmit(e) {
@@ -1050,84 +1180,196 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
       if (isSubmitting) return;
 
       const submitBtn = document.getElementById('submit-btn');
-      const alertBox = document.getElementById('status-alert');
+      const form = document.getElementById('rfp-form');
 
-      const proposalName = document.getElementById('proposal-name').value.trim();
-      const submitterEmail = document.getElementById('submitter-email').value.trim();
-      const organizationName = document.getElementById('company-name').value.trim();
-      const rfpText = document.getElementById('rfp-content').value.trim();
-      const qualifications = document.getElementById('proposal-qualifications').value.trim();
-      const proposalSector = document.getElementById('proposal-sector').value;
+      const payload = {
+        proposalSector: document.getElementById('proposal-sector').value,
+        proposalName: document.getElementById('proposal-name').value.trim(),
+        submitterEmail: document.getElementById('submitter-email').value.trim(),
+        organizationName: document.getElementById('company-name').value.trim(),
+        rfpText: document.getElementById('rfp-content').value.trim(),
+        qualifications: document.getElementById('proposal-qualifications').value.trim()
+      };
 
-      if (!proposalName || !submitterEmail || !organizationName || !rfpText) {
-        alert("Please fill in all mandatory fields (Title, Submitter Email, Organization, and RFP Requirements).");
+      if (!payload.proposalName ||
+          !payload.submitterEmail ||
+          !payload.organizationName ||
+          !payload.rfpText) {
+        alert('Please complete all mandatory fields.');
         return;
       }
 
       isSubmitting = true;
       submitBtn.disabled = true;
-      document.getElementById('rfp-form').setAttribute('aria-busy', 'true');
-      submitBtn.innerText = 'Dispatching to Autonomous Engine...';
-      alertBox.style.display = 'none';
+      form.setAttribute('aria-busy','true');
+      submitBtn.textContent = 'Dispatching to Autonomous Engine...';
 
-      const payload = {
-        proposalSector,
-        proposalName,
-        submitterEmail,
-        organizationName,
-        rfpText,
-        qualifications
-      };
+      document.getElementById('status-alert').style.display = 'none';
 
       try {
-        const res = await fetch('/.netlify/functions/submit-proposal', {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        // Obtain a fresh authenticated session.
+        const { data: sessionData, error: sessionError } =
+          await window.tendercrestSupabase.auth.getSession();
+
+        if (sessionError || !sessionData.session) {
+          throw new Error('Please log in before submitting a proposal.');
+        }
+
+        const response = await fetch('/.netlify/functions/submit-proposal', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization':
+              'Bearer ' + sessionData.session.access_token
+          },
           body: JSON.stringify(payload)
         });
 
-        const data = await res.json().catch(() => {
-          throw new Error('The server returned an unexpected response. Please try again later.');
+        const data = await response.json().catch(() => {
+          throw new Error('The server returned an unexpected response.');
         });
 
-        if (!res.ok) {
-          throw new Error(data.error || 'Server error while registering proposal');
+        if (!response.ok) {
+          throw new Error(data.error || 'Server error while registering proposal.');
         }
 
-        alertBox.style.display = 'block';
-        alertBox.className = 'alert-banner alert-success';
-        alertBox.innerHTML = `
-          <strong>✓ Solicitation Successfully Queued!</strong><br>
-          Your RFP (<em>${payload.proposalName}</em>) is now in progress.<br><br>
-          ⏱️ <strong>What happens next:</strong> Our dual-pass engine is parsing requirements and tailoring your narrative for <strong>${payload.proposalSector}</strong>.<br>
-          📬 <strong>Delivery:</strong> Expect an email at <strong>${payload.submitterEmail}</strong> in approximately <strong>60–90 seconds</strong> (please check your spam/junk folder as well).
-        `;
-        alertBox.focus();
+        showSubmissionMessage(
+          '✓ Solicitation Successfully Queued!\n\n' +
+          'Your RFP (' + payload.proposalName + ') is now in progress.\n\n' +
+          'Your draft will be delivered to ' + payload.submitterEmail +
+          '. Processing time varies with solicitation scope.'
+        );
 
-        submitBtn.innerText = '✓ Queued in Engine';
+        submitBtn.textContent = '✓ Queued in Engine';
+
         setTimeout(() => {
           submitBtn.disabled = false;
-          submitBtn.innerText = '🚀 Submit Another Solicitation';
+          submitBtn.textContent = '🚀 Submit Another Solicitation';
           isSubmitting = false;
-          document.getElementById('rfp-form').setAttribute('aria-busy', 'false');
-        }, 4000);
+          form.setAttribute('aria-busy','false');
+        },4000);
 
-      } catch (err) {
-        alertBox.style.display = 'block';
-        alertBox.className = 'alert-banner alert-error';
-        alertBox.innerHTML = `
-          <strong>Submission Blocked:</strong> ${err.message}<br><br>
-          <a href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00" target="_blank" rel="noopener noreferrer" style="color: #991b1b; font-weight: 700; text-decoration: underline;">
-            Open Stripe Billing Portal to Update / Upgrade Plan &rarr;
-          </a>
-        `;
-        alertBox.focus();
+      } catch (error) {
+        showSubmissionMessage(
+          'Submission Blocked: ' + error.message,
+          true
+        );
+
         submitBtn.disabled = false;
-        submitBtn.innerText = '🚀 Submit Solicitation to AI Engine';
+        submitBtn.textContent = '🚀 Submit Solicitation to AI Engine';
         isSubmitting = false;
-        document.getElementById('rfp-form').setAttribute('aria-busy', 'false');
+        form.setAttribute('aria-busy','false');
       }
     }
+  </script>
+
+  <!-- SUPABASE CUSTOMER AUTHENTICATION -->
+  <script type="module">
+    import { createClient } from
+      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/+esm";
+
+    const supabase = createClient(
+      "https://vfdwaqgfepvoujprtuww.supabase.co",
+      "sb_publishable_7J1W7gPugOUuVnCWKpS24A_ozYw0KM3"
+    );
+
+    window.tendercrestSupabase = supabase;
+
+    let authenticatedUser = null;
+
+    const authLink = document.getElementById('customer-auth-link');
+    const workspace = document.getElementById('tab-portal');
+
+    async function checkAuthentication() {
+      const { data, error } = await supabase.auth.getUser();
+
+      authenticatedUser = error ? null : data.user;
+
+      if (authenticatedUser) {
+        authLink.textContent = '👤 My Account';
+        document.getElementById('signed-in-email').textContent =
+          'Signed in as: ' + authenticatedUser.email;
+      } else {
+        authLink.textContent = '👤 Customer Login / Sign Up';
+        workspace.hidden = true;
+      }
+
+      return authenticatedUser;
+    }
+
+    // Replace placeholder tab navigation with authenticated navigation.
+    window.switchTab = async function(tabId, updateHash = true) {
+      if (!['overview','pricing','portal'].includes(tabId)) return;
+
+      if (tabId === 'portal') {
+        const user = await checkAuthentication();
+
+        if (!user) {
+          window.location.href = '/auth.html';
+          return;
+        }
+
+        workspace.hidden = false;
+      }
+
+      displayTab(tabId,updateHash);
+    };
+
+    async function initializePage() {
+      const params = new URLSearchParams(location.search);
+
+      const prefillEmail = params.get('email');
+      const prefillCompany = params.get('company');
+
+      if (prefillEmail) {
+        document.getElementById('submitter-email').value = prefillEmail;
+      }
+
+      if (prefillCompany) {
+        document.getElementById('company-name').value = prefillCompany;
+      }
+
+      await checkAuthentication();
+
+      if (params.get('session_id') ||
+          location.hash === '#portal' ||
+          prefillEmail) {
+        await window.switchTab('portal');
+      } else {
+        const route = location.hash.slice(1);
+        await window.switchTab(
+          ['overview','pricing'].includes(route) ? route : 'overview',
+          false
+        );
+      }
+
+      handleSectorChange();
+    }
+
+    window.addEventListener('hashchange', async () => {
+      const route = location.hash.slice(1);
+
+      if (['overview','pricing','portal'].includes(route)) {
+        await window.switchTab(route,false);
+      }
+    });
+
+    supabase.auth.onAuthStateChange((event) => {
+      // Defer async work until after Supabase's auth callback.
+      setTimeout(async () => {
+        await checkAuthentication();
+
+        if (event === 'SIGNED_OUT') {
+          workspace.hidden = true;
+
+          if (location.hash === '#portal') {
+            displayTab('overview');
+          }
+        }
+      },0);
+    });
+
+    await initializePage();
   </script>
 </body>
 </html>
