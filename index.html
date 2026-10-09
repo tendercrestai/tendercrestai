@@ -783,6 +783,11 @@
         </div>
 
         <p id="signed-in-email" class="review-note"></p>
+        <a href="/rfp-upload.html"
+   class="btn btn-outline"
+   style="width:auto;margin-bottom:1.5rem">
+  Upload RFP
+</a>
 
         <div id="status-alert" class="alert-banner alert-success"
              role="status" aria-live="polite" tabindex="-1"></div>
@@ -995,7 +1000,8 @@
   <!-- EXISTING SITE FUNCTIONS -->
   <script>
     let isSubmitting = false;
-
+let submissionId = crypto.randomUUID();
+    
     function openLegalModal() {
       document.getElementById('legal-modal').hidden = false;
     }
@@ -1207,6 +1213,30 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
       document.getElementById('status-alert').style.display = 'none';
 
       try {
+        const digestBytes = await crypto.subtle.digest(
+          'SHA-256',
+          new TextEncoder().encode(JSON.stringify(payload))
+        );
+
+        const snapshot = Array.from(
+          new Uint8Array(digestBytes),
+          byte => byte.toString(16).padStart(2, '0')
+        ).join('');
+
+        const retryKey = 'tendercrest-proposal:' + snapshot;
+
+        try {
+          const stored = sessionStorage.getItem(retryKey);
+          submissionId = stored || crypto.randomUUID();
+          sessionStorage.setItem(retryKey, submissionId);
+        } catch {
+          throw new Error(
+            'Enable session storage so submission retries can be handled safely.'
+          );
+        }
+
+        payload.submissionId = submissionId;
+
         // Obtain a fresh authenticated session.
         const { data: sessionData, error: sessionError } =
           await window.tendercrestSupabase.auth.getSession();
@@ -1289,6 +1319,11 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
         authLink.textContent = '👤 My Account';
         document.getElementById('signed-in-email').textContent =
           'Signed in as: ' + authenticatedUser.email;
+        document.getElementById('submitter-email').value =
+          authenticatedUser.email;
+
+        document.getElementById('submitter-email').readOnly = true;
+        
       } else {
         authLink.textContent = '👤 Customer Login / Sign Up';
         workspace.hidden = true;
