@@ -2,6 +2,7 @@ import { createClient } from
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm";
 
 import { createProposalStatusTracker } from "./proposal-status.mjs";
+import { uploadAttemptKey, beginNewUpload, mayStartNew } from "./upload-attempt.mjs";
 
 import {
   extractText,
@@ -22,6 +23,7 @@ let pending;
 let busy = false;
 let generation = 0;
 let completed = false;
+let canStartNew = false;
 
 function notify(message, error = false) {
   $("message").textContent = message;
@@ -34,6 +36,8 @@ function requireLogin() {
   user = null;
   selected = null;
   pending = null;
+  canStartNew = false;
+  $("another").hidden = true;
   generation++;
 
   $("review-text").value = "";
@@ -116,14 +120,41 @@ const statusTracker = createProposalStatusTracker({
   onUpdate(progress) {
     completed = true;
     $("upload-fields").disabled = true;
-    $("another").hidden = false;
+    if (progress.status) canStartNew = mayStartNew(progress.status);
+    $("another").hidden = !canStartNew;
     notify(progress.message, progress.error);
     if (progress.label) $("submit").textContent = progress.label;
   },
   onAuthExpired: requireLogin
 });
-$("another").addEventListener("click", () => {
-  if (user) statusTracker.forget(user.id);
+$("another").addEventListener("click", async event => {
+  event.preventDefault();
+  if (busy || !user || !canStartNew) return;
+  busy = true;
+  try {
+    await session();
+    beginNewUpload(user.id);
+    statusTracker.forget(user.id);
+    generation++;
+    selected = null;
+    pending = null;
+    completed = false;
+    canStartNew = false;
+    $("document").value = "";
+    $("review-text").value = "";
+    $("proposal-name").value = "";
+    $("qualifications").value = "";
+    $("review-confirmation").checked = false;
+    $("review").hidden = true;
+    $("another").hidden = true;
+    $("upload-fields").disabled = false;
+    $("submit").textContent = "Upload and submit RFP";
+    notify("New proposal started. Select your document again; you can use the same file. Submitting creates a separate draft and uses your proposal allowance.");
+  } catch (error) {
+    notify(error.message || "A new proposal could not be started. Try again.", true);
+  } finally {
+    busy = false;
+  }
 });
 
 function count() {
@@ -168,7 +199,7 @@ $("document").addEventListener("change", async () => {
 
     if (current !== generation || !user) return;
 
-    const key = "tendercrest-rfp:" + user.id + ":" + fileHash;
+    const key = uploadAttemptKey(user.id, fileHash);
     const stored = sessionStorage.getItem(key);
     let previous;
 
@@ -278,8 +309,17 @@ $("upload-form").addEventListener("submit", async event => {
       pending.fingerprint &&
       pending.fingerprint !== fingerprint
     ) {
+      const saved = await supabase.from("rfp_submissions")
+        .select("status,record_id")
+        .eq("id", pending.submissionId)
+        .eq("user_id", owner)
+        .maybeSingle();
+      canStartNew = !saved.error && saved.data?.status === "queued" && Boolean(saved.data.record_id);
+      $("another").hidden = !canStartNew;
       throw new Error(
-        "Restore the inputs from your previous submission before retrying. This document is already reserved for that submission."
+        canStartNew
+          ? "This file belongs to an earlier queued proposal. Restore the original inputs to retry, or click Start a new proposal to use this file for a separate proposal."
+          : "Restore the inputs from your previous submission before retrying. This document is already reserved; contact support if its status is uncertain."
       );
     }
 
@@ -377,6 +417,7 @@ $("upload-form").addEventListener("submit", async event => {
     }
 
     completed = true;
+    canStartNew = true;
 
     notify(
       "✓ Solicitation queued. Your draft will be delivered to " +
