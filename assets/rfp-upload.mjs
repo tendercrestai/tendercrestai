@@ -8,8 +8,8 @@ import {
 } from "./rfp-document.mjs";
 
 const supabase = createClient(
-  "https://wcrrywzleylmdsqqlise.supabase.co",
-  "sb_publishable_ODNiFkBvJp_IiLOFYDXTYg_uxg5Jecq"
+  "https://vfdwaqgfepvoujprtuww.supabase.co",
+  "sb_publishable_7J1W7gPugOUuVnCWKpS24A_ozYw0KM3"
 );
 
 const $ = id => document.getElementById(id);
@@ -410,3 +410,4 @@ try {
     true
   );
 }
+

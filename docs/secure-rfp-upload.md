@@ -1,5 +1,10 @@
 # Secure RFP upload — Feature 1
 
+Production configuration and the operator rollout checklist are documented in
+production-rollout.md. The prepared branch uses production public defaults;
+do not submit through its refreshed preview while function variables still
+point to the test project.
+
 ## Behavior
 
 The new /rfp-upload.html page supports PDF, DOCX, and UTF-8 TXT
@@ -143,3 +148,4 @@ privileged cleanup. The functions do not log document content.
 No production deployment or remote SQL/configuration was performed.
 Apply production configuration and merge/deploy only after review,
 integration validation, and rollout approval.
+
