@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Upload RFP | TenderCrest AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --radius: 12px;
+      --shadow-sm: 0 1px 2px rgb(0 0 0 / .05);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: var(--slate-800);
+      background: var(--slate-50);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: white;
+      border-bottom: 1px solid var(--slate-200);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .nav-container {
+      max-width: 1280px;
+      margin: auto;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 1.25rem;
+      color: var(--slate-900);
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg,#2563eb,#3b82f6);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: white;
+    }
+
+    .nav-portal-link {
+      display: inline-flex;
+      align-items: center;
+      padding: .5rem .85rem;
+      font-size: .825rem;
+      font-weight: 700;
+      color: var(--slate-700);
+      background: var(--slate-100);
+      border: 1px solid var(--slate-200);
+      border-radius: 8px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .nav-portal-link:hover { background: white; }
+
+    main {
+      flex: 1;
+      max-width: 1280px;
+      width: 100%;
+      margin: auto;
+      padding: 2.5rem 1.5rem;
+    }
+
+    [hidden] { display: none !important; }
+
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: var(--slate-900);
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      padding: .75rem 1.25rem;
+      font: inherit;
+      font-size: .9rem;
+      font-weight: 700;
+      border-radius: 8px;
+      border: 0;
+      cursor: pointer;
+      text-decoration: none;
+      transition: .2s;
+      width: 100%;
+    }
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn:disabled { opacity: .6; cursor: wait; }
+
+    .review-note {
+      color: var(--slate-600);
+      font-size: .85rem;
+      margin: 1rem 0;
+    }
+
+    .input-field {
+      width: 100%;
+      padding: .75rem .9rem;
+      border: 1px solid var(--slate-200);
+      border-radius: 8px;
+      font: inherit;
+      font-size: .875rem;
+      background: white;
+    }
+
+    .input-field:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+    }
+
+    .portal-box {
+      background: white;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius);
+      padding: 2.5rem;
+      max-width: 800px;
+      margin: auto;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .form-group { margin-bottom: 1.5rem; }
+
+    .form-group label {
+      display: block;
+      font-weight: 700;
+      font-size: .875rem;
+      margin-bottom: .4rem;
+    }
+
+    .form-group .hint {
+      display: block;
+      font-size: .775rem;
+      color: var(--slate-500);
+      margin-bottom: .4rem;
+    }
+
+    textarea.input-field {
+      resize: vertical;
+      min-height: 120px;
+      line-height: 1.4;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .alert-banner {
+      padding: 1.25rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      font-size: .875rem;
+      line-height: 1.5;
+    }
+
+    .alert-success {
+      background: #ecfdf5;
+      border: 1px solid #6ee7b7;
+      color: #065f46;
+    }
+
+    .alert-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+
+    .legal-notice-box {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: 1rem;
+      font-size: .8rem;
+      color: #78350f;
+      margin: 1.5rem 0;
+    }
+
+    footer {
+      border-top: 1px solid var(--slate-200);
+      background: white;
+      padding: 2rem 1.5rem;
+      font-size: .85rem;
+      color: var(--slate-500);
+      margin-top: auto;
+    }
+
+    .skip-link { position: absolute; top: -5rem; left: 1rem; }
+    .skip-link:focus { top: 1rem; }
+
+    :focus-visible {
+      outline: 3px solid var(--primary);
+      outline-offset: 3px;
+    }
+
+    #message { white-space: pre-wrap; }
+    #review-text { min-height: 320px; }
+
+    @media(max-width:720px) {
+      .nav-container { padding: 1rem; }
+      main { padding: 1.5rem 1rem; }
+      h1 { font-size: 1.8rem; }
+      .portal-box { padding: 1.25rem; }
+      .input-field { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
+  <header>
+    <div class="nav-container">
+      <a class="brand" href="/">
+        <span class="brand-icon">⚡</span>TenderCrest AI
+      </a>
+      <a class="nav-portal-link" href="/#portal">Proposal Workspace</a>
+      <a class="nav-portal-link" href="/auth.html">My Account</a>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <div class="portal-box">
+      <h1>Upload RFP</h1>
+
+      <p class="review-note">
+        PDF, DOCX, or UTF-8 TXT · Maximum 10 MB.
+        Review the extracted text before queuing your draft.
+        New accounts receive the automatic free trial without
+        payment or manual activation.
+      </p>
+
+      <p id="signed-in-email" class="review-note"></p>
+
+      <div id="message" class="alert-banner"
+           role="status" aria-live="polite" tabindex="-1">
+        Checking your session…
+      </div>
+
+      <p id="login-prompt" hidden>
+        <a href="/auth.html?next=rfp-upload">
+          Log in or create an account to continue
+        </a>
+      </p>
+
+      <form id="upload-form" hidden>
+        <fieldset id="upload-fields"
+                  style="border:0;padding:0;min-width:0">
+          <div class="form-group">
+            <label for="document">RFP document *</label>
+            <input id="document" class="input-field"
+                   type="file"
+                   accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                   required>
+            <span class="hint">
+              Text extraction happens in your browser.
+              Nothing is uploaded until you submit.
+            </span>
+          </div>
+
+          <section id="review" hidden>
+            <div class="form-group">
+              <label for="review-text">
+                Review and edit extracted requirements *
+              </label>
+              <span class="hint">
+                Check tables, reading order, mandatory requirements,
+                and evaluation criteria. OCR for scanned PDFs is
+                not included. Submit at most 100,000 characters.
+              </span>
+              <textarea id="review-text" class="input-field"
+                        required></textarea>
+              <p id="text-count" class="review-note"></p>
+            </div>
+
+            <div class="form-group">
+              <label for="proposal-name">
+                Proposal / Solicitation Title *
+              </label>
+              <input id="proposal-name" class="input-field"
+                     maxlength="300" required>
+            </div>
+
+            <div class="form-group">
+              <label for="company-name">Organization Name *</label>
+              <input id="company-name" class="input-field"
+                     maxlength="200" required>
+            </div>
+
+            <div class="form-group">
+              <label for="proposal-sector">
+                Proposal Type / Target Sector *
+              </label>
+              <select id="proposal-sector" class="input-field" required>
+                <option>Public Sector / Gov (Section L&amp;M)</option>
+                <option>Commercial / Enterprise RFP</option>
+                <option>SaaS / Tech Vendor Evaluation</option>
+                <option>Grant / Non-Profit Application</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="qualifications">
+                Proposal Specific Qualifications, Certifications
+                &amp; Key Personnel
+              </label>
+              <textarea id="qualifications" class="input-field"
+                        maxlength="30000"></textarea>
+              <span class="hint">
+                Optional if already stored in your company
+                knowledge base.
+              </span>
+            </div>
+
+            <p class="review-note">
+              The source document is private to your account.
+              Reviewed text is sent to the existing proposal queue
+              for generation and email delivery.
+            </p>
+
+            <p class="legal-notice-box">
+              Do not upload classified information, CUI, ITAR/EAR
+              data, PHI, passwords, or third-party trade secrets.
+              AI drafts require human review.
+              <a href="/#portal">Existing terms and disclaimers</a>
+              apply.
+            </p>
+
+            <label>
+              <input id="review-confirmation" type="checkbox" required>
+              I have reviewed the extracted text and can submit
+              this document.
+            </label>
+
+            <button id="submit" class="btn btn-primary"
+                    style="margin-top:1rem" type="submit">
+              Upload and submit RFP
+            </button>
+          </section>
+        </fieldset>
+      </form>
+
+      <a id="another" href="/rfp-upload.html" hidden>
+        Upload another RFP
+      </a>
+    </div>
+  </main>
+
+  <footer>© 2026 TenderCrest AI. All rights reserved.</footer>
+
+  <script type="module" src="/assets/rfp-upload.mjs"></script>
+</body>
+</html>
