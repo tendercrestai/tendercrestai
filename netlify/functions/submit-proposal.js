@@ -124,7 +124,7 @@ async function queueProposal(validated, attempt) {
     });
   }
 
-  const root = "https://api.airtable.com/v0/appsaqdp3UZdhB2VH";
+const root = "https://api.airtable.com/v0/appsDmtQ1XOE8Gjtr";
   const headers = {
     Authorization: "Bearer " + pat,
     "Content-Type": "application/json"
