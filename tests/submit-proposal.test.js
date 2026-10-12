@@ -48,6 +48,8 @@ beforeEach(() => {
   env = { ...process.env };
   process.env.AIRTABLE_PAT = "test-only";
   process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service";
+  delete process.env.EVIDENCE_ENGINE_ENABLED;
+  delete process.env.AIRTABLE_BASE_ID;
 
   ledger = new Map();
   calls = [];
@@ -82,6 +84,15 @@ beforeEach(() => {
 
     if (route.pathname === "/rest/v1/rfp_uploads") {
       return json(settings.foreign ? [] : [metadata]);
+    }
+
+    if (route.pathname === "/rest/v1/proposal_evidence") {
+      assert.equal(options.headers.Authorization, "Bearer valid");
+      assert.notEqual(options.headers.apikey, "test-service");
+      if (settings.evidenceDown) return json({}, 503);
+      return json([{ id: DOC, user_id: USER, approved: true, rights_confirmed: true,
+        kind: "company_evidence", sector: input.proposalSector, title: "Reviewed proposal experience",
+        content: "Deliver a reviewed proposal with documented acceptance.", source_label: "Project report", outcome: "not_applicable" }]);
     }
 
     if (route.pathname.startsWith("/storage/v1/")) {
@@ -270,6 +281,31 @@ test("creates a free trial without Stripe and does not wait for computed quota",
   assert.ok(calls.every(call => !call.url.includes("stripe")));
 });
 
+test("enabled retrieval adds source-linked evidence without changing RFP, billing or duplicate protection", async () => {
+  process.env.EVIDENCE_ENGINE_ENABLED = "true";
+  assert.equal((await run()).statusCode, 200);
+  const fields = JSON.parse(queueCalls()[0].options.body).fields;
+  assert.equal(fields["RFP Text Content"], input.rfpText);
+  const packet = JSON.parse(fields["Proposal Specific Qualifications"]);
+  assert.equal(packet.currentQualifications.text, input.qualifications);
+  assert.equal(packet.passages[0].id, DOC);
+  assert.equal(body(await run()).duplicate, true);
+  assert.equal(queueCalls().length, 1);
+});
+
+test("evidence outage creates neither reservation nor Airtable queue item", async () => {
+  process.env.EVIDENCE_ENGINE_ENABLED = "true";
+  settings.evidenceDown = true;
+  assert.equal((await run()).statusCode, 503);
+  assert.equal(ledger.size, 0); assert.equal(queueCalls().length, 0);
+});
+
+test("preview queue uses explicitly configured base while production keeps its default", async () => {
+  process.env.AIRTABLE_BASE_ID = 'app12345678901234';
+  assert.equal((await run()).statusCode, 200);
+  assert.ok(queueCalls()[0].url.includes('/app12345678901234/'));
+});
+
 test("cannot submit another user's document, a missing upload, or mismatched bytes", async () => {
   settings.foreign = true;
 
@@ -454,3 +490,4 @@ test("invalid request shapes, limits and sectors never reach the queue", async (
 
   assert.equal(queueCalls().length, 0);
 });
+

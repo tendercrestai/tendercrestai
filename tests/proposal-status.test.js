@@ -20,6 +20,7 @@ beforeEach(() => {
   env = { ...process.env };
   process.env.SUPABASE_SERVICE_ROLE_KEY = "service-only";
   process.env.AIRTABLE_PAT = "airtable-only";
+  delete process.env.AIRTABLE_BASE_ID;
   calls = [];
   settings = {};
   global.fetch = async (url, options) => {
@@ -118,6 +119,16 @@ test("missing service or Airtable configuration returns a safe error", async () 
   assert.equal((await run()).statusCode, 503);
   process.env.SUPABASE_SERVICE_ROLE_KEY = "service-only";
   delete process.env.AIRTABLE_PAT;
+  assert.equal((await run()).statusCode, 503);
+  assert.equal(queueReads().length, 0);
+});
+
+test("status uses the configured test base and rejects malformed base identifiers", async () => {
+  process.env.AIRTABLE_BASE_ID = 'app12345678901234';
+  assert.equal((await run()).statusCode, 200);
+  assert.ok(queueReads()[0].url.includes('/app12345678901234/'));
+  calls = [];
+  process.env.AIRTABLE_BASE_ID = '../invalid';
   assert.equal((await run()).statusCode, 503);
   assert.equal(queueReads().length, 0);
 });

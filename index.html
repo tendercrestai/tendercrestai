@@ -788,6 +788,8 @@
    style="width:auto;margin-bottom:1.5rem">
   Upload RFP
 </a>
+        <a href="/evidence-library.html" class="btn btn-outline"
+           style="width:auto;margin-bottom:1.5rem">Private Evidence Library</a>
 
         <div id="status-alert" class="alert-banner alert-success"
              role="status" aria-live="polite" tabindex="-1"></div>
@@ -1298,13 +1300,9 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
   <!-- SUPABASE CUSTOMER AUTHENTICATION -->
   <script type="module">
     import { createProposalStatusTracker } from "/assets/proposal-status.mjs";
-    import { createClient } from
-      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm";
+    import { createBrowserClient } from "/assets/supabase-client.mjs";
 
-    const supabase = createClient(
-      "https://vfdwaqgfepvoujprtuww.supabase.co",
-      "sb_publishable_7J1W7gPugOUuVnCWKpS24A_ozYw0KM3"
-    );
+    const supabase = await createBrowserClient();
 
     window.tendercrestSupabase = supabase;
     const statusTracker = createProposalStatusTracker({
