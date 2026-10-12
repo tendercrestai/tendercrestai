@@ -1,6 +1,8 @@
 import { createClient } from
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm";
 
+import { createProposalStatusTracker } from "./proposal-status.mjs";
+
 import {
   extractText,
   validateFile,
@@ -28,6 +30,7 @@ function notify(message, error = false) {
 }
 
 function requireLogin() {
+  statusTracker.stop();
   user = null;
   selected = null;
   pending = null;
@@ -106,6 +109,22 @@ function savePending() {
     );
   }
 }
+
+const statusTracker = createProposalStatusTracker({
+  supabase,
+  storageKey: "tendercrest-upload-status",
+  onUpdate(progress) {
+    completed = true;
+    $("upload-fields").disabled = true;
+    $("another").hidden = false;
+    notify(progress.message, progress.error);
+    if (progress.label) $("submit").textContent = progress.label;
+  },
+  onAuthExpired: requireLogin
+});
+$("another").addEventListener("click", () => {
+  if (user) statusTracker.forget(user.id);
+});
 
 function count() {
   const length = $("review-text").value.trim().length;
@@ -367,6 +386,7 @@ $("upload-form").addEventListener("submit", async event => {
 
     $("submit").textContent = "✓ Queued in Engine";
     $("another").hidden = false;
+    statusTracker.start(payload.submissionId, owner);
   } catch (error) {
     notify(
       error.message ||
@@ -403,6 +423,7 @@ try {
 
     $("upload-form").hidden = false;
     notify("Choose an RFP document to begin.");
+    statusTracker.resume(user.id);
   }
 } catch {
   notify(
@@ -410,4 +431,5 @@ try {
     true
   );
 }
+
 
