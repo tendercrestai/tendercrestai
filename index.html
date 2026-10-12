@@ -1205,6 +1205,7 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
         return;
       }
 
+      window.tendercrestProposalTracker?.stop();
       isSubmitting = true;
       submitBtn.disabled = true;
       form.setAttribute('aria-busy','true');
@@ -1272,12 +1273,13 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
 
         submitBtn.textContent = '✓ Queued in Engine';
 
-        setTimeout(() => {
-          submitBtn.disabled = false;
-          submitBtn.textContent = '🚀 Submit Another Solicitation';
-          isSubmitting = false;
-          form.setAttribute('aria-busy','false');
-        },4000);
+        isSubmitting = false;
+        form.setAttribute('aria-busy','false');
+        submitBtn.disabled = false;
+        window.tendercrestProposalTracker.start(
+          payload.submissionId,
+          sessionData.session.user.id
+        );
 
       } catch (error) {
         showSubmissionMessage(
@@ -1295,6 +1297,7 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
 
   <!-- SUPABASE CUSTOMER AUTHENTICATION -->
   <script type="module">
+    import { createProposalStatusTracker } from "/assets/proposal-status.mjs";
     import { createClient } from
       "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm";
 
@@ -1304,6 +1307,21 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
     );
 
     window.tendercrestSupabase = supabase;
+    const statusTracker = createProposalStatusTracker({
+      supabase,
+      storageKey: 'tendercrest-workspace-status',
+      onUpdate(progress) {
+        showSubmissionMessage(progress.message, progress.error);
+        if (!isSubmitting && progress.label) {
+          document.getElementById('submit-btn').textContent =
+            progress.label + ' · Submit another';
+        }
+      },
+      onAuthExpired() {
+        window.location.href = '/auth.html';
+      }
+    });
+    window.tendercrestProposalTracker = statusTracker;
 
     let authenticatedUser = null;
 
@@ -1323,8 +1341,11 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
           authenticatedUser.email;
 
         document.getElementById('submitter-email').readOnly = true;
+        statusTracker.resume(authenticatedUser.id);
         
       } else {
+        statusTracker.stop();
+        document.getElementById('status-alert').textContent = '';
         authLink.textContent = '👤 Customer Login / Sign Up';
         workspace.hidden = true;
       }
@@ -1408,4 +1429,5 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
   </script>
 </body>
 </html>
+
 
