@@ -124,7 +124,12 @@ async function queueProposal(validated, attempt) {
     });
   }
 
-const root = "https://api.airtable.com/v0/appsaqdp3UZdhB2VH";
+  if (process.env.AIRTABLE_BASE_ID && !/^app[a-zA-Z0-9]{14}$/.test(process.env.AIRTABLE_BASE_ID)) {
+    return reply(503, { error: "Proposal queue configuration is unavailable." });
+  }
+  const root = process.env.AIRTABLE_BASE_ID
+    ? "https://api.airtable.com/v0/" + process.env.AIRTABLE_BASE_ID
+    : "https://api.airtable.com/v0/appsaqdp3UZdhB2VH";
   const headers = {
     Authorization: "Bearer " + pat,
     "Content-Type": "application/json"
@@ -379,6 +384,15 @@ exports.handler = async function (event) {
     const validated = validateRequest(event);
     if (validated.statusCode) return validated;
 
+    // Authenticate retrieval with the customer JWT; the service role must not read evidence.
+    // Retrieval failures happen before reservation/dispatch and cannot create a partial queue item.
+    let evidencePassages;
+    if (process.env.EVIDENCE_ENGINE_ENABLED === "true") {
+      evidencePassages = await require("./lib/proposal-evidence").loadEvidence(
+        config, token, user, validated.proposalSector, validated.rfpText
+      );
+    }
+
     reservation = await security.claim(config, user, payload);
 
     if (reservation.recordId) {
@@ -389,6 +403,11 @@ exports.handler = async function (event) {
       });
     }
 
+    if (evidencePassages) {
+      validated.qualifications = require("./lib/proposal-evidence").context(
+        validated.qualifications, evidencePassages
+      );
+    }
     const response = await queueProposal(validated, attempt);
     const result = JSON.parse(response.body);
 
@@ -420,4 +439,5 @@ exports.handler = async function (event) {
     });
   }
 };
+
 

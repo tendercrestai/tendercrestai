@@ -148,13 +148,8 @@
   </main>
 
   <script type="module">
-    import { createClient } from
-      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm";
-
-    const supabase = createClient(
-      "https://vfdwaqgfepvoujprtuww.supabase.co",
-      "sb_publishable_7J1W7gPugOUuVnCWKpS24A_ozYw0KM3"
-    );
+    import { createBrowserClient } from "/assets/supabase-client.mjs";
+    const supabase = await createBrowserClient();
 
     const $ = id => document.getElementById(id);
     const views = ["login", "signup", "forgot", "reset", "account"];
@@ -298,4 +293,5 @@
   </script>
 </body>
 </html>
+
 
