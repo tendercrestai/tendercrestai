@@ -9,8 +9,8 @@ const MIME = {
   txt: "text/plain"
 };
 
-const PUBLIC_KEY = "sb_publishable_7J1W7gPugOUuVnCWKpS24A_ozYw0KM3";
-const URL = "https://vfdwaqgfepvoujprtuww.supabase.co";
+const PUBLIC_KEY = "sb_publishable_ODNiFkBvJp_IiLOFYDXTYg_uxg5Jecq";
+const URL = "https://wcrrywzleylmdsqqlise.supabase.co";
 
 class RequestError extends Error {
   constructor(status, message) {
