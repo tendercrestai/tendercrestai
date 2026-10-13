@@ -35,7 +35,11 @@ insert into public.rfp_uploads (
 
 insert into storage.objects (bucket_id, name)
 select 'rfp-documents', storage_path
-from public.rfp_uploads;
+from public.rfp_uploads
+where id in (
+  '33333333-3333-4333-8333-333333333333',
+  '44444444-4444-4444-8444-444444444444'
+);
 
 insert into public.rfp_submissions (
   id, user_id, document_id, fingerprint, status
@@ -114,3 +118,4 @@ end $$;
 
 reset role;
 rollback;
+
