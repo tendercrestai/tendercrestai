@@ -788,6 +788,8 @@
    style="width:auto;margin-bottom:1.5rem">
   Upload RFP
 </a>
+        <a href="/compliance.html" class="btn btn-outline"
+           style="width:auto;margin-bottom:1.5rem">Compliance Preview</a>
 
         <div id="status-alert" class="alert-banner alert-success"
              role="status" aria-live="polite" tabindex="-1"></div>
@@ -1402,6 +1404,18 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
       handleSectorChange();
     }
 
+    // Handoff populates fields only; it never calls the proposal endpoint.
+    async function initializeComplianceHandoff() {
+      const id = new URLSearchParams(location.search).get('compliance');
+      if (!id || !authenticatedUser) return;
+      try {
+        const { loadComplianceHandoff } = await import('/assets/compliance-handoff.mjs');
+        showSubmissionMessage(await loadComplianceHandoff(supabase, id));
+      } catch (error) {
+        showSubmissionMessage(error.message || 'Compliance analysis could not be loaded.', true);
+      }
+    }
+
     window.addEventListener('hashchange', async () => {
       const route = location.hash.slice(1);
 
@@ -1426,8 +1440,10 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
     });
 
     await initializePage();
+    initializeComplianceHandoff();
   </script>
 </body>
 </html>
+
 
 
