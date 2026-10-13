@@ -76,3 +76,41 @@ This is an implemented, regression-tested draft preview. Keep it disabled in
 production and keep the PR draft until the above activation gates pass. Do not
 describe unexecuted checks as successful or infer production readiness from
 the mocked tests.
+
+## Follow-up: connected test database validation
+
+After the user authorized preview setup, the TenderCrest Supabase connection
+became usable. The existing non-production project wcrrywzleylmdsqqlise
+("test project") was confirmed distinct from production vfdwaqgfepvoujprtuww.
+The additive compliance migration was applied there as recorded migration
+20261013083103_compliance_matrix_preview. No production migration was run.
+
+Executed successfully on the test database:
+
+- compliance-isolation.sql: anonymous and cross-account denial, protected
+  citation/owner columns, evidence requirement, reviewer version trigger,
+  overlapping claims, stale lease rejection and final status.
+- compliance-processing.sql: idempotent analysis reuse, three-new-analysis cap,
+  three-attempt retry cap, expired-lease recovery, Partial completion, per-user
+  and global attempt limits, transactional rollback on rejected claims.
+- rfp-isolation.sql: existing metadata/submission/Storage isolation. Its first
+  run failed because it inserted Storage metadata for every existing upload.
+  The fixture was corrected to insert only its own two synthetic objects and
+  the rerun passed. No existing object was overwritten.
+
+All test transactions rolled back. Verification afterward found the original
+7 upload records and 6 submission records unchanged, zero compliance analyses,
+zero budget rows and no fixture users. The private bucket has a 10,485,760-byte
+limit, the expected three MIME types, and only owner read/insert policies.
+
+Security advisors report intentional INFO findings for the two service-only
+budget tables (RLS enabled, no customer policies). Existing billing tables have
+similar findings. The test project's leaked-password protection is disabled;
+this pre-existing Auth setting was not changed. Reference:
+https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
+
+Netlify credential access and a test AI key remain unavailable. No Netlify
+configuration, real AI request or browser end-to-end test was completed in this
+follow-up. The shell proxy remains unreachable. The earlier database blockers
+are now resolved through the connected Supabase tool; the remaining activation
+gates still apply.
