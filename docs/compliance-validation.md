@@ -61,7 +61,11 @@ execution of each actual suite, which emits individual assertion results.
   after a sandbox setsockopt permission error. No rendered browser, keyboard,
   responsive layout, download or handoff end-to-end result is claimed.
 - Clean npm ci/audit, Netlify esbuild/dependency packaging, worst-case synchronous
-  function latency and a deployed preview were not executed.
+  function latency and manual deployed-preview workflow checks were not executed.
+  After draft PR #6 was opened, Netlify reported its automatic deploy-preview
+  status as success at https://deploy-preview-6--tendercrestai.netlify.app .
+  This establishes an automatic preview build, not parser/worker packaging,
+  configured auth/AI/SQL, or end-to-end feature readiness.
 - No real AI call was made; provider/model compatibility, precision/recall and
   observed monetary cost require a configured isolated preview.
 - No company evidence library integration with unmerged PR #4 was tested.
