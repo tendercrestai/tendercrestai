@@ -95,7 +95,7 @@ async function authenticate(event, config) {
   return { user, token };
 }
 
-async function verifyDocument(config, token, user, id) {
+async function verifyDocument(config, token, user, id, includeSource = false) {
   if (!UUID.test(id)) {
     throw new RequestError(400, "Invalid document ID.");
   }
@@ -201,6 +201,8 @@ async function verifyDocument(config, token, user, id) {
       );
     }
   }
+
+  if (includeSource) return { metadata: doc, bytes, extension };
 }
 
 async function claim(config, user, payload) {
@@ -346,4 +348,5 @@ module.exports = {
   finish,
   RequestError
 };
+
 
