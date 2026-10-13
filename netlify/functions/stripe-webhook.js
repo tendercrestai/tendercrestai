@@ -5,7 +5,7 @@ const PLANS = {
   price_1UJquQFinOspVJZ4MQWPDG5c: ['Growth ($699/mo)', 69900],
   price_1UJqwTFinOspVJZ4VPhpCVcG: ['Enterprise ($1,299/mo)', 129900]
 };
-const EVENTS = new Set(['checkout.session.completed', 'checkout.session.async_payment_succeeded', 'customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted', 'invoice.paid', 'invoice.payment_failed']);
+const EVENTS = new Set(['checkout.session.completed', 'checkout.session.async_payment_succeeded', 'customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted', 'customer.subscription.paused', 'customer.subscription.resumed', 'invoice.paid', 'invoice.payment_failed']);
 const response = (statusCode, message) => ({statusCode, headers:{'Content-Type':'application/json','Cache-Control':'no-store'},body:JSON.stringify({message})});
 const id = value => typeof value === 'string' ? value : value?.id;
 function verified(body, signature, secret) {
@@ -46,10 +46,14 @@ exports.handler = async event => {
     const items=sub.items?.data||[];
     const plan=items.length===1 && items[0].quantity===1 && PLANS[id(items[0].price)];
     if(!plan) throw new Error('Unsupported price requires review');
+    const item = items[0];
+    const periodStart = item.current_period_start;
+    const periodEnd = item.current_period_end;
+    if (!Number.isInteger(periodStart) || !Number.isInteger(periodEnd) || periodEnd <= periodStart) throw new Error('Billing period requires review');
     const enabled=['active','trialing'].includes(sub.status);
     const paid=sub.latest_invoice?.paid===true || sub.latest_invoice?.status==='paid';
     // A paid Checkout event alone never grants an unpaid/currently inactive subscription.
-    const state=sub.pause_collection ? 'Past Due' : sub.status==='trialing' ? 'Trialing' : sub.status==='active' && paid ? 'Active' : ['past_due','unpaid','active'].includes(sub.status) ? 'Past Due' : 'Canceled';
+    const state=sub.pause_collection ? 'Past Due' : sub.status==='trialing' ? 'Trialing' : sub.status==='active' && paid ? 'Active' : ['past_due','unpaid','active','paused'].includes(sub.status) ? 'Past Due' : 'Canceled';
     if(enabled) {
       const all=await stripe('subscriptions?customer='+encodeURIComponent(customerId)+'&status=all&limit=100');
       if(all.has_more || all.data.filter(s=>['active','trialing'].includes(s.status)).length!==1) throw new Error('Multiple subscriptions require review');
@@ -61,16 +65,23 @@ exports.handler = async event => {
     const found=await request(ROOT+'?maxRecords=2&filterByFormula='+encodeURIComponent(formula),{headers});
     if(!Array.isArray(found.records) || found.records.length>1) throw new Error('Ambiguous company requires review');
     const existing=found.records[0];
-    if(existing && ((existing.fields['Stripe Subscription ID'] && existing.fields['Stripe Subscription ID']!==subscriptionId) || (existing.fields['Stripe Customer ID'] && existing.fields['Stripe Customer ID']!==customerId))) throw new Error('Conflicting company identity');
+    if(existing && existing.fields['Stripe Customer ID'] && existing.fields['Stripe Customer ID']!==customerId) throw new Error('Conflicting company identity');
+    const previousSubscription = existing?.fields['Stripe Subscription ID'];
+    if(previousSubscription && previousSubscription!==subscriptionId) {
+      // An old subscription's delayed deletion must not cancel its replacement.
+      if(!enabled) return response(200,'Superseded subscription ignored');
+      const previous = await stripe('subscriptions/'+encodeURIComponent(previousSubscription));
+      if(['active','trialing','past_due','unpaid','paused'].includes(previous.status)) throw new Error('Conflicting company subscription');
+    }
     // Never create inactive accounts; canceled events still update an existing account by ID.
     if(!existing && !['Active','Trialing'].includes(state)) return response(200,'No eligible account to provision');
-    const fields={'Billing Email':email,'Stripe Customer ID':customerId,'Stripe Subscription ID':subscriptionId,'Subscription Tier':plan[0],'Status':state};
+    const fields={'Billing Email':email,'Stripe Customer ID':customerId,'Stripe Subscription ID':subscriptionId,'Subscription Tier':plan[0],'Status':state,'Complimentary Access':false,'Billing Period Start':new Date(periodStart*1000).toISOString(),'Billing Period End':new Date(periodEnd*1000).toISOString()};
     // Existing legacy quota formulas use minor units, despite the currency field display.
     // Preserve that representation until an explicit schema migration is performed.
     fields['Amount Paid']=plan[1];
     if(!existing) fields['Company Name']=customer.name || email;
     if(paid && Number.isFinite(sub.latest_invoice?.status_transitions?.paid_at)) fields['Last Billing Date']=new Date(sub.latest_invoice.status_transitions.paid_at*1000).toISOString().slice(0,10);
-    if(sub.canceled_at) fields['Cancellation Date']=new Date(sub.canceled_at*1000).toISOString().slice(0,10);
+    fields['Cancellation Date']=sub.canceled_at ? new Date(sub.canceled_at*1000).toISOString().slice(0,10) : null;
     const record=existing ? {id:existing.id,fields} : {fields};
     const body={records:[record],typecast:false};
     if(!existing) body.performUpsert={fieldsToMergeOn:['Stripe Subscription ID']};
@@ -82,3 +93,4 @@ exports.handler = async event => {
     return response(503,'Billing synchronization requires retry or account review');
   }
 };
+

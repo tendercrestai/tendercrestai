@@ -106,7 +106,7 @@ function validateRequest(event) {
   };
 }
 
-async function queueProposal(validated, attempt) {
+async function queueProposal(validated, attempt, context) {
   const {
     proposalName,
     cleanEmail,
@@ -124,7 +124,7 @@ async function queueProposal(validated, attempt) {
     });
   }
 
-const root = "https://api.airtable.com/v0/appsaqdp3UZdhB2VH";
+  const root = "https://api.airtable.com/v0/appsaqdp3UZdhB2VH";
   const headers = {
     Authorization: "Bearer " + pat,
     "Content-Type": "application/json"
@@ -136,15 +136,12 @@ const root = "https://api.airtable.com/v0/appsaqdp3UZdhB2VH";
       .replace(/'/g, "\\'");
 
     const formula = encodeURIComponent(
-      "LOWER({Billing Email}) = '" + escapedEmail + "'"
+      "LOWER(TRIM({Billing Email})) = '" + escapedEmail + "'"
     );
 
     const searchUrl =
       root + "/tbliWnP6ThqA02G5L?filterByFormula=" + formula +
-      "&fields%5B%5D=Company+Name" +
-      "&fields%5B%5D=Quota+Status" +
-      "&fields%5B%5D=Company+Credentials+Digest" +
-      "&fields%5B%5D=Remaining+Proposals";
+      "&maxRecords=2";
 
     const search = await fetch(searchUrl, {
       headers,
@@ -159,13 +156,15 @@ const root = "https://api.airtable.com/v0/appsaqdp3UZdhB2VH";
 
     const accounts = await search.json();
     let company;
-    let newTrial = false;
 
-    if (
-      !Array.isArray(accounts.records) ||
-      accounts.records.length === 0
-    ) {
-      // Preserve automatic free trials without Stripe checkout.
+    if (!Array.isArray(accounts.records)) {
+      return reply(503, { error: "Account verification returned an unexpected response." });
+    }
+    if (accounts.records.length === 0) {
+      // One durable provisioning claim per verified owner. Ambiguous creates
+      // stay locked for reconciliation rather than granting a second trial.
+      const trialClaim = await credits.rpc(context.config, 'claim_free_trial', { p_user_id: context.user.id });
+      if (!trialClaim.create) return reply(503, { error: "Your trial account is being provisioned. Please try again later or contact support." });
       const trial = await fetch(root + "/tbliWnP6ThqA02G5L", {
         method: "POST",
         headers,
@@ -176,7 +175,9 @@ const root = "https://api.airtable.com/v0/appsaqdp3UZdhB2VH";
             "Billing Email": cleanEmail,
             "Subscription Tier": "Enterprise ($1,299/mo)",
             "Status": "Trialing",
-            "Amount Paid": 0
+            "Amount Paid": 0,
+            "Billing Period Start": trialClaim.start,
+            "Billing Period End": trialClaim.end
           }
         })
       });
@@ -189,47 +190,31 @@ const root = "https://api.airtable.com/v0/appsaqdp3UZdhB2VH";
 
       const createdTrial = await trial.json();
 
-      if (!createdTrial.id) {
+      if (!createdTrial?.id) {
         return reply(503, {
           error: "Free trial activation returned an unexpected response. Please try again later."
         });
       }
 
+      await credits.rpc(context.config, 'bind_free_trial', {
+        p_user_id: context.user.id, p_company_id: createdTrial.id
+      });
       // Do not wait for Airtable's computed fields to refresh.
       company = {
         ...createdTrial,
         fields: {
           ...(createdTrial.fields || {}),
           "Quota Status": "ACTIVE",
-          "Remaining Proposals": 60
+          "Remaining Proposals": 60,
+          "Billing Period Start": trialClaim.start,
+          "Billing Period End": trialClaim.end
         }
       };
-
-      newTrial = true;
     } else {
-      let matchingRecords = accounts.records.filter(record => {
-        const companyName = (
-          record.fields["Company Name"] || ""
-        ).trim().toLowerCase();
-
-        return companyName === orgName.toLowerCase();
-      });
-
-      if (matchingRecords.length === 0) {
-        matchingRecords = accounts.records;
+      if (accounts.records.length !== 1) {
+        return reply(503, { error: "Multiple billing accounts match this email. Please contact support." });
       }
-
-      company = matchingRecords.sort((a, b) => {
-        const aActive = a.fields["Quota Status"] === "ACTIVE" ? 1 : 0;
-        const bActive = b.fields["Quota Status"] === "ACTIVE" ? 1 : 0;
-
-        if (bActive !== aActive) return bActive - aActive;
-
-        return (
-          (b.fields["Remaining Proposals"] || 0) -
-          (a.fields["Remaining Proposals"] || 0)
-        );
-      })[0];
+      company = accounts.records[0];
     }
 
     if (!company || !company.id || !company.fields) {
@@ -238,28 +223,8 @@ const root = "https://api.airtable.com/v0/appsaqdp3UZdhB2VH";
       });
     }
 
-    if (!newTrial) {
-      const quota = company.fields["Quota Status"];
-
-      if (quota === "SUBSCRIPTION_INACTIVE") {
-        return reply(403, {
-          error: "Your subscription is inactive. Manage your subscription through the Billing Portal."
-        });
-      }
-
-      if (quota === "QUOTA_EXCEEDED") {
-        return reply(429, {
-          error: "Your monthly proposal allowance has been reached."
-        });
-      }
-
-      if (quota !== "ACTIVE") {
-        return reply(503, {
-          error: "Your account status is currently: " +
-            (quota || "Pending") + ". Please check your active plan."
-        });
-      }
-    }
+    await credits.reserve(context.config, context.user, context.submissionId, company, root, headers);
+    attempt.creditReserved = true;
 
     const digest = company.fields["Company Credentials Digest"];
 
@@ -283,6 +248,7 @@ const root = "https://api.airtable.com/v0/appsaqdp3UZdhB2VH";
           "Proposal Specific Qualifications": qualifications,
           "Proposal Sector": proposalSector,
           "Pipeline Status": "Uploaded",
+          "Credit Reservation ID": context.submissionId,
           "Company": [company.id]
         }
       })
@@ -306,14 +272,15 @@ const root = "https://api.airtable.com/v0/appsaqdp3UZdhB2VH";
       success: true,
       recordId: queued.id
     });
-  } catch {
-    return reply(503, {
-      error: "Proposal submission is temporarily unavailable. Please try again later."
+  } catch (error) {
+    return reply(error.status || 503, {
+      error: error.status ? error.message : "Proposal submission is temporarily unavailable. Please try again later."
     });
   }
 }
 
 const security = require("./lib/rfp-security");
+const credits = require("./lib/credits");
 
 exports.handler = async function (event) {
   if (event.httpMethod !== "POST") {
@@ -389,8 +356,14 @@ exports.handler = async function (event) {
       });
     }
 
-    const response = await queueProposal(validated, attempt);
+    const response = await queueProposal(validated, attempt, { config, user, submissionId: reservation.id });
     const result = JSON.parse(response.body);
+
+    if (attempt.creditReserved) {
+      await credits.finish(config, reservation.id,
+        result.success ? "queued" : attempt.dispatched ? "uncertain" : "released",
+        result.recordId);
+    }
 
     await security.finish(
       config,
@@ -420,4 +393,5 @@ exports.handler = async function (event) {
     });
   }
 };
+
 
