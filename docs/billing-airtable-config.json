@@ -1,0 +1,60 @@
+{
+  "baseId": "appsaqdp3UZdhB2VH",
+  "companyTable": "tbliWnP6ThqA02G5L",
+  "proposalTable": "tblkL2ct7mYtUTu9S",
+  "fields": {
+    "Billing Period Start": "fldGUGdrRGjPASJbI",
+    "Billing Period End": "fldHGzBVUFBYTV02T",
+    "Credit Reservation ID": "fldPX2gQsUjVJv3i4",
+    "Complimentary Access": "fldJRZPUrFXx2QcwL",
+    "Quota Period Start Epoch": "fld1OwkQVQXkCjCR4",
+    "Quota Period End Epoch": "fldGpBHSXDHHcdvGC",
+    "Company Quota Start Epoch": "flddxv9u1VxFAp0i0",
+    "Company Quota End Epoch": "fldLaURQZQBbxFwSX"
+  },
+  "complimentaryAccounts": [
+    "recFVxcyWk1KBDI24",
+    "recMBCls7JOgHBVm7",
+    "recRYyB9bQUPwPKWU",
+    "rechrLgFN99gcayWg",
+    "reclejqvEV5AfRQzx",
+    "recmBEQUnbxXUZIlE",
+    "recoWt391OVJbxgnw",
+    "recpXoQezfGkKwtob"
+  ],
+  "automation1": {
+    "conjunction": "and",
+    "conditions": [
+      {
+        "left": {
+          "$ref": "trigger",
+          "path": [
+            "cellValuesByFieldId",
+            "fldPX2gQsUjVJv3i4"
+          ]
+        },
+        "operator": "isNotEmpty",
+        "valueType": "text",
+        "dataType": "literal"
+      },
+      {
+        "left": {
+          "$ref": "trigger",
+          "path": [
+            "cellValuesByFieldId",
+            "fldGexzFiJoz66bXG"
+          ]
+        },
+        "operator": "=",
+        "right": "selQ9ctnvdjOaQsj9",
+        "valueType": "select",
+        "dataType": "literal"
+      }
+    ]
+  },
+  "gatekeeper": {
+    "id": "wfl6cUlfDvdzHgIi3",
+    "draft": "Reject direct inserts; no AI generation"
+  },
+  "activation": "Airtable Update required after coordinated server deployment"
+}
