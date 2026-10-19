@@ -3,12 +3,15 @@ const fs = require('node:fs');
 const dataset = require('./quality-benchmark.json');
 const dimensions = ['accuracy', 'completeness', 'relevance', 'specificity', 'evidenceSupport'];
 function evaluate(run, cases = dataset.cases) {
-  if (!run || typeof run.runId !== 'string' || !run.runId.trim() || !run.engineVersion || !Array.isArray(run.outputs))
+  if (!run || typeof run.runId !== 'string' || !run.runId.trim() ||
+      typeof run.engineVersion !== 'string' || !run.engineVersion.trim() || !Array.isArray(run.outputs))
     throw new Error('Run ID, engine version and outputs are required.');
   if (run.datasetVersion !== dataset.version) throw new Error('Dataset version mismatch.');
   const expected = new Set(cases.map(c => c.id));
   const seen = new Set();
   for (const out of run.outputs) {
+    if (!out || typeof out !== 'object' || Array.isArray(out) || typeof out.id !== 'string')
+      throw new Error('Each output must be an object with a case ID.');
     if (!expected.has(out.id) || seen.has(out.id)) throw new Error('Unknown or duplicate case ID.');
     seen.add(out.id);
   }
@@ -16,10 +19,14 @@ function evaluate(run, cases = dataset.cases) {
     const output = run.outputs.find(o => o.id === item.id);
     if (!output) return { id: item.id, present: false, structuralIssues: ['Missing output'], expertReviewed: false };
     const issues = [];
+    if (output.response !== undefined && typeof output.response !== 'string')
+      throw new Error('Response must be text for case ' + item.id);
     if (typeof output.response !== 'string' || !output.response.trim()) issues.push('Missing proposal response');
     if (!Array.isArray(output.claims)) issues.push('Explicit claim inventory required, including [] if no bidder facts');
     const claims = Array.isArray(output.claims) ? output.claims : [];
     for (const claim of claims) {
+      if (!claim || typeof claim !== 'object' || Array.isArray(claim))
+        throw new Error('Invalid claim entry for case ' + item.id);
       const source = item.sources[claim.citation];
       if (typeof claim.text !== 'string' || !claim.text.trim() || !output.response?.includes(claim.text))
         issues.push('Claim is absent from response');
@@ -29,6 +36,8 @@ function evaluate(run, cases = dataset.cases) {
     const coverage = Array.isArray(output.coverage) ? output.coverage : [];
     const rowIds = new Set();
     for (const row of coverage) {
+      if (!row || typeof row !== 'object' || Array.isArray(row))
+        throw new Error('Invalid coverage entry for case ' + item.id);
       if (!item.requirements.some(r => r.id === row.requirementId) || rowIds.has(row.requirementId) ||
           !['addressed','partial','missing'].includes(row.status)) issues.push('Invalid or duplicate coverage row');
       rowIds.add(row.requirementId);
@@ -38,7 +47,7 @@ function evaluate(run, cases = dataset.cases) {
     const h = output.humanReview;
     const reviewed = typeof h?.reviewer === 'string' && Boolean(h.reviewer.trim()) &&
       h.claimInventoryComplete === true && h.citationsSupportClaims === true && h.criticalErrors === 0 &&
-      h.reviewChecks?.length === item.reviewChecks.length && h.reviewChecks.every(x => x === true) &&
+      Array.isArray(h.reviewChecks) && h.reviewChecks.length === item.reviewChecks.length && h.reviewChecks.every(x => x === true) &&
       dimensions.every(d => Number.isInteger(h.scores?.[d]) && h.scores[d] >= 0 && h.scores[d] <= 4) &&
       Number.isFinite(h.editingMinutes) && h.editingMinutes >= 0;
     return { id:item.id, present:true, structuralIssues:issues, expertReviewed:Boolean(reviewed),

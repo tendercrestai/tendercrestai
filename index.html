@@ -1413,17 +1413,24 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
       }
     });
 
-    supabase.auth.onAuthStateChange((event) => {
+    supabase.auth.onAuthStateChange((event, session) => {
+      const accountChanged = event === 'SIGNED_OUT' ||
+        (authenticatedUser && session?.user?.id && session.user.id !== authenticatedUser.id);
+      if (accountChanged) {
+        statusTracker.stop();
+        window.tendercrestComplianceContext = undefined;
+        for (const id of ['rfp-content','proposal-qualifications','proposal-name','company-name']) {
+          document.getElementById(id).value = '';
+        }
+        const notice = document.getElementById('compliance-context-notice');
+        if (notice) notice.textContent = '';
+      }
       // Defer async work until after Supabase's auth callback.
       setTimeout(async () => {
         await checkAuthentication();
 
         if (event === 'SIGNED_OUT') {
           workspace.hidden = true;
-          window.tendercrestComplianceContext = undefined;
-          document.getElementById('rfp-content').value = '';
-          document.getElementById('proposal-qualifications').value = '';
-
           if (location.hash === '#portal') {
             displayTab('overview');
           }

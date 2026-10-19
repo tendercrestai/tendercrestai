@@ -43,7 +43,7 @@ a separate evaluation workflow with delivery removed. No automation was run here
    secure RFP uploads, private proposal evidence, compliance matrix, and billing
    credits. Check migration history first; do not reapply existing migrations.
 2. Run the matching SQL isolation/processing tests from `supabase/tests`. No new
-   schema is introduced by this integration. This session did not rerun live SQL.
+   schema is introduced by this integration. The expanded test session ran all five SQL suites successfully after preparing the missing test evidence table.
 3. Configure preview-only server settings:
    `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
    `AIRTABLE_PAT`, `AIRTABLE_BASE_ID`, `COMPLIANCE_AI_API_KEY`,
@@ -58,7 +58,7 @@ a separate evaluation workflow with delivery removed. No automation was run here
    verified unchanged. Production Airtable was not edited.
 6. In preview, use fictional files to check upload, source review, analysis, row
    edits, export, handoff, stale-edit rejection, account isolation and queue status.
-   Local Edge checks covered handoff/warnings/edit detach at 1280px and 390px using
+   Twenty local Edge scenarios covered source review, editing, exports, errors and account changes at 320/390/768/1280px using
    mocked API/auth responses. They did not validate a deployed end-to-end flow.
 
 ## Build evidence for the USP

@@ -66,7 +66,7 @@ function validateOutput(output, segments, documents) {
     const after = /[.!?]$/.test(normalize(row.quote)) ? "" :
       full.slice(position + normalize(row.quote).length).split(/[.!?](?: |$)/)[0];
     const context = full.slice(boundary < 0 ? 0 : boundary + 2, position + normalize(row.quote).length) + after;
-    const ambiguous = row.uncertain || /\b(if|unless|except|may be required)\b/i.test(context);
+    const ambiguous = row.uncertain || /\b(if|unless|except|when|where applicable|as applicable|subject to|provided that|in the event|may be required)\b/i.test(context);
     const explicitlyOptional = /\b(not required|not mandatory|optional|may submit|may provide)\b/i.test(context);
     const mandatory = ambiguous ? "Unclear" : explicitlyOptional ? "No" : /\b(shall|must|required|mandatory)\b/i.test(row.quote)
       ? "Yes" : row.mandatory === "Yes" ? "Unclear" : row.mandatory;

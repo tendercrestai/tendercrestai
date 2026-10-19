@@ -13,6 +13,19 @@ export async function loadComplianceHandoff(supabase, id) {
   });
   const result = await response.json();
   if (!response.ok) throw new Error(result.error || "Analysis could not be loaded.");
+  if (typeof result.sourceText !== "string" || !result.sourceText.trim() || result.sourceText.length > 100000 ||
+      !/^[0-9a-f]{64}$/.test(result.reviewHash || "") || !result.packet ||
+      !["Completed","Partial"].includes(result.packet.analysisStatus) ||
+      !Array.isArray(result.packet.requirements) || !result.packet.requirements.length ||
+      !Array.isArray(result.packet.warnings) || result.packet.warnings.some(w=>typeof w!=="string"))
+    throw new Error("Invalid compliance handoff response. Reload the analysis before continuing.");
+  // A delayed response must not restore private text after signout or account switching.
+  const verified = await supabase.auth.getUser();
+  const current = await supabase.auth.getSession();
+  if (verified.error || current.error || !data.session.user?.id ||
+      verified.data.user?.id !== data.session.user.id ||
+      current.data.session?.user.id !== data.session.user.id)
+    throw new Error("Account changed. Sign in again before loading this analysis.");
   const input = document.getElementById("rfp-content");
   input.value = result.sourceText;
   input.dispatchEvent(new Event("input",{bubbles:true}));

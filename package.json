@@ -7,6 +7,7 @@
   },
   "scripts": {
     "test": "node scripts/test.cjs",
+    "test:browser": "node scripts/verify-browser.cjs",
     "quality:evaluate": "node engine/evaluate-quality.cjs"
   },
   "dependencies": {

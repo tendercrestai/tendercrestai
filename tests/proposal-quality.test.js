@@ -79,3 +79,12 @@ test('fabricated citations, lessons as bidder facts and duplicated coverage inva
   run.outputs[0].claims=[{text:'An omitted assertion',citation:'QUALIFICATIONS',quote:'Completed'}];
   assert.equal(quality.evaluate(run).readyForComparison,false);
 });
+
+test('malformed evaluation records fail with clear validation errors',()=>{
+  for(const value of [null,42,[],false])assert.throws(()=>quality.evaluate({...quality.template(),outputs:[value]}),/object with a case ID/);
+  for(const [field,value,message] of [['response',{},/Response must be text/],['claims',[null],/Invalid claim/],['coverage',[null],/Invalid coverage/]]){
+    const run=reviewedRun();run.outputs[0][field]=value;assert.throws(()=>quality.evaluate(run),message);
+  }
+  const run=reviewedRun();run.outputs[0].humanReview.reviewChecks='invalid';
+  assert.equal(quality.evaluate(run).readyForComparison,false);
+});
