@@ -124,7 +124,12 @@ async function queueProposal(validated, attempt, context) {
     });
   }
 
-  const root = "https://api.airtable.com/v0/appsaqdp3UZdhB2VH";
+  if (process.env.AIRTABLE_BASE_ID && !/^app[a-zA-Z0-9]{14}$/.test(process.env.AIRTABLE_BASE_ID)) {
+    return reply(503, { error: "Proposal queue configuration is unavailable." });
+  }
+  const root = process.env.AIRTABLE_BASE_ID
+    ? "https://api.airtable.com/v0/" + process.env.AIRTABLE_BASE_ID
+    : "https://api.airtable.com/v0/appsaqdp3UZdhB2VH";
   const headers = {
     Authorization: "Bearer " + pat,
     "Content-Type": "application/json"
@@ -232,6 +237,10 @@ async function queueProposal(validated, attempt, context) {
       qualifications = digest;
     }
 
+    if (validated.evidencePassages) {
+      qualifications = require("./lib/proposal-evidence").context(qualifications, validated.evidencePassages, validated.compliancePacket);
+      if (qualifications.length > 90000) throw new security.RequestError(400, "Evidence context exceeds the proposal limit.");
+    }
     // Any uncertain response after this point must not blindly retry.
     attempt.dispatched = true;
 
@@ -346,6 +355,25 @@ exports.handler = async function (event) {
     const validated = validateRequest(event);
     if (validated.statusCode) return validated;
 
+    let compliance;
+    if (payload.complianceAnalysisId !== undefined) {
+      compliance = await require("./lib/proposal-compliance").loadHandoff(config, token, user, payload.complianceAnalysisId);
+      if (payload.complianceReviewHash !== compliance.reviewHash)
+        throw new security.RequestError(409, "The compliance review changed. Reload it before submitting.");
+      if (validated.rfpText !== compliance.sourceText)
+        throw new security.RequestError(409, "Linked RFP text changed. Reload the analysis or detach it before submitting.");
+    } else if (payload.complianceReviewHash !== undefined) {
+      throw new security.RequestError(400, "A compliance analysis ID is required.");
+    }
+    // Authenticate retrieval with the customer JWT; the service role must not read evidence.
+    // Retrieval failures happen before reservation/dispatch and cannot create a partial queue item.
+    let evidencePassages;
+    if (process.env.EVIDENCE_ENGINE_ENABLED === "true") {
+      evidencePassages = await require("./lib/proposal-evidence").loadEvidence(
+        config, token, user, validated.proposalSector, validated.rfpText, compliance?.packet.requirements
+      );
+    }
+
     reservation = await security.claim(config, user, payload);
 
     if (reservation.recordId) {
@@ -356,6 +384,8 @@ exports.handler = async function (event) {
       });
     }
 
+    validated.evidencePassages = evidencePassages;
+    validated.compliancePacket = compliance?.packet;
     const response = await queueProposal(validated, attempt, { config, user, submissionId: reservation.id });
     const result = JSON.parse(response.body);
 
@@ -393,5 +423,3 @@ exports.handler = async function (event) {
     });
   }
 };
-
-

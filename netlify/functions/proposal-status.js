@@ -59,6 +59,8 @@ exports.handler = async event => {
     }
     const pat = process.env.AIRTABLE_PAT;
     if (!pat) return reply(503, { error: "Proposal status is temporarily unavailable." });
+    const base = process.env.AIRTABLE_BASE_ID || "appsaqdp3UZdhB2VH";
+    if (!/^app[a-zA-Z0-9]{14}$/.test(base)) return reply(503, { error: "Proposal status configuration is unavailable." });
     // Fetch only the status field; do not fetch or expose document/draft text.
     const query = new URLSearchParams({
       filterByFormula: "RECORD_ID()='" + saved.record_id + "'",
@@ -66,7 +68,7 @@ exports.handler = async event => {
     });
     query.append("fields[]", "Pipeline Status");
     const upstream = await fetch(
-      "https://api.airtable.com/v0/appsaqdp3UZdhB2VH/tblkL2ct7mYtUTu9S?" + query,
+      "https://api.airtable.com/v0/" + base + "/tblkL2ct7mYtUTu9S?" + query,
       {
         headers: { Authorization: "Bearer " + pat },
         signal: AbortSignal.timeout(10000)

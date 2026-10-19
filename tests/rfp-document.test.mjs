@@ -126,7 +126,7 @@ test("ZIP expansion limit and required document entry are checked", () => {
 });
 
 test("all page scripts parse and existing workspace retains pricing and upload navigation", async () => {
-  for (const name of ["index.html", "auth.html", "rfp-upload.html"]) {
+  for (const name of ["index.html", "auth.html", "rfp-upload.html", "evidence-library.html"]) {
     const html = await readFile(
       new URL("../" + name, import.meta.url),
       "utf8"
@@ -146,7 +146,7 @@ test("all page scripts parse and existing workspace retains pricing and upload n
             .replace("await initializePage();", "initializePage();")
         : match[2];
 
-      new vm.Script(code);
+      new vm.Script(match[1].includes('type="module"') ? '(async () => {\n' + code + '\n})' : code);
     }
   }
 

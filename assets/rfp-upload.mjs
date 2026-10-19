@@ -1,5 +1,4 @@
-import { createClient } from
-  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm";
+import { createBrowserClient } from './supabase-client.mjs';
 
 import { createProposalStatusTracker } from "./proposal-status.mjs";
 import { uploadAttemptKey, beginNewUpload, mayStartNew } from "./upload-attempt.mjs";
@@ -10,10 +9,7 @@ import {
   MAX_TEXT
 } from "./rfp-document.mjs";
 
-const supabase = createClient(
-  "https://vfdwaqgfepvoujprtuww.supabase.co",
-  "sb_publishable_7J1W7gPugOUuVnCWKpS24A_ozYw0KM3"
-);
+const supabase = await createBrowserClient();
 
 const $ = id => document.getElementById(id);
 
@@ -472,5 +468,3 @@ try {
     true
   );
 }
-
-
