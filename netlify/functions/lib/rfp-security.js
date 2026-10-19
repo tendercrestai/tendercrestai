@@ -95,7 +95,7 @@ async function authenticate(event, config) {
   return { user, token };
 }
 
-async function verifyDocument(config, token, user, id) {
+async function verifyDocument(config, token, user, id, includeSource = false) {
   if (!UUID.test(id)) {
     throw new RequestError(400, "Invalid document ID.");
   }
@@ -201,6 +201,8 @@ async function verifyDocument(config, token, user, id) {
       );
     }
   }
+
+  if (includeSource) return { metadata: doc, bytes, extension };
 }
 
 async function claim(config, user, payload) {
@@ -219,7 +221,8 @@ async function claim(config, user, payload) {
       payload.proposalSector,
       payload.rfpText,
       payload.qualifications || "",
-      payload.documentId || null
+      payload.documentId || null,
+      ...(payload.complianceAnalysisId !== undefined ? [payload.complianceAnalysisId, payload.complianceReviewHash] : [])
     ]))
     .digest("hex");
 
@@ -346,4 +349,3 @@ module.exports = {
   finish,
   RequestError
 };
-

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex"><title>RFP Intelligence & Compliance | TenderCrest AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/compliance.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to workspace</a>
+  <header><a class="brand" href="/">⚡ TenderCrest AI</a><nav aria-label="Customer navigation"><a href="/#portal">Proposal Workspace</a><a href="/rfp-upload.html">Upload & Submit</a><a href="/auth.html">My Account</a></nav></header>
+  <main id="main">
+    <p class="eyebrow">RFP INTELLIGENCE</p><h1>Know the requirements.<br>Build a stronger response.</h1>
+    <p class="intro">Review source-backed requirements, flag gaps and prepare your compliance matrix before generating a proposal.</p>
+    <ol class="workflow" aria-label="Workflow"><li>Upload</li><li>Review text</li><li>Analyze</li><li>Review matrix</li><li>Export</li><li>Generate proposal</li></ol>
+    <p id="message" role="status" aria-live="polite" tabindex="-1">Checking your session…</p>
+    <p id="login" hidden><a href="/auth.html">Sign in to use your private compliance workspace.</a></p>
+    <div id="workspace" hidden>
+      <section aria-labelledby="upload-title"><div class="section-head"><div><h2 id="upload-title">Start a private preview</h2><p id="account"></p></div><span class="badge">No proposal allowance used</span></div>
+        <p>PDF, DOCX or UTF-8 TXT · 10 MB per file · Up to 6 documents including amendments · 100,000 extracted characters total.</p>
+        <form id="upload-form"><label for="documents">RFP documents and amendments</label><input id="documents" type="file" multiple accept=".pdf,.docx,.txt" required>
+          <p>Uploads remain private. Analysis sends extracted text to the configured AI provider. Scanned pages need OCR.</p>
+          <button id="prepare" type="submit">Upload & extract for review</button></form>
+        <div class="toolbar"><label for="history">Saved analyses</label><select id="history"><option value="">Choose an analysis</option></select><button type="button" id="reload">Reload saved analysis</button></div>
+      </section>
+      <section id="source-review" hidden aria-labelledby="review-title"><h2 id="review-title">Review extracted source text</h2><p>Text and references are immutable to protect citations. Use the existing upload workflow for edited proposal text. PDF page numbers refer to physical file pages; DOCX and TXT page numbers are unavailable.</p>
+        <div id="source-documents"></div>
+        <label class="check"><input type="checkbox" id="reviewed"> I reviewed the extracted text, including amendments and extraction warnings.</label>
+        <button id="analyze" type="button">Analyze requirements</button><button id="pause" type="button" hidden>Pause after current chunk</button>
+        <progress id="progress" value="0" max="1" aria-label="Analysis progress"></progress><p id="progress-label"></p>
+      </section>
+      <div id="results" hidden>
+        <section aria-labelledby="summary-title"><div class="section-head"><h2 id="summary-title">RFP intelligence</h2><span id="analysis-status" class="badge"></span></div><div id="facts"></div></section>
+        <section aria-labelledby="dashboard-title"><h2 id="dashboard-title">Compliance dashboard</h2><dl class="metrics" id="metrics"></dl><div id="alerts" class="warnings" role="region" aria-label="Review alerts"></div></section>
+        <section aria-labelledby="matrix-title"><div class="section-head"><h2 id="matrix-title">Compliance matrix</h2><div class="toolbar"><button id="csv" type="button">Export CSV</button><button id="xlsx" type="button">Export Excel</button></div></div>
+          <p>AI extraction does not verify company qualifications. Review every row; marking Compliant requires company evidence and a reference. Edits preserve original source quotations.</p>
+          <div class="filters">
+            <label>Search<input type="search" id="search" placeholder="Requirement, owner or source"></label>
+            <label>Category<select id="category"><option value="">All categories</option></select></label>
+            <label>Status<select id="status"><option value="">All statuses</option></select></label>
+            <label>Mandatory<select id="mandatory"><option value="">All requirements</option><option>Yes</option><option>No</option><option>Unclear</option></select></label>
+            <label>Sort<select id="sort"><option value="id">Requirement ID</option><option value="mandatory">Mandatory first</option><option value="status">Status</option><option value="requirement">Requirement A–Z</option></select></label>
+          </div><p id="row-count" aria-live="polite"></p>
+          <div class="table-scroll" tabindex="0" aria-label="Compliance matrix; scroll horizontally to see all fields">
+            <table><caption>Extracted requirements and human review</caption><thead><tr><th scope="col">ID / Edit</th><th scope="col">Requirement</th><th scope="col">Category</th><th scope="col">Mandatory</th><th scope="col">Source</th><th scope="col">Evaluation weight</th><th scope="col">Status</th><th scope="col">Evidence</th><th scope="col">Response owner</th><th scope="col">Comments</th><th scope="col">AI recommendation</th></tr></thead><tbody id="rows"></tbody></table>
+          </div>
+        </section>
+        <section><h2>Ready for a proposal draft?</h2><p>Continue loads the original extracted text into the existing proposal workspace. Review qualifications there. Your proposal allowance is used only when you explicitly submit.</p><a id="continue" class="button" href="/#portal">Continue to Proposal Generation</a></section>
+      </div>
+    </div>
+  </main>
+  <dialog id="edit-dialog" aria-labelledby="edit-title"><form id="edit-form"><h2 id="edit-title">Review requirement</h2>
+    <label for="edit-requirement">Requirement</label><textarea id="edit-requirement" maxlength="3000" required></textarea>
+    <label for="edit-category">Category</label><select id="edit-category"></select>
+    <label for="edit-mandatory">Mandatory</label><select id="edit-mandatory"><option>Yes</option><option>No</option><option>Unclear</option></select>
+    <label for="edit-status">Compliance status</label><select id="edit-status"></select>
+    <label for="edit-evidence">Company evidence</label><textarea id="edit-evidence" maxlength="10000"></textarea>
+    <label for="edit-evidence-reference">Evidence reference (document, section, URL or record identifier)</label><input id="edit-evidence-reference" maxlength="1000">
+    <label for="edit-owner">Response owner (assignment label; does not grant access)</label><input id="edit-owner" maxlength="200">
+    <label for="edit-comments">Reviewer notes</label><textarea id="edit-comments" maxlength="5000"></textarea>
+    <p id="edit-error" role="alert"></p><div class="toolbar"><button id="save-row" type="submit">Save review</button><button id="cancel-edit" type="button">Cancel</button></div>
+  </form></dialog>
+  <dialog id="source-dialog" aria-labelledby="source-title"><h2 id="source-title">Verify source</h2><div id="source-content"></div><button id="close-source" type="button">Close source</button></dialog>
+  <footer>Private, source-backed analysis for human review · TenderCrest AI</footer>
+  <script type="module" src="/assets/compliance.mjs"></script>
+</body>
+</html>

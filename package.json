@@ -1,0 +1,17 @@
+{
+  "name": "tendercrestai",
+  "private": true,
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "test": "node scripts/test.cjs",
+    "test:browser": "node scripts/verify-browser.cjs",
+    "quality:evaluate": "node engine/evaluate-quality.cjs"
+  },
+  "dependencies": {
+    "pdfjs-dist": "5.6.205",
+    "sax": "1.6.1"
+  }
+}

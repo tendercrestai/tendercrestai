@@ -1189,6 +1189,7 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
       const form = document.getElementById('rfp-form');
 
       const payload = {
+        ...window.tendercrestComplianceContext,
         proposalSector: document.getElementById('proposal-sector').value,
         proposalName: document.getElementById('proposal-name').value.trim(),
         submitterEmail: document.getElementById('submitter-email').value.trim(),
@@ -1298,13 +1299,9 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
   <!-- SUPABASE CUSTOMER AUTHENTICATION -->
   <script type="module">
     import { createProposalStatusTracker } from "/assets/proposal-status.mjs";
-    import { createClient } from
-      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm";
-
-    const supabase = createClient(
-      "https://vfdwaqgfepvoujprtuww.supabase.co",
-      "sb_publishable_7J1W7gPugOUuVnCWKpS24A_ozYw0KM3"
-    );
+    import { createBrowserClient } from "/assets/supabase-client.mjs";
+    import { loadComplianceHandoff } from "/assets/compliance-handoff.mjs";
+    const supabase = await createBrowserClient();
 
     window.tendercrestSupabase = supabase;
     const statusTracker = createProposalStatusTracker({
@@ -1386,8 +1383,14 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
       }
 
       await checkAuthentication();
+      const analysisId = params.get('compliance') || params.get('analysis');
+      if (analysisId && authenticatedUser) {
+        await window.switchTab('portal');
+        try { showSubmissionMessage(await loadComplianceHandoff(supabase, analysisId)); }
+        catch (error) { showSubmissionMessage(error.message, true); document.getElementById('submit-btn').disabled = true; }
+      }
 
-      if (params.get('session_id') ||
+      if (analysisId || params.get('session_id') ||
           location.hash === '#portal' ||
           prefillEmail) {
         await window.switchTab('portal');
@@ -1410,14 +1413,24 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
       }
     });
 
-    supabase.auth.onAuthStateChange((event) => {
+    supabase.auth.onAuthStateChange((event, session) => {
+      const accountChanged = event === 'SIGNED_OUT' ||
+        (authenticatedUser && session?.user?.id && session.user.id !== authenticatedUser.id);
+      if (accountChanged) {
+        statusTracker.stop();
+        window.tendercrestComplianceContext = undefined;
+        for (const id of ['rfp-content','proposal-qualifications','proposal-name','company-name']) {
+          document.getElementById(id).value = '';
+        }
+        const notice = document.getElementById('compliance-context-notice');
+        if (notice) notice.textContent = '';
+      }
       // Defer async work until after Supabase's auth callback.
       setTimeout(async () => {
         await checkAuthentication();
 
         if (event === 'SIGNED_OUT') {
           workspace.hidden = true;
-
           if (location.hash === '#portal') {
             displayTab('overview');
           }
@@ -1429,5 +1442,3 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
   </script>
 </body>
 </html>
-
-

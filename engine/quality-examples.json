@@ -1,0 +1,10 @@
+{
+  "version": "editorial-seeds-v1",
+  "status": "Synthetic editorial seeds; require tender-expert approval before use as training data.",
+  "examples": [
+    {"id":"style-approach","input":"Describe how you would manage implementation risk. No delivery history is supplied.","weak":"Our proven team guarantees a seamless implementation.","better":"Proposed approach: maintain a risk register, review it weekly with the customer, assign an owner to each mitigation, and agree escalation thresholds at kickoff. [VERIFY / PROVIDE EVIDENCE: delivery team and comparable project].","lesson":"Give concrete proposed actions, ownership and review measures; do not invent past performance."},
+    {"id":"style-evidence","input":"Describe relevant experience. Approved evidence states: completed a 30-user migration in May 2026.","weak":"We have extensive experience delivering hundreds of successful migrations.","better":"We completed a 30-user migration in May 2026 [QUALIFICATIONS]. This establishes experience at that scale; confirm comparability with the buyer's scope and provide a reference before submission.","lesson":"Preserve supplied scale and dates; distinguish demonstrated experience from unproven comparability."},
+    {"id":"style-gap","input":"Supply a current certificate. No certificate is supplied.","weak":"We comply with all certification requirements.","better":"[VERIFY / PROVIDE EVIDENCE: current certificate, issuing body and validity dates]. Certification compliance remains unverified until the requested evidence is reviewed.","lesson":"Make missing evidence actionable and visible."},
+    {"id":"style-price","input":"Provide a fixed-price quotation. No current rates are supplied.","weak":"Our competitive fixed price is $10,000.","better":"Fixed implementation fee: [PROVIDE CURRENT APPROVED PRICE]. Confirm currency, scope, tax treatment, exclusions and quotation validity before issuing the offer.","lesson":"Never derive current prices or commitments from examples."}
+  ]
+}

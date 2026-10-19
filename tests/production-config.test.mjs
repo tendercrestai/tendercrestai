@@ -4,9 +4,7 @@ import { readFile } from "node:fs/promises";
 
 test("production client and server defaults agree and contain no test project configuration", async () => {
   const paths = [
-    "index.html",
-    "auth.html",
-    "assets/rfp-upload.mjs",
+    "netlify/functions/evidence-config.js",
     "netlify/functions/lib/rfp-security.js"
   ];
   const files = await Promise.all(paths.map(path =>
@@ -18,11 +16,16 @@ test("production client and server defaults agree and contain no test project co
     assert.ok(!files[i].includes("wcrrywzleylmdsqqlise"), paths[i]);
     assert.ok(!files[i].includes("sb_publishable_ODNiFkBvJp_IiLOFYDXTYg_uxg5Jecq"), paths[i]);
   }
-  for (const file of files.slice(0, 3)) {
-    assert.ok(file.includes("@supabase/supabase-js@2.117.3/+esm"));
+  for (const path of ['index.html', 'auth.html', 'assets/rfp-upload.mjs']) {
+    const file = await readFile(new URL('../' + path, import.meta.url), 'utf8');
+    assert.ok(file.includes('createBrowserClient'));
+    assert.ok(!file.includes('vfdwaqgfepvoujprtuww'));
     assert.ok(!file.includes("SUPABASE_SERVICE_ROLE_KEY"));
     assert.ok(!file.includes("AIRTABLE_PAT"));
   }
+  const client = await readFile(new URL('../assets/supabase-client.mjs', import.meta.url), 'utf8');
+  assert.ok(client.includes('@supabase/supabase-js@2.117.3/+esm'));
+  assert.ok(client.includes('/.netlify/functions/evidence-config'));
 });
 
 test("production queue targets the original Airtable schema", async () => {
