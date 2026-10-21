@@ -23,6 +23,19 @@ async function saveLead(data){
  if(!response.ok)throw new Error("Airtable "+response.status);
  return true;
 }
+async function verifyTurnstile(token,ip){
+ const secret=process.env.TURNSTILE_SECRET_KEY;
+ if(!secret)return true; // Remains backward compatible until Cloudflare keys are configured.
+ if(typeof token!=="string"||!token||token.length>2048)return false;
+ const body=new URLSearchParams({secret,response:token});
+ if(ip&&ip!=="unknown")body.set("remoteip",ip);
+ try{
+  const response=await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify",{method:"POST",body,signal:AbortSignal.timeout(8000)});
+  if(!response.ok)return false;
+  const result=await response.json();
+  return result.success===true && (!result.hostname||["www.tendercrestai.com","tendercrestai.com","tendercrestai.netlify.app"].includes(result.hostname));
+ }catch(e){console.error("Turnstile verification unavailable",e.message);return false}
+}
 exports.handler=async(event)=>{
  if(event.httpMethod!=="POST")return json(405,{error:"Method not allowed"});
  if(!process.env.RESEND_API_KEY)return json(503,{error:"Contact email service is not configured yet."});
@@ -36,6 +49,7 @@ exports.handler=async(event)=>{
  const ip=(event.headers?.["x-nf-client-connection-ip"]||event.headers?.["client-ip"]||event.headers?.["x-forwarded-for"]||"unknown").split(",")[0].trim();
  const hash=v=>crypto.createHash("sha256").update(v).digest("hex").slice(0,24);
  if(limited("ip:"+hash(ip))||limited("email:"+hash(email.toLowerCase())))return json(429,{error:"Too many messages. Please try again in 15 minutes."});
+ if(!(await verifyTurnstile(data["cf-turnstile-response"],ip)))return json(403,{error:"Security verification failed. Please refresh the page and try again."});
  const html='<h2>New TenderCrest AI inquiry</h2><p><b>Name:</b> '+esc(name)+'</p><p><b>Email:</b> '+esc(email)+'</p><p><b>Company:</b> '+esc(company||"Not provided")+'</p><p><b>Message:</b></p><p style="white-space:pre-wrap">'+esc(message)+'</p>';
  try{
   await resend(process.env.RESEND_API_KEY,{from:"TenderCrest AI Website <contact@tendercrestai.com>",to:["hello@tendercrestai.com"],reply_to:email,subject:"Website inquiry from "+name,html});
