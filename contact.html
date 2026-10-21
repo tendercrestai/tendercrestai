@@ -80,7 +80,7 @@ form.addEventListener("submit",async event=>{
   form.reset();
   statusEl.textContent="Thank you! Your message has been sent. We'll get back to you.";
  }catch(error){statusEl.textContent=error.message+" You can also email hello@tendercrestai.com directly."}
- finally{if(turnstileEnabled&&window.turnstile&&turnstileWidget!==null){turnstileReady=false;window.turnstile.reset(turnstileWidget)}button.disabled=!turnstileEnabled}
+ finally{if(turnstileEnabled&&window.turnstile&&turnstileWidget!==null){turnstileReady=false;window.turnstile.reset(turnstileWidget)}button.disabled=turnstileEnabled}
 });
 </script>
 </body></html>
