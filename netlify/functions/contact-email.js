@@ -18,7 +18,7 @@ async function saveLead(data){
  const token=process.env.AIRTABLE_PAT;
  if(!token)return false;
  const base="appsaqdp3UZdhB2VH",table="tblI6dID4rlSUn8CF";
- const fields={"Contact Name":data.name,"Email":data.email,"Company":data.company,"Message":data.message,"Status":"New","Source":"Website Contact Form","Submitted At":new Date().toISOString()};
+ const fields={"Contact Name":data.name,"Email":data.email,"Company":data.company,"Message":data.message,"Status":"New","Source":"Website Contact Form","Submitted At":new Date().toISOString(),"Follow-up Due":new Date(Date.now()+24*60*60*1000).toISOString()};
  const response=await fetch("https://api.airtable.com/v0/"+base+"/"+table,{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({records:[{fields}]})});
  if(!response.ok)throw new Error("Airtable "+response.status);
  return true;
