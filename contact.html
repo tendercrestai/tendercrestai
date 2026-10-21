@@ -32,7 +32,7 @@ button:hover{background:#1d4ed8}.hint{font-size:.9rem}
 <label for="email">Email address *</label><input id="email" name="email" type="email" maxlength="254" autocomplete="email" required>
 <label for="company">Company (optional)</label><input id="company" name="company" maxlength="160" autocomplete="organization">
 <label for="message">How can we help? *</label><textarea id="message" name="message" maxlength="5000" required></textarea>
-<button id="contact-submit" type="submit">Send message</button>
+<div id="turnstile-container" style="margin-top:20px"></div>\n<button id="contact-submit" type="submit">Send message</button>
 <p id="contact-status" role="status" aria-live="polite"></p>
 <p class="hint">Your details will be used to respond to your inquiry. Please do not include passwords or confidential RFP documents.</p>
 </form>
@@ -42,8 +42,34 @@ button:hover{background:#1d4ed8}.hint{font-size:.9rem}
 const form=document.getElementById("contact-form");
 const statusEl=document.getElementById("contact-status");
 const button=document.getElementById("contact-submit");
+let turnstileEnabled=false;
+let turnstileReady=false;
+let turnstileWidget=null;
+async function initTurnstile(){
+ try{
+  const response=await fetch("/.netlify/functions/turnstile-config",{cache:"no-store"});
+  if(!response.ok)throw new Error("Unable to load security configuration");
+  const config=await response.json();
+  if(!config.enabled)return;
+  turnstileEnabled=true;
+  button.disabled=true;
+  if(!config.siteKey)throw new Error("Site security is being configured. Please email hello@tendercrestai.com.");
+  const script=document.createElement("script");
+  script.src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+  script.async=true;
+  script.onload=()=>{
+   try{
+    turnstileWidget=window.turnstile.render("#turnstile-container",{sitekey:config.siteKey,callback:()=>{turnstileReady=true;button.disabled=false;statusEl.textContent=""}, "expired-callback":()=>{turnstileReady=false;button.disabled=true}, "error-callback":()=>{turnstileReady=false;button.disabled=true;statusEl.textContent="Security verification failed. Please refresh the page."}});
+   }catch(e){statusEl.textContent="Unable to initialize security verification. Please refresh the page."}
+  };
+  script.onerror=()=>{statusEl.textContent="Unable to load security verification. Please refresh the page."};
+  document.head.appendChild(script);
+ }catch(e){button.disabled=true;statusEl.textContent=e.message}
+}
+initTurnstile();
 form.addEventListener("submit",async event=>{
  event.preventDefault();
+ if(turnstileEnabled&&!turnstileReady){statusEl.textContent="Please complete security verification first.";return}
  statusEl.textContent="Sending...";
  button.disabled=true;
  const data=Object.fromEntries(new FormData(form).entries());
@@ -54,7 +80,7 @@ form.addEventListener("submit",async event=>{
   form.reset();
   statusEl.textContent="Thank you! Your message has been sent. We'll get back to you.";
  }catch(error){statusEl.textContent=error.message+" You can also email hello@tendercrestai.com directly."}
- finally{button.disabled=false}
+ finally{if(turnstileEnabled&&window.turnstile&&turnstileWidget!==null){turnstileReady=false;window.turnstile.reset(turnstileWidget)}button.disabled=!turnstileEnabled}
 });
 </script>
 </body></html>
