@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Security &amp; Data Handling | TenderCrest AI</title>
+  <meta name="description" content="Understand how TenderCrest AI handles proposal documents, reviewed text, and security inquiries.">
+  <style>
+    :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#17243b;background:#f5f8ff}
+    *{box-sizing:border-box}body{margin:0}header,footer{background:white;padding:24px max(24px,calc((100vw - 960px)/2));border-bottom:1px solid #e3eaf4}
+    a{color:#1d4ed8;text-underline-offset:3px}a:focus-visible{outline:3px solid #2563eb;outline-offset:4px}
+    header a{font-weight:750}main{max-width:960px;margin:auto;padding:56px 24px}
+    h1{font-size:clamp(2.1rem,6vw,3.6rem);line-height:1.1;letter-spacing:-.04em;margin:12px 0 24px}
+    h2{font-size:1.3rem;margin-top:0}p,li{line-height:1.75}p{color:#475569}
+    .eyebrow{color:#1d4ed8;font-weight:700}.intro{max-width:720px;font-size:1.15rem}
+    section{background:white;border:1px solid #dce5f2;border-radius:16px;padding:28px;margin-top:22px}
+    .notice{border-left:4px solid #2563eb;background:#edf3ff}li+li{margin-top:12px}
+    footer{font-size:.9rem}footer a{margin-left:20px}
+  </style>
+</head>
+<body>
+  <header><a href="/">TenderCrest AI</a></header>
+  <main>
+    <div class="eyebrow">SECURITY &amp; DATA HANDLING</div>
+    <h1>Understand where your<br>proposal data goes.</h1>
+    <p class="intro">Choosing a proposal tool means understanding how your information is processed. Here is how our document submission workflow is designed, and how to ask us about your organization's requirements.</p>
+    <section>
+      <h2>From document to draft</h2>
+      <ol>
+        <li><strong>Extract and review.</strong> The document upload page extracts text in your browser so you can review and edit it before submission.</li>
+        <li><strong>Submit with your account.</strong> Submission requires a signed-in account with a verified email. The uploaded source is stored in Supabase Storage; reviewed text and proposal details are sent to Airtable for the proposal workflow.</li>
+        <li><strong>Generate and deliver.</strong> Airtable AI processes submitted text to create and revise a draft. Completed drafts are sent through our email delivery service, Resend. Submitted text is processed by services beyond source-file storage.</li>
+      </ol>
+    </section>
+    <section>
+      <h2>Access to source documents</h2>
+      <p>The upload workflow is designed to use a private storage bucket and account ownership checks. Authorized operators and processing services may need access to submitted information to operate the service. Private storage does not mean that no service provider or authorized operator can access your data.</p>
+    </section>
+    <section class="notice">
+      <h2>Before sharing confidential information</h2>
+      <p>Contact us to confirm your required retention period, deletion process, processing locations, AI providers and their data-use terms, and any contractual confidentiality requirements before submitting sensitive business information.</p>
+      <p>Do not submit classified information, Controlled Unclassified Information (CUI), ITAR/EAR-controlled data, protected health information, passwords, or third-party trade secrets. These restrictions also apply to text pasted into the proposal form.</p>
+    </section>
+    <section>
+      <h2>Retention, deletion, and AI data use</h2>
+      <p>Our proposal workflow uses Airtable AI on the Team plan. <a href="https://www.airtable.com/company/ai-terms">Airtable's published AI terms</a> prohibit using customer inputs and outputs to train generative AI models. On the Team plan, AI providers may retain inputs and outputs for up to 30 days for safety and compliance moderation, with exceptions for prohibited content and applicable legal obligations. Usage metadata has separate retention terms.</p>
+      <p>These AI-provider limits do not automatically delete proposal records, source files, or delivery emails.</p>
+      <p>Source files, reviewed text, generated drafts, and delivery messages can have different retention and deletion requirements. The document upload page does not currently provide self-service deletion. For a deletion request or questions about AI training and provider retention, contact our team. Please include your account email, but do not attach the confidential document.</p>
+    </section>
+    <section>
+      <h2>Ask a security question or report a concern</h2>
+      <p>Email <a href="mailto:hello@tendercrestai.com">hello@tendercrestai.com</a> with the subject “Security inquiry” or “Security report.” Share a brief description and the affected page. Do not include passwords, access tokens, or customer document contents. We can arrange an appropriate way to exchange sensitive details.</p>
+      <a href="/contact.html">Contact the TenderCrest AI team →</a>
+    </section>
+  </main>
+  <footer>© 2026 TenderCrest AI <a href="/">Home</a><a href="/contact.html">Contact</a></footer>
+</body>
+</html>
