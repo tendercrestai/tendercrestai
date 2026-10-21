@@ -91,7 +91,7 @@ function createHandler(adapters = {}) {
           documents.push(await (adapters.extractDocument || extractDocument)(source));
         }
         const chunks = chunkDocuments(documents);
-        const hash = createHash("sha256").update(JSON.stringify(["compliance-v1",
+        const hash = createHash("sha256").update(JSON.stringify(["compliance-v2-references",
           documents.map(d => [d.id,d.sha256,d.segments])])).digest("hex");
         const warnings = documents.flatMap(d => d.warnings.map(w => d.name + ": " + w));
         const id = await rpc(config, token, "rfp_compliance_start", {

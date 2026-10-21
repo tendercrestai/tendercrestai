@@ -158,3 +158,13 @@ The local UI results do not establish a configured live preview or real AI
 accuracy/latency/cost. Netlify preview authentication, runtime credentials,
 matching preview browser/server auth configuration and a real fictional-RFP AI
 run remain gates. Production was not changed.
+
+
+## Source-grounding follow-up — 2026-10-21 Pacific
+
+See [source-grounding fix](compliance-source-grounding.md). A realistic PDF exposed
+paraphrased quotes and nonliteral fact values that correctly failed validation.
+The adapter now selects server-owned source IDs/options instead of generating
+citation text. Tests cover exact binding, forged references, PDF-wrapped conditions
+and literal score/deadline handling. The affected document completed under a new
+budgeted engine version without resetting its original retry counters.

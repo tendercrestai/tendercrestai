@@ -51,7 +51,11 @@ test("prompt injection stays in untrusted JSON and cannot set status, tools or r
     assert.equal(body.messages[0].role,"system");assert.ok(body.messages[0].content.includes("UNTRUSTED"));
     assert.equal(body.messages[1].role,"user");assert.ok(JSON.parse(body.messages[1].content).source_segments[0].text.includes("Ignore all rules"));
     assert.equal(body.tools,undefined);assert.equal(body.response_format.json_schema.strict,true);
-    return Response.json({choices:[{finish_reason:"stop",message:{content:JSON.stringify(output([row()]))}}]});
+    const selected=body.response_format.json_schema.schema.properties;
+    assert.ok(selected.requirements.items.properties.excerpt_id.enum.includes("e0"));
+    assert.ok(!selected.requirements.items.properties.excerpt_id.enum.includes("e0v0"));
+    assert.ok(selected.facts.items.properties.value_option_id.enum.includes("e0v0"));
+    return Response.json({choices:[{finish_reason:"stop",message:{content:JSON.stringify({requirements:[{excerpt_id:"e0",category:"Eligibility",mandatory:"Yes",uncertain:false}],facts:[]})}}]});
   });
   assert.equal(calls,1);assert.equal(result.requirements[0].status,"Needs Review");
 });
@@ -62,4 +66,45 @@ test("AI failures, malformed JSON, refusal and output truncation never save plau
     ()=>Response.json({choices:[{finish_reason:"stop",message:{refusal:"cannot",content:"{}"}}]})])
     await assert.rejects(ai.analyzeChunk(segments,docs,async()=>response()));
   await assert.rejects(ai.analyzeChunk(segments,docs,async()=>{throw Error("secret upstream error");}));
+});
+
+test("server-owned excerpt references preserve exact text and reject invented IDs or extra summaries",()=>{
+  const catalog=ai.excerptCatalog(segments);
+  const selected={requirements:[{excerpt_id:"e0",category:"Eligibility",mandatory:"Yes",uncertain:false}],facts:[]};
+  const resolved=ai.resolveReferences(selected,catalog);
+  assert.equal(resolved.requirements[0].quote,"The vendor must provide three references.");
+  assert.equal(resolved.requirements[0].segment_id,"s1");
+  assert.throws(()=>ai.resolveReferences({...selected,requirements:[{...selected.requirements[0],excerpt_id:"invented"}]},catalog));
+  assert.throws(()=>ai.resolveReferences({...selected,requirements:[{...selected.requirements[0],quote:"Invented"}]},catalog));
+  const conditional=ai.validateOutput(ai.resolveReferences({...selected,requirements:[{...selected.requirements[0],excerpt_id:"e1"}]},catalog),segments,docs);
+  assert.equal(conditional.requirements[0].mandatory,"Unclear");
+});
+test("fact and scoring options must belong to their own source excerpt",()=>{
+  const ss=[{...segments[0],text:"Deadline: 30 November 2026 at 17:00 UTC."},segments[1]],catalog=ai.excerptCatalog(ss);
+  const timezone=catalog[0].options.find(o=>o.kind==="timezone"),weight=catalog[1].options.find(o=>o.kind==="weight");
+  const out={requirements:[{excerpt_id:"e1",category:"Evaluation",mandatory:"Unclear",uncertain:false}],facts:[{type:"Deadline Timezone",value_option_id:timezone.id}]};
+  const validated=ai.validateOutput(ai.resolveReferences(out,catalog),ss,docs);
+  assert.equal(validated.facts[0].value,"UTC");assert.equal(validated.requirements[0].evaluation_weight,"40%");
+  assert.throws(()=>ai.resolveReferences({...out,facts:[{...out.facts[0],value_option_id:"invented"}]},catalog));
+  assert.throws(()=>ai.resolveReferences({...out,facts:[{...out.facts[0],excerpt_id:"e1"}]},catalog));
+});
+
+test("PDF line wrapping preserves complete negation and conditional source sentences",()=>{
+  const ss=[{...segments[0],text:"The vendor is not\nrequired to supply a certificate.\nIf subcontractors are used,\nthe vendor must disclose their names."}];
+  const catalog=ai.excerptCatalog(ss);
+  assert.equal(catalog.length,2);
+  assert.equal(catalog[0].text,"The vendor is not\nrequired to supply a certificate.");
+  const requirements=catalog.map(e=>({excerpt_id:e.id,category:"Eligibility",mandatory:"Yes",uncertain:false}));
+  const result=ai.validateOutput(ai.resolveReferences({requirements,facts:[]},catalog),ss,docs);
+  assert.deepEqual(result.requirements.map(r=>r.mandatory),["No","Unclear"]);
+});
+
+test("literal scoring and deadline timezone survive model omission without inventing facts",()=>{
+  const ss=[{...segments[0],text:"Deadline: 30 November 2026 at 17:00 UTC."},segments[1]];
+  const catalog=ai.excerptCatalog(ss),date=catalog[0].options.find(o=>o.value.startsWith("30 November"));
+  const result=ai.validateOutput(ai.resolveReferences({requirements:[],facts:[{type:"Submission Deadline",value_option_id:date.id}]},catalog),ss,docs);
+  assert.equal(result.requirements[0].evaluation_weight,"40%");
+  assert.equal(result.facts.find(f=>f.type==="Deadline Timezone").value,"UTC");
+  const ordinary=ai.excerptCatalog([{...segments[0],text:"Optional pricing discount: 20%. Meeting timezone: UTC."}]);
+  assert.deepEqual(ai.resolveReferences({requirements:[],facts:[]},ordinary),{requirements:[],facts:[]});
 });
