@@ -26,6 +26,8 @@ let calls;
 let settings;
 let metadata;
 let env;
+let creditLedger;
+let trialClaimed;
 
 const json = (value, status = 200) =>
   new Response(JSON.stringify(value), {
@@ -50,6 +52,8 @@ beforeEach(() => {
   process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service";
 
   ledger = new Map();
+  creditLedger = new Map();
+  trialClaimed = false;
   calls = [];
   settings = {};
 
@@ -78,6 +82,33 @@ beforeEach(() => {
         email: "owner@example.com",
         email_confirmed_at: "2026-10-01"
       });
+    }
+
+    if (route.pathname.startsWith("/rest/v1/rpc/")) {
+      if (settings.creditDown) return json({}, 503);
+      if (route.pathname.endsWith("claim_free_trial")) {
+        if (trialClaimed) return json({ create: false });
+        trialClaimed = true;
+        return json({ create: true, start: new Date(Date.now() - 1000).toISOString(), end: new Date(Date.now() + 30 * 86400000).toISOString() });
+      }
+      if (route.pathname.endsWith("bind_free_trial")) return json({ ok: true });
+      if (route.pathname.endsWith("reserve_proposal_credit")) {
+        if (settings.creditCode) return json({ code: settings.creditCode });
+        const used = [...creditLedger.values()].filter(row => row.status !== "released").length;
+        if (used + payload.p_legacy_used >= payload.p_quota) return json({ code: "quota_exceeded" });
+        creditLedger.set(payload.p_submission_id, { status: "reserved" });
+        return json({ code: "reserved" });
+      }
+      if (route.pathname.endsWith("finish_proposal_credit")) {
+        Object.assign(creditLedger.get(payload.p_submission_id), { status: payload.p_status, recordId: payload.p_record_id });
+        return json({ ok: true });
+      }
+      if (route.pathname.endsWith("release_failed_credit")) {
+        const held = creditLedger.get(payload.p_submission_id);
+        if (held?.recordId === payload.p_record_id) held.status = "released";
+        return json({ ok: true });
+      }
+      throw new Error("Unexpected RPC");
     }
 
     if (route.pathname === "/rest/v1/rfp_uploads") {
@@ -160,10 +191,18 @@ beforeEach(() => {
           ? []
           : [{
               id: "recCompany",
+              createdTime: new Date(Date.now() - 1000).toISOString(),
               fields: {
                 "Company Name": "Example",
                 "Quota Status": settings.quota || "ACTIVE",
                 "Remaining Proposals": 60,
+                Status: settings.status || "Active",
+                "Subscription Tier": settings.tier || "Enterprise ($1,299/mo)",
+                "Stripe Subscription ID": settings.complimentary ? undefined : "sub_example",
+                "Complimentary Access": settings.complimentary || false,
+                "Billing Period Start": new Date(Date.now() - 86400000).toISOString(),
+                "Billing Period End": settings.expired ? new Date(Date.now() - 1000).toISOString() : new Date(Date.now() + 29 * 86400000).toISOString(),
+                "Proposals Pipeline": (settings.history || []).map(row => row.id),
                 "Company Credentials Digest": "Saved credentials"
               }
             }]
@@ -171,6 +210,7 @@ beforeEach(() => {
     }
 
     if (route.pathname.endsWith("/tblkL2ct7mYtUTu9S")) {
+      if (options.method !== "POST") return json({ records: settings.history || [] });
       if (settings.queueTimeout) {
         throw new Error("Network timeout");
       }
@@ -189,7 +229,7 @@ afterEach(() => {
 });
 
 const queueCalls = () =>
-  calls.filter(call => call.url.includes("/tblkL2ct7mYtUTu9S"));
+  calls.filter(call => call.url.includes("/tblkL2ct7mYtUTu9S") && call.options.method === "POST");
 
 test("requires a verified bearer session and rejects email impersonation", async () => {
   assert.equal((await run(input, null)).statusCode, 401);
@@ -217,7 +257,7 @@ test("fails closed when service configuration or ledger is unavailable", async (
   assert.equal(queueCalls().length, 0);
 });
 
-test("queues reviewed text in the unchanged Airtable schema", async () => {
+test("reserves one credit before queueing reviewed text with its reservation marker", async () => {
   const response = await run({ ...input, documentId: DOC });
 
   assert.equal(response.statusCode, 200);
@@ -232,6 +272,7 @@ test("queues reviewed text in the unchanged Airtable schema", async () => {
     "Proposal Specific Qualifications": input.qualifications,
     "Proposal Sector": input.proposalSector,
     "Pipeline Status": "Uploaded",
+    "Credit Reservation ID": ID,
     Company: ["recCompany"]
   });
 
@@ -254,7 +295,10 @@ test("creates a free trial without Stripe and does not wait for computed quota",
     call.options.method === "POST"
   );
 
-  assert.deepEqual(JSON.parse(trial.options.body).fields, {
+  const trialFields = JSON.parse(trial.options.body).fields;
+  assert.ok(Date.parse(trialFields["Billing Period Start"]) < Date.parse(trialFields["Billing Period End"]));
+  const { ["Billing Period Start"]: start, ["Billing Period End"]: end, ...rest } = trialFields;
+  assert.deepEqual(rest, {
     "Company Name": "Example",
     "Billing Email": "owner@example.com",
     "Subscription Tier": "Enterprise ($1,299/mo)",
@@ -405,16 +449,15 @@ test("a failed ledger update never queues the request again", async () => {
   assert.equal(queueCalls().length, 1);
 });
 
-test("existing quota states remain enforced", async () => {
-  for (const [quota, status] of [
-    ["SUBSCRIPTION_INACTIVE", 403],
-    ["QUOTA_EXCEEDED", 429],
-    ["Pending", 503]
-  ]) {
-    settings.quota = quota;
-    assert.equal((await run()).statusCode, status);
-  }
-
+test("subscription eligibility and atomic quota are enforced independently of Airtable formulas", async () => {
+  settings.status = "Canceled";
+  assert.equal((await run()).statusCode, 403);
+  settings.status = "Active";
+  settings.creditCode = "quota_exceeded";
+  assert.equal((await run()).statusCode, 429);
+  settings.creditCode = undefined;
+  settings.creditDown = true;
+  assert.equal((await run()).statusCode, 503);
   assert.equal(queueCalls().length, 0);
 });
 
@@ -453,4 +496,49 @@ test("invalid request shapes, limits and sectors never reach the queue", async (
   }
 
   assert.equal(queueCalls().length, 0);
+});
+
+
+test("different submissions compete for the last available credit", async () => {
+  settings.tier = "Pro ($299/mo)";
+  settings.history = Array.from({ length: 4 }, (_, i) => ({ id: "recLegacy" + i, fields: { "Created Date": new Date().toISOString(), "Pipeline Status": "Ready for Review" } }));
+  const results = await Promise.all([run(), run({ ...input, submissionId: OTHER })]);
+  assert.deepEqual(results.map(result => result.statusCode).sort(), [200, 429]);
+  assert.equal(queueCalls().length, 1);
+});
+
+test("previous-cycle and failed historical jobs do not consume current-cycle credits", async () => {
+  settings.history = [
+    { id: "recPrevious", fields: { "Created Date": new Date(Date.now() - 35 * 86400000).toISOString(), "Pipeline Status": "Ready for Review" } },
+    { id: "recFailed", fields: { "Created Date": new Date().toISOString(), "Pipeline Status": "Failed" } }
+  ];
+  assert.equal((await run()).statusCode, 200);
+  const reservation = calls.find(call => call.url.endsWith("/reserve_proposal_credit"));
+  assert.equal(JSON.parse(reservation.options.body).p_legacy_used, 0);
+});
+
+test("expired billing periods cannot submit while waiting for the renewal webhook", async () => {
+  settings.expired = true;
+  assert.equal((await run()).statusCode, 403);
+  assert.equal(queueCalls().length, 0);
+});
+
+test("ambiguous queue responses retain their credit", async () => {
+  settings.queueTimeout = true;
+  assert.equal((await run()).statusCode, 503);
+  assert.equal(creditLedger.get(ID).status, "uncertain");
+});
+
+test("simultaneous unknown-account submissions create only one free trial", async () => {
+  settings.newTrial = true;
+  const results = await Promise.all([run(), run({ ...input, submissionId: OTHER })]);
+  assert.deepEqual(results.map(result => result.statusCode).sort(), [200, 503]);
+  assert.equal(calls.filter(call => call.url.endsWith("/tbliWnP6ThqA02G5L") && call.options.method === "POST").length, 1);
+});
+
+test("owner-approved complimentary accounts use monthly credits without a Stripe subscription", async () => {
+  settings.complimentary = true;
+  assert.equal((await run()).statusCode, 200);
+  assert.equal(creditLedger.get(ID).status, "queued");
+  assert.ok(calls.every(call => !call.url.includes("api.stripe.com")));
 });

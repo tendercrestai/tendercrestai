@@ -1,10 +1,12 @@
 [build]
-  publish = "."
+  command = "node scripts/build-site.mjs"
+  publish = "dist"
   functions = "netlify/functions"
 
 [functions]
   node_bundler = "esbuild"
   external_node_modules = ["pdfjs-dist", "sax"]
+  included_files = ["assets/docx-validation.mjs"]
 
 [[headers]]
   for = "/*"
@@ -13,4 +15,3 @@
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
-

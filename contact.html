@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contact Us | TenderCrest AI</title>
+<meta name="description" content="Contact the TenderCrest AI team about RFP and proposal management.">
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#17243b;background:#f5f8ff}
+*{box-sizing:border-box}body{margin:0}header{padding:22px max(20px,calc((100vw - 860px)/2));background:white;border-bottom:1px solid #e3eaf4}
+header a{color:#1d4ed8;font-weight:700;text-decoration:none}
+main{max-width:660px;margin:55px auto;padding:0 20px 70px}
+.card{background:white;border:1px solid #e3eaf4;border-radius:18px;padding:clamp(24px,5vw,40px);box-shadow:0 10px 30px #162a4d0d}
+h1{margin:0 0 10px;font-size:2rem}p{line-height:1.6;color:#475569}
+label{display:block;font-weight:650;margin:19px 0 7px}
+input,textarea{display:block;width:100%;padding:13px 14px;border:1px solid #bac8da;border-radius:9px;font:inherit;color:#17243b}
+input:focus,textarea:focus{outline:2px solid #2563eb;outline-offset:1px}
+textarea{min-height:145px;resize:vertical}
+button{margin-top:24px;border:0;background:#2563eb;color:white;border-radius:10px;padding:14px 23px;font:inherit;font-weight:700;cursor:pointer}
+button:hover{background:#1d4ed8}.hint{font-size:.9rem}
+.honeypot{position:absolute;left:-9999px;opacity:0}
+</style>
+</head>
+<body>
+<header><a href="/">← TenderCrest AI</a></header>
+<main><div class="card">
+<h1>Contact Us</h1>
+<p>Have a question about TenderCrest AI, a demo, or your subscription? Send us a message and we'll get back to you.</p>
+<form id="contact-form" name="tendercrest-contact" method="POST" action="/" data-netlify="true" netlify-honeypot="bot-field">
+<input type="hidden" name="form-name" value="tendercrest-contact">
+<p class="honeypot"><label>Leave this field blank <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
+<label for="name">Your name *</label><input id="name" name="name" maxlength="120" autocomplete="name" required>
+<label for="email">Email address *</label><input id="email" name="email" type="email" maxlength="254" autocomplete="email" required>
+<label for="company">Company (optional)</label><input id="company" name="company" maxlength="160" autocomplete="organization">
+<label for="message">How can we help? *</label><textarea id="message" name="message" maxlength="5000" required></textarea>
+<div id="turnstile-container" style="margin-top:20px"></div>
+<button id="contact-submit" type="submit">Send message</button>
+<p id="contact-status" role="status" aria-live="polite"></p>
+<p class="hint">Your details will be used to respond to your inquiry. Please do not include passwords or confidential RFP documents.</p>
+</form>
+<p class="hint">Prefer email? <a href="mailto:hello@tendercrestai.com">hello@tendercrestai.com</a></p>
+</div></main>
+<script>
+const form=document.getElementById("contact-form");
+const statusEl=document.getElementById("contact-status");
+const button=document.getElementById("contact-submit");
+let turnstileEnabled=false;
+let turnstileReady=false;
+let turnstileWidget=null;
+async function initTurnstile(){
+ try{
+  const response=await fetch("/.netlify/functions/turnstile-config",{cache:"no-store"});
+  if(!response.ok)throw new Error("Unable to load security configuration");
+  const config=await response.json();
+  if(!config.enabled)return;
+  turnstileEnabled=true;
+  button.disabled=true;
+  if(!config.siteKey)throw new Error("Site security is being configured. Please email hello@tendercrestai.com.");
+  const script=document.createElement("script");
+  script.src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+  script.async=true;
+  script.onload=()=>{
+   try{
+    turnstileWidget=window.turnstile.render("#turnstile-container",{sitekey:config.siteKey,callback:()=>{turnstileReady=true;button.disabled=false;statusEl.textContent=""}, "expired-callback":()=>{turnstileReady=false;button.disabled=true}, "error-callback":()=>{turnstileReady=false;button.disabled=true;statusEl.textContent="Security verification failed. Please refresh the page."}});
+   }catch(e){statusEl.textContent="Unable to initialize security verification. Please refresh the page."}
+  };
+  script.onerror=()=>{statusEl.textContent="Unable to load security verification. Please refresh the page."};
+  document.head.appendChild(script);
+ }catch(e){button.disabled=true;statusEl.textContent=e.message}
+}
+initTurnstile();
+form.addEventListener("submit",async event=>{
+ event.preventDefault();
+ if(turnstileEnabled&&!turnstileReady){statusEl.textContent="Please complete security verification first.";return}
+ statusEl.textContent="Sending...";
+ button.disabled=true;
+ const data=Object.fromEntries(new FormData(form).entries());
+ try{
+  const response=await fetch("/.netlify/functions/contact-email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+  const result=await response.json();
+  if(!response.ok||!result.ok)throw new Error(result.error||"Unable to send your message.");
+  form.reset();
+  statusEl.textContent="Thank you! Your message has been sent. We'll get back to you.";
+ }catch(error){statusEl.textContent=error.message+" You can also email hello@tendercrestai.com directly."}
+ finally{if(turnstileEnabled&&window.turnstile&&turnstileWidget!==null){turnstileReady=false;window.turnstile.reset(turnstileWidget)}button.disabled=turnstileEnabled}
+});
+</script>
+</body></html>
