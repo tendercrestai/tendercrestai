@@ -25,16 +25,36 @@ button:hover{background:#1d4ed8}.hint{font-size:.9rem}
 <main><div class="card">
 <h1>Contact Us</h1>
 <p>Have a question about TenderCrest AI, a demo, or your subscription? Send us a message and we'll get back to you.</p>
-<form name="tendercrest-contact" method="POST" action="/" data-netlify="true" netlify-honeypot="bot-field">
+<form id="contact-form" name="tendercrest-contact" method="POST" action="/" data-netlify="true" netlify-honeypot="bot-field">
 <input type="hidden" name="form-name" value="tendercrest-contact">
 <p class="honeypot"><label>Leave this field blank <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
 <label for="name">Your name *</label><input id="name" name="name" maxlength="120" autocomplete="name" required>
 <label for="email">Email address *</label><input id="email" name="email" type="email" maxlength="254" autocomplete="email" required>
 <label for="company">Company (optional)</label><input id="company" name="company" maxlength="160" autocomplete="organization">
 <label for="message">How can we help? *</label><textarea id="message" name="message" maxlength="5000" required></textarea>
-<button type="submit">Send message</button>
+<button id="contact-submit" type="submit">Send message</button>
+<p id="contact-status" role="status" aria-live="polite"></p>
 <p class="hint">Your details will be used to respond to your inquiry. Please do not include passwords or confidential RFP documents.</p>
 </form>
 <p class="hint">Prefer email? <a href="mailto:hello@tendercrestai.com">hello@tendercrestai.com</a></p>
 </div></main>
+<script>
+const form=document.getElementById("contact-form");
+const statusEl=document.getElementById("contact-status");
+const button=document.getElementById("contact-submit");
+form.addEventListener("submit",async event=>{
+ event.preventDefault();
+ statusEl.textContent="Sending...";
+ button.disabled=true;
+ const data=Object.fromEntries(new FormData(form).entries());
+ try{
+  const response=await fetch("/.netlify/functions/contact-email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+  const result=await response.json();
+  if(!response.ok||!result.ok)throw new Error(result.error||"Unable to send your message.");
+  form.reset();
+  statusEl.textContent="Thank you! Your message has been sent. We'll get back to you.";
+ }catch(error){statusEl.textContent=error.message+" You can also email hello@tendercrestai.com directly."}
+ finally{button.disabled=false}
+});
+</script>
 </body></html>
