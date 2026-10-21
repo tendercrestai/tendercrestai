@@ -127,9 +127,9 @@ authorization to send RFP text before enabling the AI flag.
    PR #4 supplies runtime configuration for those existing pages if separately
    reviewed and merged; this PR does not assume it is active.
 5. Run npm ci --ignore-scripts, npm audit, and npm test on Node >=22.13.0.
-   The lockfile pins dependency versions; it was generated offline from
-   preinstalled packages and lacks registry integrity hashes. Verify a clean
-   registry install and refresh the lock with integrity hashes before rollout.
+   The refreshed lockfile pins registry-backed versions and integrity hashes.
+   PDF.js is pinned to 6.4.299 after resolving the advisory found during the
+   connected audit. Keep the audit as a rollout gate; advisory data can change.
 6. Netlify uses esbuild with PDF.js/sax external modules so PDF worker/font files
    remain packaged. Confirm dependency/worker/font inclusion in preview logs.
    Ensure the plan supports synchronous requests long enough for the bounded

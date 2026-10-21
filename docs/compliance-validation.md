@@ -114,3 +114,47 @@ configuration, real AI request or browser end-to-end test was completed in this
 follow-up. The shell proxy remains unreachable. The earlier database blockers
 are now resolved through the connected Supabase tool; the remaining activation
 gates still apply.
+
+## Follow-up: network, dependency and Chromium checks (2026-10-20 Pacific)
+
+The earlier network/browser conclusion was too broad: both require the shell
+tool's additional network permission. With that permission, npm and Chromium
+work. No proxy configuration was bypassed or changed.
+
+New executed results:
+
+- Clean npm ci with scripts disabled succeeded against the registry.
+- Audit identified high-severity PDF.js advisory GHSA-hq66-cqwq-w95j in
+  5.6.205. Upgraded the server dependency to 6.4.299, regenerated the lock from
+  registry metadata, and verified integrity hashes on every dependency entry.
+  The subsequent npm audit reported zero vulnerabilities.
+- All 72 automated assertions passed against the upgraded parser.
+- All three SQL suites passed again in the non-production Supabase test project.
+- scripts/test-compliance-browser.py passed 17 checks in real Chromium using
+  mocked Supabase auth/API responses and the actual frontend modules: upload,
+  source review confirmation, matrix rendering, search/filter/sort, safe text
+  rendering, source dialog, evidence validation, saved review/coverage, CSV/XLSX
+  downloads, keyboard navigation/dialog dismissal, tablet/mobile layout,
+  sign-out clearing, proposal-form handoff and no JavaScript page errors.
+- Independent openpyxl verification loaded the browser-downloaded workbook and
+  confirmed the saved status/owner and string cells.
+- esbuild 0.25.12 bundled the function with the configured external parser
+  modules; the bundled handler loaded and returned 405 for an unsupported method.
+  This is a local bundle check, not live Netlify parser/font/worker validation.
+
+Browser screenshots and downloaded exports are in
+/tmp/tendercrest-compliance-browser. The browser harness intercepts every
+request and never calls live Supabase, OpenAI, Airtable or Stripe.
+
+Remaining live blockers were tested directly: Netlify's /api/v1/user returned
+401 Access Denied; the deploy-preview compliance-config route returned 401 and
+Netlify's edge-access login redirect. No authenticated Netlify credential,
+CLI profile, runtime secret binding or AI key is available to the running worker.
+The user reports saving credentials in the task's environment settings, so
+their saved/configured state must be distinguished from availability in this
+worker. No secret values were printed or searched for in credential files.
+
+The local UI results do not establish a configured live preview or real AI
+accuracy/latency/cost. Netlify preview authentication, runtime credentials,
+matching preview browser/server auth configuration and a real fictional-RFP AI
+run remain gates. Production was not changed.

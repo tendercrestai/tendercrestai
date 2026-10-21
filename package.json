@@ -4,5 +4,5 @@
   "version": "0.1.0",
   "engines": { "node": ">=22.13.0" },
   "scripts": { "test": "bash scripts/test.sh" },
-  "dependencies": { "pdfjs-dist": "5.6.205", "sax": "1.6.1" }
+  "dependencies": { "pdfjs-dist": "6.4.299", "sax": "1.6.1" }
 }
