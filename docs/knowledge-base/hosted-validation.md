@@ -2,6 +2,23 @@
 
 Status: partially complete. Real indexing and baseline semantic search passed, but provider access is inconsistent; do not merge or enable production from this report.
 
+## Fresh-environment continuation — 2026-10-22
+
+The feature branch was independently fetched and resolved to `71ae180b504b0466ccfd9d9b4d371c128fe1d39a`. The previous `/workspace/scratch/knowledge-base-hosted/` artifacts and `/workspace/tendercrestai-knowledge-base` checkout did not transfer. A new feature worktree was restored at that checkout path; no prior deployment archive, fictional-user credentials or diagnostic-function source was recovered.
+
+Current environment inspection reports no configured Netlify/Supabase secrets or runtime variables, no outbound identities and no custom allowed hosts. Network-policy readiness is `unknown`, not `enforced`. Actual HTTPS probes through the inherited proxy returned tunnel `403 Forbidden` for `api.netlify.com`, `api.supabase.com`, `api.openai.com`, `wcrrywzleylmdsqqlise.supabase.co`, and `kb1--tendercrestai-pr6-isolated-20261021.netlify.app`. `cdn.jsdelivr.net` also returned tunnel 403 despite appearing in the package-manager preset. GitHub HTTPS and `registry.npmjs.org` returned 200; authenticated Git fetch succeeded. GitHub API access through `gh api` returned Forbidden, so PR existence remains unverified.
+
+These are environment-access failures, not new application/provider failures. No hosted check, diagnostic invocation, embedding request, migration or deployment was performed in this continuation. The temporary diagnostic remains unverified and must still be inspected and removed from the isolated artifact after use. Previous completed results above are historical evidence; they were not rerun.
+
+Recovery requirements, before resuming the remaining gates:
+
+1. Provide effective HTTPS access to the five blocked service/test hosts above and `cdn.jsdelivr.net`; preserve GitHub and required package-registry access. Verify policy readiness and actual requests after the environment configuration is activated. The currently inspected draft has no custom rules; the older saved network draft is not present here. Saving a draft alone does not activate it. No environment configuration was changed or published in this continuation.
+2. Bind a Netlify API credential as `NETLIFY_AUTH_TOKEN`, scoped through the environment credential mechanism to `api.netlify.com`, with access to the existing isolated site `6e9deecc-bd7c-45c1-be22-ff1dd016e1f5`. Inspect that site's existing Branch deploys bindings before requesting additional credentials. Do not replace `KB_EMBEDDING_API_KEY`, copy it into another persistent context, or use a generic site ID for writes. No additional OpenAI credential is needed to test the existing runtime key.
+3. Recover the isolated deployment source/manifest and safely inspect its protected `kb-runtime-check` implementation and test bindings. If it cannot be recovered through authorized Netlify access, report that specific gap before reconstructing it. Reuse test-project bindings for hosted validation; only request a Supabase management credential if a verified task actually requires management access. Existing migrations do not need reapplication.
+4. Continue with bounded runtime/query checks and the new fictional-document browser flow on actual branch `kb1`, preserving durable retry counters. Remove the diagnostic function when finished. Recheck production deployment metadata read-only once API access is available; no current baseline comparison is claimed here.
+
+Review status remains blocked on hosted evidence. No PR creation, merge, production change, subscription change or customer email is claimed.
+
 The owner explicitly authorized test deployment, test-only migrations and limited real embedding calls using fictional data. Test Supabase project: wcrrywzleylmdsqqlise. Netlify test site: tendercrestai-pr6-isolated-20261021. Completed hosted checks used the `pr6` preview. The replacement actual branch preview is https://kb1--tendercrestai-pr6-isolated-20261021.netlify.app/knowledge.html; Netlify reports deploy `6ada4179dccb3d7b458960ce` ready, but runtime checks on that hostname await environment network-policy publication.
 
 ## Verified hosted results
