@@ -10,6 +10,10 @@
   external_node_modules = ["pdfjs-dist", "sax"]
   included_files = ["assets/docx-validation.mjs"]
 
+[functions."knowledge-worker-background"]
+  external_node_modules = ["pdfjs-dist", "sax"]
+  included_files = ["assets/docx-validation.mjs"]
+
 [[headers]]
   for = "/*"
   [headers.values]
