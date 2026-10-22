@@ -14,7 +14,7 @@ Uploads are immutable originals. Server-registered metadata determines organizat
 
 Semantic retrieval uses pgvector (fixed 1536 dimensions, cosine distance) and organization filtering before returning a bounded result set. Search results are source excerpts, never generated bidder claims. Human-written answers cite ready chunks; only owner/reviewer roles can approve a particular revision. Editing invalidates approval; archiving a source removes it and its dependent approved answers from retrieval. Citations and audit events preserve actor, organization, revision and source identity. Audit events contain metadata, not document text, credentials or query contents.
 
-Use existing OpenAI infrastructure only; no new paid vendor/account is introduced. Default model text-embedding-3-small must be explicitly configured and usage-approved before enabling KB_ENABLED. No live paid provider calls or remote migrations are run for this PR. pgvector storage/compute and Netlify background processing consume existing quotas. The feature is off by default and is not advertised in existing production navigation.
+Use existing OpenAI infrastructure only; no new paid vendor/account is introduced. Default model text-embedding-3-small must be explicitly configured and usage-approved before enabling KB_ENABLED. Production deployment/migrations and provider usage require explicit approval. The subsequently authorized isolated test rollout is recorded in hosted-validation.md. pgvector storage/compute and Netlify background processing consume existing quotas. The feature is off by default and is not advertised in existing production navigation.
 
 ## Incremental roadmap
 

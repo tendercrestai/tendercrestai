@@ -33,7 +33,7 @@ async function membership(config,token,user,org) {
 }
 function workerSettings() {
  const secret=process.env.KB_WORKER_SECRET;if(!secret||secret.length<32)fail(503,'Knowledge background processing is not configured.');
- let origin;try{origin=new URL(process.env.DEPLOY_PRIME_URL||process.env.URL);}catch{fail(503,'Knowledge background processing is not configured.');}
+ let origin;try{origin=new URL(process.env.KB_WORKER_ORIGIN||process.env.DEPLOY_PRIME_URL||process.env.URL);}catch{fail(503,'Knowledge background processing is not configured.');}
  if(origin.protocol!=='https:'||origin.username||origin.password||origin.port||origin.pathname!=='/'||!(origin.hostname.endsWith('.netlify.app')||origin.hostname==='www.tendercrestai.com'))fail(503,'Knowledge background deployment is invalid.');
  return {secret,url:new URL('/.netlify/functions/knowledge-worker-background',origin).href};
 }
