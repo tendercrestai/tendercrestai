@@ -16,7 +16,7 @@ beforeEach(()=>{env={...process.env};originalFetch=global.fetch;calls=[];setting
  if(u.pathname==='/auth/v1/user')return settings.invalidAuth?json({},401):json({id:USER,email:'fixture@example.invalid',email_confirmed_at:'2026-01-01'});
  if(u.pathname==='/rest/v1/kb_memberships')return json(settings.foreign?[]:[{role:'editor'}]);
  if(u.pathname.startsWith('/rest/v1/rpc/')){
-  const name=u.pathname.split('/').pop();if(settings.rateDenied&&name==='kb_search_admit')return json({code:'P0001'},400);
+  const name=u.pathname.split('/').pop();if(settings.staleApproval&&name==='kb_approve_answer')return json({code:'PT409'},409);if(settings.rateDenied&&name==='kb_search_admit')return json({code:'P0001'},400);
   if(settings.deniedApproval&&name==='kb_approve_answer')return json({code:'42501'},403);
   if(name==='kb_register')return json(document);if(name==='kb_enqueue')return json({job_id:JOB,done:false});if(name==='kb_claim_job')return json(settings.noClaim?null:document);if(name==='kb_finish_job')return json(!settings.staleFinish);if(name==='kb_fail_job')return json(true);if(name==='kb_search')return json({chunks:[],answers:[]});return json(null);
  }
@@ -46,3 +46,5 @@ test('public KB config never serializes private worker/provider/service keys',as
 
 test('KB requires explicit database configuration rather than legacy production defaults',async()=>{delete process.env.SUPABASE_URL;assert.equal((await run({action:'organizations'})).statusCode,503);assert.equal(calls.length,0);process.env.SUPABASE_URL='http://unsafe.invalid';assert.throws(()=>kb.configuration(),/invalid/);});
 test('explicit server worker origin supports isolated aliases without trusting client URLs',()=>{process.env.KB_WORKER_ORIGIN='https://pr6--kb-fixture.netlify.app';assert.equal(kb.workerSettings().url,'https://pr6--kb-fixture.netlify.app/.netlify/functions/knowledge-worker-background');for(const url of ['http://kb-fixture.netlify.app','https://attacker.invalid','https://kb-fixture.netlify.app/untrusted']){process.env.KB_WORKER_ORIGIN=url;assert.throws(()=>kb.workerSettings(),/invalid/);}});
+
+test('business revision conflicts return 409 without retrying provider or database calls',async()=>{settings.staleApproval=true;const r=await run({action:'approve',orgId:ORG,id:JOB,revision:0});assert.equal(r.statusCode,409);assert.equal(rpcCalls().length,1);});

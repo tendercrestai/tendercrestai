@@ -75,7 +75,7 @@ select pg_temp.assert_true(jsonb_array_length(public.kb_search(current_setting('
 select public.kb_save_answer(current_setting('kb.org_a')::uuid,'10000000-0000-4000-8000-000000000003',current_setting('kb.answer')::uuid,0,'What is our security policy?','Revised human answer.',array[current_setting('kb.chunk_a')::uuid]);
 select pg_temp.assert_true((select revision=1 and approved_revision is null from public.kb_answers where id=current_setting('kb.answer')::uuid),'edit increments revision and invalidates approval');
 do $$ begin
- begin perform public.kb_approve_answer(current_setting('kb.org_a')::uuid,'10000000-0000-4000-8000-000000000005',current_setting('kb.answer')::uuid,0);raise exception 'stale approval accepted';exception when serialization_failure then null;end;
+ begin perform public.kb_approve_answer(current_setting('kb.org_a')::uuid,'10000000-0000-4000-8000-000000000005',current_setting('kb.answer')::uuid,0);raise exception 'stale approval accepted';exception when sqlstate 'PT409' then null;end;
 end $$;
 select public.kb_approve_answer(current_setting('kb.org_a')::uuid,'10000000-0000-4000-8000-000000000001',current_setting('kb.answer')::uuid,1);
 select public.kb_archive(current_setting('kb.org_a')::uuid,'10000000-0000-4000-8000-000000000001',current_setting('kb.doc_a')::uuid);

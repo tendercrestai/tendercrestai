@@ -1,33 +1,38 @@
 # Isolated hosted validation — 2026-10-22
 
-Status: partially complete; real embedding access is blocked. Do not merge or enable production from this report.
+Status: partially complete. Real indexing and baseline semantic search passed, but provider access is inconsistent; do not merge or enable production from this report.
 
-The owner explicitly authorized deployment to an isolated test site, test-only migrations and limited real embedding calls using fictional data. Test Supabase project: wcrrywzleylmdsqqlise. Netlify test site: tendercrestai-pr6-isolated-20261021. Preview: https://pr6--tendercrestai-pr6-isolated-20261021.netlify.app/knowledge.html.
+The owner explicitly authorized test deployment, test-only migrations and limited real embedding calls using fictional data. Test Supabase project: wcrrywzleylmdsqqlise. Netlify test site: tendercrestai-pr6-isolated-20261021. Preview: https://pr6--tendercrestai-pr6-isolated-20261021.netlify.app/knowledge.html.
 
-## Completed
+## Verified hosted results
 
-- Credential access verified through actual test Auth, management and Netlify API requests. The additive KB migration was applied only to the separate test project; hosted pgvector is 0.8.2.
-- Deployed the KB workspace and functions. Existing submission/email/payment functions are absent from this isolated artifact. Test signup/reset email actions are disabled. Only fictional, administratively confirmed users and synthetic TXT/PDF/DOCX files were provisioned.
+- Actual credential access through test Auth, management and Netlify APIs. Both KB migrations applied only to the separate test project; hosted pgvector is 0.8.2.
+- KB workspace/functions deployed. Existing submission/email/payment functions are absent from the isolated artifact. Test signup/reset email actions are disabled. Only fictional, administratively confirmed users and synthetic TXT/PDF/DOCX files were provisioned.
 - Real password authentication, anonymous/invalid-token rejection, organization bootstrap, membership reads, foreign-organization API denial and direct database RLS isolation passed.
-- Real private Storage uploads in all three supported formats passed. Public downloads, foreign-user downloads and overwriting existing originals were denied. Provider processing without explicit consent was rejected.
-- Real mobile Chromium login, organization loading, layout and logout passed. A verified 60-second test JWT was allowed to expire naturally: the hosted API rejected it, and Chromium automatically refreshed it using the real refresh endpoint while preserving viewer restrictions. Test Auth token lifetime was restored to 3600 seconds immediately after creating the short session.
-- Background self-dispatch, pre-provider hash verification, three durable failed attempts, the retry ceiling, hosted usage admission, immediate membership revocation and direct RLS denial after revocation passed.
-- All 112 Node tests pass after adding coverage for the explicit worker origin (95 existing regressions +17 KB tests). Prior local PostgreSQL/pgvector and offline browser results remain applicable.
+- Actual private Storage uploads in all supported formats passed. Public downloads, foreign-user downloads and overwriting existing originals were denied. Processing without explicit consent was rejected.
+- TXT, PDF and DOCX background extraction/indexing succeeded with real embeddings. PDF physical-page citations and DOCX source evidence were verified. Semantic retrieval returned the expected AES-256 quotation without foreign-organization evidence. Completed-document dispatch does not consume additional ingestion attempts.
+- Background self-dispatch, pre-provider hash verification, three durable failed attempts, retry ceiling, hosted usage admission, immediate membership revocation and direct RLS denial after revocation passed.
+- API role controls, exact-revision approvals, stale-revision rejection, foreign-citation rejection and privileged audit visibility passed. Real pgvector RPC retrieval with previously generated genuine vectors verified draft exclusion, approved-answer citations and edit/archive invalidation. This database retrieval check is distinct from embedding a new live query.
+- A DOCX-cited answer was approved, retrieved, then invalidated by archiving its source. Both source viewing and original download were denied afterward.
+- Real mobile Chromium login/logout, organization loading, editable cited answers, approval invalidation/reapproval, exact source viewing/download and audit display passed. A confirmed 60-second JWT expired naturally: the hosted API rejected it and Chromium refreshed through real Auth while preserving viewer restrictions. The test Auth lifetime was immediately restored to 3600 seconds.
+- All 113 Node tests pass (95 existing +18 KB). Both migrations pass the disposable PostgreSQL/pgvector suite (30 named assertions plus negative privilege blocks). Static build succeeds. No production/email/payment host was contacted during browser tests.
 
-## Fixes found during hosted setup
+## Fixes found by hosted checks
 
-Large function ZIP transfers reset the connection, including after omitting maps/unused platform files. Netlify successfully built the small isolated source archive on its existing infrastructure; no subscription upgrade was made.
+Large function ZIP uploads reset the connection. Netlify successfully built the small isolated source archive on its existing infrastructure; no subscription upgrade was made.
 
-The isolated site's Netlify team-login gate blocked requests before Supabase Auth. That gate was disabled only on the test site; application authentication and private Storage/RLS remain enforced.
+The isolated site's Netlify team-login gate blocked access before Supabase Auth. It was disabled only on the test site; app authentication and Storage/RLS remain enforced.
 
-Branch worker dispatch needed a stable, explicitly configured alias instead of relying on the runtime's default URL. KB_WORKER_ORIGIN now supports a server-configured HTTPS origin under the same trusted-origin checks. Its regression test rejects HTTP, unrelated domains and path injection. Deployments should set it to the exact preview origin.
+Branch worker dispatch required a stable alias. KB_WORKER_ORIGIN now supports a server-configured HTTPS preview origin under the same trusted-origin validation, with a regression test rejecting HTTP/unrelated domains/path injection.
 
-## Provider blocker and pending checks
+Stale business revisions used serialization_failure (40001), which the hosted REST/database path retried until requests timed out. The additive 20261022090000_kb_business_conflicts.sql migration switches only the three affected KB functions to PT409, preserving grants. The API maps this to HTTP 409. Direct hosted verification returned 409/PT409 in approximately 0.7 seconds; the full stale-approval/lifecycle suite then passed. The applied base migration is preserved.
 
-The configured OpenAI key authenticates, but /v1/models lists no embedding models. A real text-embedding-3-small request returns HTTP 403, code model_not_found. A test source safely remains Failed/embedding_failed; its durable retry state is retained. This is not a successful AI test.
+## Remaining provider gate
 
-The project owner needs to enable text-embedding-3-small under the owning project's model limits, grant the key Embeddings permission, or configure an embedding-capable test API key through environment secrets. No key values are included in this report. There is no ChatGPT subscription upgrade requirement; API project access/billing is separate.
+Initially text-embedding-3-small returned 403/model_not_found and was absent from the model list. The owner enabled it. It became visible, readiness returned a genuine 1536-dimensional vector, and all supported document formats indexed successfully. Some subsequent embedding requests still return errors (direct provider model_not_found; hosted API 502). The same valid natural-language query has both succeeded and failed. Session expiry and application admission limits were ruled out for a reproduced failure. These errors are retained as failures, not reclassified as passing searches.
 
-After access is fixed: finish real TXT/PDF/DOCX extraction and indexing, pgvector relevance/citation checks, approved-answer retrieval/edit/archive invalidation, cross-organization semantic search, and full browser upload/search/approval/download flows. Paid-provider outage behavior remains covered by mocks unless separately exercised in the hosted test. No production rollout is approved by this test authorization.
+A fresh embedding-capable key in the enabled project was requested. It can be saved directly as KB_EMBEDDING_API_KEY for Branch deploys on the isolated Netlify site, leaving production and compliance keys unchanged. Redeploy the test site after that update; do not overwrite it from the older chat credential.
 
-Production's published deployment was compared before/after and remained unchanged. No production database migrations, environment edits, merges or subscription upgrades were made.
+Remaining gates: verify stable hosted query access with the refreshed test key; finish full browser upload/index/search/draft/approve/download flow and live query-based approved/draft retrieval. Existing review/download/approval browser checks and database retrieval checks are already complete. No further paid test calls should run until the key is updated. Retain durable retry counters; never reset them to make tests pass.
+
+Production's published deployment was compared before/after and remained unchanged. No production database migrations, environment edits, merges or subscription upgrades were made. Initial incomplete test uploads remain unpublished; attempted cleanup was rejected by the service with HTTP 405 and successful preview deployments were preserved.

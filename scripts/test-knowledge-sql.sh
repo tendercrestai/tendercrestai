@@ -13,4 +13,5 @@ for attempt in {1..30}; do
 done
 "${local_docker[@]}" exec -i "$container" psql -q -U postgres -v ON_ERROR_STOP=1 < tests/sql/knowledge-bootstrap.sql
 "${local_docker[@]}" exec -i "$container" psql -q -U postgres -v ON_ERROR_STOP=1 < supabase/migrations/20261022060000_secure_knowledge_base.sql
+"${local_docker[@]}" exec -i "$container" psql -q -U postgres -v ON_ERROR_STOP=1 < supabase/migrations/20261022090000_kb_business_conflicts.sql
 "${local_docker[@]}" exec -i "$container" psql -q -U postgres -v ON_ERROR_STOP=1 < supabase/tests/knowledge-base.sql

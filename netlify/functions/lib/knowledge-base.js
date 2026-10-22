@@ -23,7 +23,7 @@ function parse(event,max=40000) {
 async function database(config,path,{token,method='GET',body,service=false,fetcher=fetch}={}) {
  const key=service?config.serviceKey:config.key;
  const response=await fetcher(config.url+'/rest/v1/'+path,{method,headers:{apikey:key,Authorization:'Bearer '+(service?config.serviceKey:token),'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(15000)});
- if(!response.ok){const error=await response.json().catch(()=>({}));const codes={'42501':403,'P0002':404,'40001':409,'55P03':409,'P0001':429,'22023':400,'23514':400,'23505':409};const status=codes[error.code]||503;fail(status,{403:'Organization access denied.',404:'Knowledge record not found.',409:'The record changed or is no longer available. Reload before retrying.',429:'Knowledge usage or retry limit reached.',400:'Invalid knowledge request.'}[status]||'Knowledge data is temporarily unavailable.');}
+ if(!response.ok){const error=await response.json().catch(()=>({}));const codes={'42501':403,'P0002':404,'40001':409,'PT409':409,'55P03':409,'P0001':429,'22023':400,'23514':400,'23505':409};const status=codes[error.code]||503;fail(status,{403:'Organization access denied.',404:'Knowledge record not found.',409:'The record changed or is no longer available. Reload before retrying.',429:'Knowledge usage or retry limit reached.',400:'Invalid knowledge request.'}[status]||'Knowledge data is temporarily unavailable.');}
  return response.status===204?null:response.json();
 }
 const rpc=(config,name,body,fetcher=fetch)=>database(config,'rpc/'+name,{method:'POST',body,service:true,fetcher});
