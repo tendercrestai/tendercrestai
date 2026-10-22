@@ -1,6 +1,18 @@
 # Isolated hosted validation — 2026-10-22
 
-Status: partially complete. The newly published environment can reach the `kb1` preview. Its deployed embedding credential currently fails with OpenAI 401/invalid_api_key; do not merge or enable production from this report.
+Status: the remaining isolated hosted checks passed after the owner corrected the Branch deploys embedding key. This is review evidence, not authorization to merge or change production.
+
+## Final isolated continuation
+
+Actual source branch `kb1`, ready deploy `6ada9d169ce3233279c54466`, serves https://kb1--tendercrestai-pr6-isolated-20261021.netlify.app. The rebuild consumed the owner's existing updated Branch deploys credential; the agent did not copy or overwrite any credential contexts. No temporary diagnostic function was reintroduced.
+
+- All 11 final hosted deployment/retrieval assertions passed through the actual application: natural and short encryption queries, PDF backup evidence, cited approved answers, archived DOCX/answer exclusion, and second-organization isolation.
+- All 14 real mobile Chromium flow assertions passed: password login, source list, a new fictional TXT upload with explicit consent, private Storage upload, actual background extraction/embedding and Ready status, semantic search, a human-written cited draft, exact-revision approval, edit clearing approval, original verification/download, audit history, mobile layout, logout denial, no JavaScript errors, and no production/email/payment requests.
+- Six additional browser assertions verified the newly uploaded document is searchable by its unique fictional marker, its quoted original can be viewed, its private original downloads byte-identically, and live results include approved evidence while excluding the edited draft. Network and JavaScript error guards also passed.
+- All of these AI checks used real hosted embedding requests; no mocked provider responses, substituted local handlers, database vector shortcuts or reset retry counters were used for these final gates. Calls were limited to the fictional fixtures and queries.
+- Final read-only verification confirmed the isolated deployment is ready, the temporary diagnostic is absent from its function list and returns HTTP 404, and production's published deploy remains `6ad9a2726206627bbfb30be0`.
+
+Earlier provider/network failures below are retained as historical evidence and are superseded by these final bounded checks. Existing local verification remains 114 Node tests, the 30-assertion SQL suite plus negative checks, 12 offline browser scenarios, static build and packaging; application code did not change during this continuation. Required non-deploying CI/review and explicit approval for production migration/backup, deployment and activation remain separate gates. No subscription upgrade, customer email, production migration or merge was performed.
 
 ## Separate-environment observation — 2026-10-22 (historical)
 
@@ -46,7 +58,7 @@ Branch worker dispatch required a stable alias. KB_WORKER_ORIGIN now supports a 
 
 Stale business revisions used serialization_failure (40001), which the hosted REST/database path retried until requests timed out. The additive 20261022090000_kb_business_conflicts.sql migration switches only the three affected KB functions to PT409, preserving grants. The API maps this to HTTP 409. Direct hosted verification returned 409/PT409 in approximately 0.7 seconds; the full stale-approval/lifecycle suite then passed. The applied base migration is preserved.
 
-## Remaining provider gate
+## Provider and routing history (resolved)
 
 Initially text-embedding-3-small returned 403/model_not_found and was absent from the model list. The owner enabled it. It became visible, readiness returned a genuine 1536-dimensional vector, and all supported document formats indexed successfully. Some subsequent embedding requests still return errors (direct provider model_not_found; hosted API 502). The same valid natural-language query has both succeeded and failed. Session expiry and application admission limits were ruled out for a reproduced failure. These errors are retained as failures, not reclassified as passing searches.
 
@@ -56,8 +68,8 @@ Netlify routing checks found a manual `pr6` alias colliding with an actual deplo
 
 Provider-error handling now distinguishes denied key/model access (503), provider quota/rate limits (429), and other upstream failures (502), without exposing upstream messages. Regression coverage for 401/403/429/500 passed as part of the 114-test suite.
 
-Remaining gates: verify stable hosted query access with the refreshed test key; finish full browser upload/index/search/draft/approve/download flow and live query-based approved/draft retrieval. Existing review/download/approval browser checks and database retrieval checks are already complete. The network publication gate is resolved. Replace only KB_EMBEDDING_API_KEY in the isolated site Branch deploys context with the actual embedding-capable OpenAI key, then rebuild the kb1 source branch and resume bounded live checks. No additional key contexts, plan upgrades or production edits are needed. Retain durable retry counters; never reset them to make tests pass.
+The owner subsequently corrected only the isolated Branch deploys key. The new actual-source rebuild and final bounded queries/browser flow passed, resolving the hosted gates above. No additional key contexts, plan upgrades or production edits were needed; durable retry counters were preserved.
 
-Nine additional real mobile Chromium checks passed on the newly reachable kb1 hostname: password login, organization/source access, exact source quotation, byte-identical private download, audit history, responsive layout, logout denial, absence of production/email/payment requests, and absence of JavaScript errors. These checks do not claim the unfinished AI upload/search/approval flow passed.
+Before the final key correction, nine real mobile Chromium checks passed on the newly reachable kb1 hostname: password login, organization/source access, exact source quotation, byte-identical private download, audit history, responsive layout, logout denial, absence of production/email/payment requests, and absence of JavaScript errors. Those earlier checks did not cover AI upload/search/approval; the final continuation above completes that coverage.
 
 Production's published deployment was compared before/after and remained unchanged. No production database migrations, environment edits, merges or subscription upgrades were made. Initial incomplete test uploads remain unpublished; attempted cleanup was rejected by the service with HTTP 405 and successful preview deployments were preserved.
