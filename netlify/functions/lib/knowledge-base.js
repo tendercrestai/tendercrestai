@@ -49,7 +49,11 @@ function vector(value) {if(!Array.isArray(value)||value.length!==1536||value.som
 async function embed(inputs,fetcher=fetch) {
  const {key,model}=embeddingSettings();if(!Array.isArray(inputs)||!inputs.length||inputs.length>16||inputs.some(s=>typeof s!=='string'||!s.trim()||s.length>2000))fail(400,'Invalid embedding input.');
  const response=await fetcher('https://api.openai.com/v1/embeddings',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model,input:inputs,dimensions:1536,encoding_format:'float'}),signal:AbortSignal.timeout(30000)});
- if(!response.ok)fail(502,'Embedding service is unavailable.');const data=await response.json();
+ if(!response.ok){
+  if(response.status===401||response.status===403)fail(503,'Embedding access is denied. Ask your organization administrator to verify the provider key and model.');
+  if(response.status===429)fail(429,'Embedding provider quota or rate limit reached. Try again later.');
+  fail(502,'Embedding service is temporarily unavailable.');
+ }const data=await response.json();
  if(!Array.isArray(data.data)||data.data.length!==inputs.length)fail(502,'Invalid embedding response.');const sorted=[...data.data].sort((a,b)=>a.index-b.index);
  if(sorted.some((d,i)=>d.index!==i))fail(502,'Invalid embedding response.');return sorted.map(d=>vector(d.embedding));
 }

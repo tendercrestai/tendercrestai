@@ -3,7 +3,7 @@
 Base: main 2737c465a946ce207c68324c562709bdbf90ae17. Branch: feature/secure-ai-knowledge-base.
 
 - Read-only audit of function/source architecture and production schema metadata completed; no customer rows were read. Existing schema has user-scoped RFP/compliance/trial/reservation tables, no organization/KB schema or vector extension.
-- npm test: 113 passing tests, including 18 new KB API/worker/provider-adapter tests and 95 existing regressions. Provider responses, authenticated sessions and HTTP requests are mocked. This is not a live AI evaluation.
+- npm test: 114 passing tests, including 19 new KB API/worker/provider-adapter tests and 95 existing regressions. Provider responses, authenticated sessions and HTTP requests are mocked. This is not a live AI evaluation.
 - Disposable PostgreSQL 17 + pgvector 0.8.1: migration and integration suite pass (30 named assertions plus negative privilege/validation blocks). Includes anonymous/foreign-org denial, immutable original storage despite broad pre-existing policy, other-bucket compatibility, actual vector retrieval, draft exclusion, approval/edit/archive invalidation, leases/revocation/takeover/attempt ceiling and transactional admission caps. Local auth/storage tables model Supabase; hosted Supabase API behavior remains to be verified.
 - Chromium: 12 offline UI scenarios pass at mobile viewport, including availability, organization selection, literal citation rendering/XSS, citation selection, draft/approval/edit invalidation, source viewer, audit, role isolation and sign-out clearing. These fixtures do not test live Auth, Storage or Netlify dispatch.
 - node scripts/build-site.mjs succeeds; public output allowlist includes the new workspace and excludes internal SQL/runbooks.
