@@ -1,4 +1,6 @@
-# Feature 1 production release — prerequisites pending
+# Feature 1 production release — historical preparation plan
+
+The release completed successfully after explicit production-execution approval. See [production-result.md](production-result.md) for the current live status and validation. The remaining text records preparation state before execution.
 
 The owner authorized production setup after isolated testing. That authorization remains in effect; it does not establish that the release prerequisites below have passed. No production change was made during this preflight.
 
