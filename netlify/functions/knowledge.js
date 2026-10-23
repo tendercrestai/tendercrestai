@@ -1,4 +1,5 @@
 const kb=require('./lib/knowledge-base');
+const discovery=require('./lib/knowledge-discovery');
 function createHandler(adapters={}) {
  const embed=adapters.embed||kb.embed;
  return async event=>{
@@ -6,6 +7,7 @@ function createHandler(adapters={}) {
    kb.enabled();const p=kb.parse(event);const config=kb.configuration();const {user,token}=await kb.authenticate(event,config);
    if(p.action==='organizations') {kb.exact(p,['action']);const rows=await kb.database(config,'kb_memberships?user_id=eq.'+user.id+'&active=eq.true&select=org_id,role,kb_organizations(id,name)',{token});return kb.reply(200,{organizations:rows});}
    if(p.action==='bootstrap') {kb.exact(p,['action','name']);const id=await kb.rpc(config,'kb_bootstrap',{p_user:user.id,p_name:kb.text(p.name,200)});return kb.reply(200,{id});}
+   const extra=await discovery.handle(p,{config,user,token,embed});if(extra)return extra;
    const org=kb.uuid(p.orgId);const role=await kb.membership(config,token,user,org);
    const actor={p_org:org,p_user:user.id};
    if(p.action==='list') {
