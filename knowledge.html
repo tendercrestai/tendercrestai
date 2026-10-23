@@ -1,11 +1,67 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Organization knowledge base | TenderCrest AI</title><link rel="stylesheet" href="/assets/knowledge.css"></head>
-<body><header><a href="/">TenderCrest AI</a><nav><a href="/compliance.html">RFP compliance</a> <a href="/auth.html">Account</a></nav></header><main>
-<h1>Organization knowledge base</h1><p>Private source documents and human-approved answers. Search results are evidence for review, not a certification of your capabilities.</p><p id="message" role="status" aria-live="polite">Checking availability…</p><p id="login" hidden><a href="/auth.html">Sign in with a verified account</a>.</p>
-<div id="workspace" hidden><section><h2>Your organization</h2><label>Organization<select id="organizations"></select></label><p id="role"></p><form id="org-form"><label>New organization name<input id="org-name" maxlength="200" required></label><button>Create organization</button><p>One owner organization per account. Membership administration is managed separately.</p></form></section>
-<div id="org-workspace" hidden><section><h2>Source documents</h2><form id="upload-form"><label>PDF, DOCX or UTF-8 TXT (10 MiB maximum)<input id="file" type="file" accept=".pdf,.docx,.txt" required></label><label class="check"><input id="consent" type="checkbox" required> I authorize sending extracted source text to the configured embedding provider for indexing. Scans require OCR elsewhere; review extraction warnings.</label><button id="upload">Upload and index privately</button></form><button id="refresh" type="button">Refresh status</button><p>Processing runs in the background. Failed or stalled jobs can be explicitly retried, up to three attempts. The latest 100 documents are shown.</p><ul id="documents"></ul></section>
-<section><h2>Search evidence</h2><form id="search-form"><label>Search question<input id="query" maxlength="2000" required></label><p>Your search question is sent to the configured embedding provider. Only this organization's ready documents are searched.</p><button>Search</button></form><h3>Source excerpts</h3><p>These are original source quotations, not approved answers. Select up to ten quotations to cite in a human-written answer.</p><div id="hits"></div><h3>Approved answers matching these sources</h3><div id="matches"></div></section>
-<section id="answer-section"><h2>Human-written answers</h2><form id="answer-form"><input id="answer-id" type="hidden"><input id="answer-revision" type="hidden" value="0"><label>Question<input id="answer-question" maxlength="1000" required></label><label>Answer<textarea id="answer-text" maxlength="12000" required></textarea></label><p id="citation-count">0 citations selected</p><button id="clear-citations" type="button">Clear selected citations</button><button id="save-answer">Save draft</button><button id="new-answer" type="button">New answer</button><p>Saving an edit invalidates previous approval. Only owners and reviewers can approve the saved revision.</p></form><ul id="answers"></ul></section>
-<section id="audit-section" hidden><h2>Audit activity</h2><button id="audit" type="button">Load latest activity</button><ul id="events"></ul></section></div></div>
-<dialog id="source-dialog" aria-labelledby="source-title"><h2 id="source-title">Original extracted source</h2><div id="source-content"></div><button id="download" type="button">Download private original</button><button id="close-source" type="button">Close</button></dialog>
-</main><footer>Source-backed evidence for human review · No proposal credit is used by this workspace.</footer><script type="module" src="/assets/knowledge.mjs"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Knowledge Base | TenderCrest AI</title><link rel="stylesheet" href="/assets/knowledge.css">
+</head>
+<body>
+<header><a href="/">TenderCrest AI</a><nav aria-label="Site"><a href="/compliance.html">RFP compliance</a> <a href="/auth.html">My account</a></nav></header>
+<main>
+  <h1>Knowledge Base</h1><p>Keep evidence private to your organization. Find sources, write cited answers, and approve them for reuse.</p>
+  <p id="message" role="status" aria-live="polite">Checking availability…</p>
+  <p id="login" hidden><a href="/auth.html?next=knowledge">Sign in with a verified account</a> to open your library. If you have an invitation, sign in with the invited email address.</p>
+  <div id="workspace" hidden>
+    <section id="invitation-section" hidden aria-labelledby="invitation-title"><h2 id="invitation-title">Organization invitation</h2><p id="invitation-details"></p><button id="accept-invitation" type="button">Accept invitation</button><button id="dismiss-invitation" type="button" class="secondary">Dismiss</button></section>
+    <section id="organization-section" aria-labelledby="organization-title">
+      <h2 id="organization-title">Your organization</h2><label>Organization<select id="organizations"></select></label><p id="role"></p>
+      <form id="org-form"><label>New organization name<input id="org-name" maxlength="200" required></label><button>Create organization</button><p class="hint">Create one owner organization, or join another using an invitation from its owner.</p></form>
+    </section>
+    <section id="getting-started" aria-labelledby="guide-title">
+      <h2 id="guide-title">Get started</h2><p id="guide-summary">Create an organization above, or accept an invitation, to unlock the library.</p>
+      <ol class="steps"><li id="step-organization"><a href="#organization-section">1. Choose your organization</a></li><li id="step-upload"><a href="#documents-section">2. Upload and index a source</a></li><li id="step-search"><a href="#search-section">3. Find evidence and select citations</a></li><li id="step-approve"><a href="#answer-section">4. Save an answer and review it</a></li></ol>
+      <p id="role-help" class="hint"></p>
+    </section>
+    <div id="org-workspace" hidden>
+      <nav class="workspace-nav" aria-label="Knowledge Base sections"><a href="#documents-section">Documents</a><a href="#search-section">Search everything</a><a href="#answer-section">Answers</a><a id="activity-link" href="#audit-section" hidden>Activity</a><a id="team-link" href="#team-section" hidden>Team</a><a href="#getting-started">Getting started</a></nav>
+      <section id="search-section" aria-labelledby="search-title">
+        <h2 id="search-title">Search everything</h2><p>Find filenames, source text, draft or approved answers, and activity you have permission to view.</p>
+        <form id="search-form">
+          <label>Search words or question<input id="query" type="search" maxlength="2000" placeholder="A filename, answer phrase, or question about your evidence"></label>
+          <label>Search in<select id="search-scope"><option value="all">All stored knowledge — text search</option><option value="documents">Document filenames</option><option value="excerpts">Ready source text</option><option value="answers">Answer questions and text, including drafts</option><option id="activity-scope" value="activity">Audit activity</option><option value="semantic">Meaning of ready evidence — AI search</option></select></label>
+          <p id="search-help" class="hint">Text search stays in your library and does not call the embedding provider. Leave the query empty to browse.</p>
+          <details id="advanced-filters"><summary>Advanced filters</summary><div class="filter-grid">
+            <label>Document status<select id="search-document-status"><option value="">All statuses</option><option>Uploaded</option><option>Processing</option><option>Ready</option><option>Failed</option><option>Archived</option></select></label>
+            <label>File type<select id="search-file-type"><option value="">All file types</option><option value="pdf">PDF</option><option value="docx">DOCX</option><option value="txt">TXT</option></select></label>
+            <label>Answer status<select id="search-answer-status"><option value="">Drafts and approved</option><option value="draft">Drafts only</option><option value="approved">Approved only</option></select></label>
+            <label id="activity-filter-label">Activity action<input id="search-activity-action" maxlength="100" placeholder="For example, answer.approved"></label>
+            <label>From<input id="search-from" type="date"></label><label>Through<input id="search-to" type="date"></label>
+          </div><p class="hint">Dates match document uploads, answer updates, or activity. Archived sources are never returned as reusable quotations. A draft is never presented as approved evidence.</p><button id="reset-search-filters" type="button" class="secondary">Reset filters</button></details>
+          <button>Search</button>
+        </form>
+        <p id="search-status" role="status"></p><div id="search-documents"></div><div id="search-answers"></div><div id="search-activity"></div>
+        <h3>Source excerpts</h3><p>Select up to ten quotations for a human-written answer. Verify the original before approval.</p><div id="hits"></div>
+        <h3 id="approved-matches-title" hidden>Approved answers matching these sources</h3><div id="matches"></div><div id="search-pages" class="pagination"></div>
+      </section>
+      <section id="documents-section" aria-labelledby="documents-title">
+        <h2 id="documents-title">Source documents</h2>
+        <form id="upload-form"><label>PDF, DOCX or UTF-8 TXT (10 MiB maximum)<input id="file" type="file" accept=".pdf,.docx,.txt" required></label><label class="check"><input id="consent" type="checkbox" required> I authorize sending extracted source text to the embedding provider for indexing. Scans require OCR elsewhere; review extraction warnings.</label><button id="upload">Upload and index privately</button></form>
+        <form id="document-filter-form" class="filter-grid"><label>Find a filename<input id="document-query" type="search" maxlength="2000"></label><label>Status<select id="document-status"><option value="">All statuses</option><option>Uploaded</option><option>Processing</option><option>Ready</option><option>Failed</option><option>Archived</option></select></label><label>File type<select id="document-type"><option value="">All types</option><option value="pdf">PDF</option><option value="docx">DOCX</option><option value="txt">TXT</option></select></label><button>Apply document filters</button></form>
+        <button id="refresh" type="button" class="secondary">Refresh status</button><p class="hint">Processing runs in the background. Use Process / retry for failed or stalled jobs, up to three attempts. Use the page controls to reach older sources.</p><ul id="documents"></ul><div id="document-pages" class="pagination"></div>
+      </section>
+      <section id="answer-section" aria-labelledby="answers-title">
+        <h2 id="answers-title">Human-written answers</h2>
+        <form id="answer-form"><input id="answer-id" type="hidden"><input id="answer-revision" type="hidden" value="0"><label>Question<input id="answer-question" maxlength="1000" required></label><label>Answer<textarea id="answer-text" maxlength="12000" required></textarea></label><p id="citation-count">0 citations selected</p><button id="clear-citations" type="button" class="secondary">Clear selected citations</button><button id="save-answer">Save draft</button><button id="new-answer" type="button" class="secondary">New answer</button><p class="hint">Choose source citations in Search first. Saving an edit clears approval. Owners and reviewers approve the exact saved revision.</p></form>
+        <form id="answer-filter-form" class="filter-grid"><label>Find question or answer text<input id="answer-query" type="search" maxlength="2000"></label><label>Answer status<select id="answer-status"><option value="">Drafts and approved</option><option value="draft">Drafts only</option><option value="approved">Approved only</option></select></label><button>Apply answer filters</button></form><ul id="answers"></ul><div id="answer-pages" class="pagination"></div>
+      </section>
+      <section id="audit-section" hidden aria-labelledby="activity-title"><h2 id="activity-title">Audit activity</h2><form id="activity-filter-form" class="filter-grid"><label>Find action, actor ID or target ID<input id="activity-query" type="search" maxlength="2000"></label><label>From<input id="activity-from" type="date"></label><label>Through<input id="activity-to" type="date"></label><button id="audit">Search activity</button></form><p class="hint">Owners and reviewers can inspect activity. Document and question text are not copied into these logs.</p><ul id="events"></ul><div id="activity-pages" class="pagination"></div></section>
+      <section id="team-section" hidden aria-labelledby="team-title"><h2 id="team-title">Team access</h2><p>Only the organization owner can invite people, change their role, or deactivate access. The owner's access cannot be changed here.</p>
+        <details><summary>What can each role do?</summary><ul><li>Owner: upload, search, edit, approve, inspect activity and manage access.</li><li>Editor: upload, search and edit answers.</li><li>Reviewer: search, edit and approve answers, and inspect activity.</li><li>Viewer: read documents and answers and search evidence.</li></ul><p>All active members can read drafts. Roles do not create private reviewer-only drafts.</p></details>
+        <form id="invite-form" class="filter-grid"><label>Verified account email<input id="invite-email" type="email" maxlength="254" required></label><label>Role<select id="invite-role"><option value="viewer">Viewer</option><option value="editor">Editor</option><option value="reviewer">Reviewer</option></select></label><button>Create invitation link</button></form><p class="hint">Share the link yourself. No email is sent automatically. Links expire after seven days and can only be accepted by the invited verified email address.</p>
+        <div id="invite-result" hidden><label>Invitation link — share privately<input id="invite-link" readonly></label><button id="copy-invite" type="button" class="secondary">Copy link</button><p id="invite-expiry"></p></div>
+        <form id="team-filter-form"><label>Find a member or invitation<input id="team-query" type="search" maxlength="254"></label><button>Search team</button></form><h3>Members</h3><ul id="members"></ul><h3>Invitations</h3><ul id="invitations"></ul><div id="team-pages" class="pagination"></div>
+      </section>
+    </div>
+  </div>
+  <dialog id="source-dialog" aria-labelledby="source-title"><h2 id="source-title">Original extracted source</h2><div id="source-content"></div><button id="download" type="button">Download private original</button><button id="close-source" type="button" class="secondary">Close</button></dialog>
+</main><footer>Source-backed evidence for human review · No proposal credit is used by this workspace.</footer><script type="module" src="/assets/knowledge.mjs"></script>
+</body></html>

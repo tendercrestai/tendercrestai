@@ -250,6 +250,10 @@
 
     async function showAccount(user) {
       if (!user) return;
+      if (new URLSearchParams(location.search).get("next") === "knowledge") {
+        location.replace("/knowledge.html");
+        return;
+      }
       $("accountEmail").textContent = "Signed in as: " + user.email;
       show("account");
     }
