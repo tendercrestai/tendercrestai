@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Security &amp; Data Handling | TenderCrest AI</title>
+<link rel="canonical" href="https://www.tendercrestai.com/security.html">
   <meta name="description" content="Understand how TenderCrest AI handles proposal documents, reviewed text, and security inquiries.">
   <style>
     :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#17243b;background:#f5f8ff}
@@ -19,11 +20,11 @@
   </style>
 </head>
 <body>
-  <header><a href="/">TenderCrest AI</a></header>
+  <header><a href="/">TenderCrest AI</a> · <a href="/product.html">How it works</a> · <a href="/samples.html">Sample deliverables</a></header>
   <main>
     <div class="eyebrow">SECURITY &amp; DATA HANDLING</div>
     <h1>Understand where your<br>proposal data goes.</h1>
-    <p class="intro">Choosing a proposal tool means understanding how your information is processed. Here is how our document submission workflow is designed, and how to ask us about your organization's requirements.</p>
+    <p class="intro">Choosing a proposal tool means understanding how your information is processed. Here is how proposal drafting, compliance analysis, and your organization knowledge base handle information, and how to ask us about your requirements.</p>
     <section>
       <h2>From document to draft</h2>
       <ol>
@@ -32,9 +33,25 @@
         <li><strong>Generate and deliver.</strong> Airtable AI processes submitted text to create and revise a draft. Completed drafts are sent through our email delivery service, Resend. Submitted text is processed by services beyond source-file storage.</li>
       </ol>
     </section>
+    <section id="knowledge-data">
+      <h2>Knowledge Base: uploads, indexing, and search</h2>
+      <ol>
+        <li><strong>Store privately.</strong> Original documents are stored in a private Supabase Storage bucket. Extracted source text, citation references, reusable answers, and search embeddings are stored in Supabase PostgreSQL.</li>
+        <li><strong>Consent to indexing.</strong> When you authorize indexing, the background processing service extracts text and sends source excerpts to the OpenAI API to create embeddings. Embeddings are numerical representations used for meaning-based search. The original file stays in source storage; its extracted text is processed by the embedding provider.</li>
+        <li><strong>Choose your search.</strong> Meaning-based AI search sends your question to the OpenAI embedding API. Filename, source-text, answer-text, and activity text searches query the stored library without sending that search query to the embedding provider.</li>
+        <li><strong>Review and reuse.</strong> People write reusable answers and owners or reviewers approve a specific saved revision. Editing the answer clears its approval. Source quotations and private original downloads support human verification.</li>
+      </ol>
+      <p>Indexing requires your processing consent. Use only documents you are authorized to share with your organization and the processing providers.</p>
+    </section>
+    <section id="compliance-data">
+      <h2>Compliance analysis</h2>
+      <p>The compliance workspace stores original RFP sources and extracted text in Supabase. When you review the extracted text and request analysis, bounded source excerpts are sent to the configured OpenAI API model to identify requirements and facts. Saved results include source quotations and human review fields.</p>
+      <p>Analysis does not prove that your company meets a requirement. Reviewers supply company evidence and references before marking a row compliant. Proposal submission is a separate step that sends the submitted inputs to the Airtable drafting workflow described above.</p>
+    </section>
     <section>
       <h2>Access to source documents</h2>
-      <p>The upload workflow is designed to use a private storage bucket and account ownership checks. Authorized operators and processing services may need access to submitted information to operate the service. Private storage does not mean that no service provider or authorized operator can access your data.</p>
+      <p>RFP uploads and compliance analyses use account ownership checks. Knowledge Base access is scoped to active organization membership and role permissions; all active members can read the organization's sources and draft answers. Owners manage invitations and can deactivate members. Revoking access stops future requests but cannot recall copies someone already downloaded.</p>
+      <p>Storage buckets are private. Authorized operators and processing services may need access to submitted information to operate the service. Private storage does not mean that no service provider or authorized operator can access your data.</p>
     </section>
     <section class="notice">
       <h2>Before sharing confidential information</h2>
@@ -44,7 +61,9 @@
     <section>
       <h2>Retention, deletion, and AI data use</h2>
       <p>Our proposal workflow uses Airtable AI on the Team plan. <a href="https://www.airtable.com/company/ai-terms">Airtable's published AI terms</a> prohibit using customer inputs and outputs to train generative AI models. On the Team plan, AI providers may retain inputs and outputs for up to 30 days for safety and compliance moderation, with exceptions for prohibited content and applicable legal obligations. Usage metadata has separate retention terms.</p>
-      <p>These AI-provider limits do not automatically delete proposal records, source files, or delivery emails.</p>
+      <p>Knowledge Base embeddings and compliance analysis use the OpenAI API, separately from Airtable AI. OpenAI's applicable account agreement and <a href="https://platform.openai.com/docs/guides/your-data">API data controls</a> govern those requests. Provider retention and data-use settings depend on the service and account configuration; we do not promise zero provider retention. Contact us to confirm the terms required for your organization.</p>
+      <p>AI-provider retention limits do not automatically delete proposal records, source files, extracted text, embeddings, or delivery emails.</p>
+      <p><strong>Archive and deletion are different actions.</strong> Archiving a Knowledge Base source removes it from future retrieval and invalidates dependent answer approvals. Its original file, extracted text, embeddings, and audit history remain stored. Archiving does not request deletion from downstream providers.</p>
       <p>Source files, reviewed text, generated drafts, and delivery messages can have different retention and deletion requirements. The document upload page does not currently provide self-service deletion. For a deletion request or questions about AI training and provider retention, contact our team. Please include your account email, but do not attach the confidential document.</p>
     </section>
     <section>

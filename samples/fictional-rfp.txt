@@ -1,0 +1,12 @@
+PREPARED FICTIONAL EXAMPLE — NOT A CUSTOMER DOCUMENT OR LIVE AI RESULT.
+Harbor Borough — illustrative IT support RFP SAMPLE-001
+All organizations, requirements, and statements below are fictional.
+
+Section 1 — Incident response
+The supplier must acknowledge priority-one incidents within 30 minutes.
+
+Section 2 — Reporting
+The supplier must provide a monthly service report.
+
+Section 3 — Certification
+The supplier must hold a current ISO 27001 certificate.
