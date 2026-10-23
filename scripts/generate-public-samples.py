@@ -43,7 +43,7 @@ No certification evidence is included in this sample.
 headers=['Requirement ID','Buyer requirement','Mandatory','Requirement source','Candidate company evidence','Evidence reference','Review status','Reviewer action']
 rows=[['R1','The supplier must acknowledge priority-one incidents within 30 minutes.','Yes','fictional-rfp.txt §1','The service desk acknowledges priority-one incidents within 30 minutes.','fictional-company-evidence.txt §A','Needs Review','Verify current operating scope and delivery capability.'],['R2','The supplier must provide a monthly service report.','Yes','fictional-rfp.txt §2','The service team prepares a monthly service report.','fictional-company-evidence.txt §B','Needs Review','Verify report scope and accountable owner.'],['R3','The supplier must hold a current ISO 27001 certificate.','Yes','fictional-rfp.txt §3','No certificate supplied.','fictional-company-evidence.txt §C','Needs Review','Evidence gap: obtain and verify a current certificate; do not assert certification.']]
 with (OUT/'illustrative-compliance-matrix.csv').open('w',encoding='utf-8-sig',newline='') as f:
- csv.writer(f).writerows([['Sample notice',NOTICE],headers,*rows])
+ csv.writer(f,lineterminator="\n").writerows([['Sample notice',NOTICE],headers,*rows])
 w=Workbook();sheet=w.active;sheet.title='Review matrix';sheet.append(headers)
 for row in rows:sheet.append(row)
 sheet.freeze_panes='A2';sheet.auto_filter.ref=sheet.dimensions
