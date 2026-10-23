@@ -140,6 +140,7 @@
       <h2>My account</h2>
       <p id="accountEmail"></p>
       <button id="workspaceBtn">Open Proposal Workspace</button>
+      <button id="knowledgeBtn" type="button">Open Knowledge Base</button>
       <button id="logoutBtn" class="secondary">Log out</button>
     </section>
 
@@ -258,6 +259,10 @@
         new URLSearchParams(location.search).get("next") === "rfp-upload"
           ? "/rfp-upload.html"
           : "/#portal";
+    });
+
+    $("knowledgeBtn").addEventListener("click", () => {
+      location.href = "/knowledge.html";
     });
 
     $("logoutBtn").addEventListener("click", async () => {
