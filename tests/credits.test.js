@@ -32,3 +32,21 @@ test('free trials expire once and cannot renew like complimentary accounts', () 
   assert.equal(entitlement(company, Date.parse('2026-02-01')).quota, 60);
   assert.throws(() => entitlement(company, Date.parse('2026-03-03')), error => error.status === 403);
 });
+test('14-day Stripe trials use the selected plan allowance and expire exactly at the end', () => {
+  for (const [tier,quota] of [['Pro ($299/mo)',5],['Growth ($699/mo)',20],['Enterprise ($1,299/mo)',60]]) {
+    const company={createdTime:'2026-10-01T00:00:00Z',fields:{Status:'Trialing','Stripe Subscription ID':'sub_trial','Subscription Tier':tier,'Billing Period Start':'2026-10-01T00:00:00Z','Billing Period End':'2026-10-15T00:00:00Z'}};
+    assert.equal(entitlement(company,Date.parse('2026-10-01T00:00:00Z')).quota,quota);
+    assert.equal(entitlement(company,Date.parse('2026-10-14T23:59:59Z')).quota,quota);
+    assert.throws(()=>entitlement(company,Date.parse('2026-10-15T00:00:00Z')),e=>e.status===403);
+    assert.throws(()=>entitlement(company,Date.parse('2026-09-30T23:59:59Z')),e=>e.status===403);
+  }
+});
+test('legacy unlinked free Enterprise trials retain their original allowance and expiry without renewal', () => {
+  const company={createdTime:'2026-10-01T00:00:00Z',fields:{Status:'Trialing','Subscription Tier':'Enterprise ($1,299/mo)','Billing Period Start':'2026-10-01T00:00:00Z','Billing Period End':'2026-10-31T00:00:00Z'}};
+  assert.equal(entitlement(company,Date.parse('2026-10-30T23:59:59Z')).quota,60);
+  assert.throws(()=>entitlement(company,Date.parse('2026-10-31T00:00:00Z')),e=>e.status===403);
+});
+test('a linked Stripe trial never falls back to the legacy Enterprise allowance for an unknown tier', () => {
+  const company={fields:{Status:'Trialing','Stripe Subscription ID':'sub_trial','Billing Period Start':'2026-10-01','Billing Period End':'2026-10-15','Subscription Tier':'Unknown'}};
+  assert.throws(()=>entitlement(company,Date.parse('2026-10-02')),e=>e.status===503);
+});

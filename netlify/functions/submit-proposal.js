@@ -161,55 +161,13 @@ async function queueProposal(validated, attempt, context) {
       return reply(503, { error: "Account verification returned an unexpected response." });
     }
     if (accounts.records.length === 0) {
-      // One durable provisioning claim per verified owner. Ambiguous creates
-      // stay locked for reconciliation rather than granting a second trial.
-      const trialClaim = await credits.rpc(context.config, 'claim_free_trial', { p_user_id: context.user.id });
-      if (!trialClaim.create) return reply(503, { error: "Your trial account is being provisioned. Please try again later or contact support." });
-      const trial = await fetch(root + "/tbliWnP6ThqA02G5L", {
-        method: "POST",
-        headers,
-        signal: AbortSignal.timeout(10000),
-        body: JSON.stringify({
-          fields: {
-            "Company Name": orgName,
-            "Billing Email": cleanEmail,
-            "Subscription Tier": "Enterprise ($1,299/mo)",
-            "Status": "Trialing",
-            "Amount Paid": 0,
-            "Billing Period Start": trialClaim.start,
-            "Billing Period End": trialClaim.end
-          }
-        })
+      // New trials must start in Stripe Checkout on a selected plan. Never
+      // provision an unbilled Enterprise account as a submission side effect.
+      return reply(403, {
+        code: "subscription_required",
+        error: "Choose a plan and complete its 14-day trial checkout before submitting. If you just checked out, allow billing synchronization to finish.",
+        billingUrl: "/#pricing"
       });
-
-      if (!trial.ok) {
-        return reply(503, {
-          error: "Free trial activation is temporarily unavailable. Please try again later."
-        });
-      }
-
-      const createdTrial = await trial.json();
-
-      if (!createdTrial?.id) {
-        return reply(503, {
-          error: "Free trial activation returned an unexpected response. Please try again later."
-        });
-      }
-
-      await credits.rpc(context.config, 'bind_free_trial', {
-        p_user_id: context.user.id, p_company_id: createdTrial.id
-      });
-      // Do not wait for Airtable's computed fields to refresh.
-      company = {
-        ...createdTrial,
-        fields: {
-          ...(createdTrial.fields || {}),
-          "Quota Status": "ACTIVE",
-          "Remaining Proposals": 60,
-          "Billing Period Start": trialClaim.start,
-          "Billing Period End": trialClaim.end
-        }
-      };
     } else {
       if (accounts.records.length !== 1) {
         return reply(503, { error: "Multiple billing accounts match this email. Please contact support." });
