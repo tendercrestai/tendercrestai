@@ -157,6 +157,9 @@ test("all page scripts parse and existing workspace retains pricing and upload n
 
   assert.ok(html.includes('href="/rfp-upload.html"'));
   assert.ok(html.includes("billing.stripe.com/p/login/"));
-  assert.ok(html.includes("Enterprise Trial Pass"));
+  // Trial navigation must survive marketing-copy changes.
+  assert.ok(html.includes('onsubmit="handleTestActivation(event)"'));
+  assert.ok(html.includes('id="test-company"'));
+  assert.ok(html.includes('id="test-email"'));
   assert.ok(html.includes("Authorization"));
 });

@@ -1,0 +1,17 @@
+# Proposal email and Word delivery
+
+The existing Airtable automation calls `/.netlify/functions/airtable-mail-relay` with its unchanged authenticated `{to, subject, message}` payload. The relay now formats that message as a branded HTML email and attaches one editable `<subject>-draft.docx`. The plain-text alternative retains the original message exactly. This does not change AI generation, credits, recipients, Airtable triggers or workspace notification settings.
+
+Presentation is deterministic: explicit Markdown headings, standalone bold headings, common proposal section labels, emphasis, bullets, explicit list numbers and simple pipe tables with a divider are supported. Ordinary text and line breaks remain readable. This is not a general Markdown engine: raw HTML, remote images, executable links and embedded files are not interpreted. It does not infer missing content, restructure unsupported claims, or turn a draft into an approved proposal. Both formats say human review is required. Improving the actual generated narrative or enforcing an RFP-specific section order requires a separate generation-prompt review.
+
+DOCX files include headings, paragraphs, tables, page margins, draft header and page-number footer. Word pagination is reader-dependent. No permanent file archive is created by the relay: the attachment is generated in memory for delivery, then leaves with the email through Resend. Provider and mailbox retention apply. Existing Airtable text remains in its current workflow. The separate project workspace still stores private saved-revision export ZIPs containing DOCX/PDF/matrices and its manifest under its existing retention and authorization rules. No source attachments, internal review comments or unrelated records are fetched by this relay.
+
+## Limits and failure behavior
+
+Existing request/text caps remain 180,000/150,000 characters. Structured rendering is additionally bounded to 10,000 lines, 2,000 blocks, 500 table rows and 20 table columns; tables cannot contain a cell over 10,000 characters. Word output is limited to 2 MiB before base64 encoding. Oversized structure returns 413 before email delivery, rather than silently truncating or omitting the attachment. Missing configuration, authentication errors, malformed inputs, attachment generation errors and provider failures do not report success. Provider response bodies and customer content are not logged. Provider acceptance is not inbox delivery; the existing status page must not claim otherwise.
+
+Retries and duplicate prevention remain the automation's responsibility; no new send trigger, resend button or email reminder is enabled. No database migration, environment variable or Airtable change is required. Reverting the relay/helper change restores the previous text-only delivery behavior without changing stored records.
+
+## Verification
+
+Focused tests exercise authorization, unchanged legacy payload compatibility, original plain text, shared section structure, XML-valid DOCX, Unicode, inert markup, no external document relationships, limits and provider failures with mocked delivery. A fictional attachment was opened/rendered with LibreOffice, and the resulting PDF was checked for headings, table contents, missing-evidence text and page footer. Email HTML was inspected at mobile and desktop widths. These are local rendering checks, not Outlook/Gmail inbox compatibility or a real provider attachment-delivery test. No customer email was sent.
