@@ -60,3 +60,32 @@ test('provider rejection and ambiguous network failure never report success or l
  const logs=[],old=console.error;console.error=(...x)=>logs.push(x.join(' '));
  try{global.fetch=async()=>new Response('private customer text',{status:422});assert.equal((await relay.handler(event())).statusCode,502);global.fetch=async()=>{throw Error('private secret text');};assert.equal((await relay.handler(event())).statusCode,502);assert.ok(!logs.join(' ').includes('private'));}finally{console.error=old;}
 });
+test('known legacy brand is corrected consistently in subject, plain text, HTML and Word without rewriting other content',async()=>{
+ const text='No certification is asserted.\n\nTenderCrestBid AI Autonomous Engine';
+ const response=await relay.handler(event({to:'recipient@example.invalid',subject:'TenderCrestBid AI proposal',message:text}));assert.equal(response.statusCode,200);
+ const payload=JSON.parse(sends[0].options.body),xml=documentXML({attachment:payload.attachments[0]});
+ assert.equal(payload.subject,'TenderCrest AI proposal');assert.equal(payload.text,'No certification is asserted.\n\nTenderCrest AI Autonomous Engine');
+ for(const output of [payload.subject,payload.text,payload.html,xml]){assert.ok(!output.includes('TenderCrestBid'));assert.ok(output.includes('TenderCrest AI'));}
+ assert.equal(formatter.normalizeBrand('tendercrestbid AI Autonomous Engine'),'TenderCrest AI Autonomous Engine');
+ assert.equal(formatter.normalizeBrand('A Bid AI product, TenderCrestBidder AI and TenderCrest AI'),'A Bid AI product, TenderCrestBidder AI and TenderCrest AI');
+});
+test('Word-invalid Unicode and malformed email recipients fail before contacting Resend',async()=>{
+ for(const bad of ['bad\ud800text','bad\udc00text','bad\ufffetext','bad\ufffftext'])assert.equal((await relay.handler(event({to:'recipient@example.invalid',subject:'Draft',message:bad}))).statusCode,400);
+ for(const to of ['a\u0000b@example.invalid','a\u007fb@example.invalid','a@example.invalid,b@example.invalid','<a@example.invalid>','a'.repeat(250)+'@example.invalid'])assert.equal((await relay.handler(event({to,subject:'Draft',message:'Readable draft'}))).statusCode,400);
+ assert.equal(sends.length,0);
+ const output=await formatter.presentation('Emoji draft','Valid emoji: 😀 and café');assert.match(documentXML(output),/😀/);
+});
+test('encoded or non-text HTTP bodies cannot enter the delivery path',async()=>{
+ for(const change of [{isBase64Encoded:true},{body:null},{body:{message:'not a request body'}}])assert.equal((await relay.handler({...event(),...change})).statusCode,400);
+ assert.equal(sends.length,0);
+});
+test('HTTP 200 without a provider delivery identity is not reported as successful acceptance',async()=>{
+ for(const payload of [{},null,{id:''},{id:12}]){global.fetch=async()=>new Response(JSON.stringify(payload),{status:200});assert.equal((await relay.handler(event())).statusCode,502);}
+});
+test('timeout or invalid provider response explicitly reports an uncertain outcome instead of encouraging blind resends',async()=>{
+ const old=console.error;console.error=()=>{};try{
+  for(const provider of [async()=>{throw Error('timeout');},async()=>new Response('not json',{status:200})]){
+   global.fetch=provider;const response=await relay.handler(event());assert.equal(response.statusCode,502);assert.equal(JSON.parse(response.body).deliveryState,'uncertain');assert.match(JSON.parse(response.body).error,/Verify before retrying/);
+  }
+ }finally{console.error=old;}
+});
