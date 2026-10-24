@@ -1,5 +1,10 @@
 // Presentation only: never infer, regenerate or approve proposal claims.
 const D = require('docx');
+// Correct only the known service-name typo, never generic occurrences of "Bid".
+const normalizeBrand = text => text.replace(/\bTenderCrestBid[ \t]+AI\b/gi, 'TenderCrest AI');
+// JSON can contain lone surrogates/noncharacters that are invalid in Word XML.
+const validXMLText = text => !/[\x00-\x08\x0b\x0c\x0e-\x1f\ufffe\uffff]/u.test(text) &&
+  !Array.from(text).some(char => { const n=char.codePointAt(0); return n>=0xd800&&n<=0xdfff; });
 const esc = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const invalid = () => { const error = new Error('Proposal structure exceeds delivery limits'); error.statusCode = 413; throw error; };
 function inline(text) {
@@ -71,9 +76,10 @@ async function word(subject,blocks) {
   return D.Packer.toBuffer(document);
 }
 async function presentation(subject,message) {
+  subject=normalizeBrand(subject);message=normalizeBrand(message);
   const blocks = parse(message),bytes = await word(subject,blocks);
   if (bytes.length > 2097152) invalid();
   const filename = (subject.normalize('NFKD').replace(/[^a-zA-Z0-9 _-]/g,'').trim().replace(/\s+/g,'-').slice(0,90)||'proposal')+'-draft.docx';
-  return {html:html(subject,blocks),attachment:{filename,content:bytes.toString('base64'),content_type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}};
+  return {subject,text:message,html:html(subject,blocks),attachment:{filename,content:bytes.toString('base64'),content_type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}};
 }
-module.exports = {parse,html,word,presentation};
+module.exports = {parse,html,word,presentation,normalizeBrand,validXMLText};

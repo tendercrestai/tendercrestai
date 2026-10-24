@@ -11,15 +11,16 @@ function limited(key){
  b.count++;return b.count>LIMIT;
 }
 async function resend(apiKey,payload){
- const response=await fetch("https://api.resend.com/emails",{method:"POST",headers:{"Authorization":"Bearer "+apiKey,"Content-Type":"application/json"},body:JSON.stringify(payload)});
+ const response=await fetch("https://api.resend.com/emails",{method:"POST",headers:{"Authorization":"Bearer "+apiKey,"Content-Type":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(10000)});
  if(!response.ok)throw new Error("Resend "+response.status);
+ const accepted=await response.json();if(typeof accepted?.id!=="string"||!accepted.id.trim())throw new Error("Delivery acceptance unavailable");
 }
 async function saveLead(data){
  const token=process.env.AIRTABLE_PAT;
  if(!token)return false;
  const base="appsaqdp3UZdhB2VH",table="tblI6dID4rlSUn8CF";
- const fields={"Contact Name":data.name,"Email":data.email,"Company":data.company,"Message":data.message,"Status":"New","Source":"Website Contact Form","Submitted At":new Date().toISOString(),"Follow-up Due":new Date(Date.now()+24*60*60*1000).toISOString(),"Follow-up Due":new Date(Date.now()+24*60*60*1000).toISOString()};
- const response=await fetch("https://api.airtable.com/v0/"+base+"/"+table,{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({records:[{fields}]})});
+ const fields={"Contact Name":data.name,"Email":data.email,"Company":data.company,"Message":data.message,"Status":"New","Source":"Website Contact Form","Submitted At":new Date().toISOString(),"Follow-up Due":new Date(Date.now()+24*60*60*1000).toISOString()};
+ const response=await fetch("https://api.airtable.com/v0/"+base+"/"+table,{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({records:[{fields}]}),signal:AbortSignal.timeout(10000)});
  if(!response.ok)throw new Error("Airtable "+response.status);
  return true;
 }
@@ -34,7 +35,7 @@ async function verifyTurnstile(token,ip){
   if(!response.ok)return false;
   const result=await response.json();
   return result.success===true && (!result.hostname||["www.tendercrestai.com","tendercrestai.com","tendercrestai.netlify.app"].includes(result.hostname));
- }catch(e){console.error("Turnstile verification unavailable",e.message);return false}
+ }catch(e){console.error("Turnstile verification unavailable");return false}
 }
 exports.handler=async(event)=>{
  if(event.httpMethod!=="POST")return json(405,{error:"Method not allowed"});
@@ -42,9 +43,11 @@ exports.handler=async(event)=>{
  const origin=event.headers?.origin||event.headers?.Origin;
  if(origin && !["https://www.tendercrestai.com","https://tendercrestai.com","https://tendercrestai.netlify.app"].includes(origin))return json(403,{error:"Invalid origin"});
  let data;try{if((event.body||"").length>12000)return json(413,{error:"Message too large"});data=JSON.parse(event.body||"{}")}catch{return json(400,{error:"Invalid request"})}
+ if(!data||typeof data!=="object"||Array.isArray(data)||event.isBase64Encoded)return json(400,{error:"Invalid request"});
  if(data.website||data["bot-field"])return json(200,{ok:true});
  const name=clean(data.name,120),email=clean(data.email,254),company=clean(data.company,160),message=clean(data.message,5000);
- if(!name||!message||message.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return json(400,{error:"Please enter a valid name, email and message."});
+ if(/[\x00-\x1f\x7f]/.test(name+email+company))return json(400,{error:"Please enter valid contact details."});
+ if(!name||!message||message.length<2||!/^[^\s@<>(),;:"\\]+@[^\s@<>(),;:"\\]+\.[^\s@<>(),;:"\\]+$/.test(email))return json(400,{error:"Please enter a valid name, email and message."});
  // Per-IP and per-email abuse throttles. Best effort in-memory only: instances may reset or scale out.
  const ip=(event.headers?.["x-nf-client-connection-ip"]||event.headers?.["client-ip"]||event.headers?.["x-forwarded-for"]||"unknown").split(",")[0].trim();
  const hash=v=>crypto.createHash("sha256").update(v).digest("hex").slice(0,24);
@@ -53,9 +56,9 @@ exports.handler=async(event)=>{
  const html='<h2>New TenderCrest AI inquiry</h2><p><b>Name:</b> '+esc(name)+'</p><p><b>Email:</b> '+esc(email)+'</p><p><b>Company:</b> '+esc(company||"Not provided")+'</p><p><b>Message:</b></p><p style="white-space:pre-wrap">'+esc(message)+'</p>';
  try{
   await resend(process.env.RESEND_API_KEY,{from:"TenderCrest AI Website <contact@tendercrestai.com>",to:["hello@tendercrestai.com"],reply_to:email,subject:"Website inquiry from "+name,html});
- }catch(e){console.error("Contact notification failed",e.message);return json(502,{error:"Unable to deliver message. Please email hello@tendercrestai.com."})}
- try{await saveLead({name,email,company,message})}catch(e){console.error("Lead storage failed",e.message)}
+ }catch(e){console.error("Contact notification failed");return json(502,{error:"Unable to deliver message. Please email hello@tendercrestai.com."})}
+ try{await saveLead({name,email,company,message})}catch(e){console.error("Lead storage failed")}
  // Acknowledgment is best-effort; failure must not cause duplicate customer submissions.
- try{await resend(process.env.RESEND_API_KEY,{from:"TenderCrest AI <contact@tendercrestai.com>",to:[email],reply_to:"hello@tendercrestai.com",subject:"We received your TenderCrest AI inquiry",html:"<p>Hi "+esc(name)+",</p><p>Thanks for contacting TenderCrest AI. We've received your message and will review it shortly.</p><p>Best,<br>TenderCrest AI Team</p><p><small>This is an automatic acknowledgment. If you did not contact us, you can disregard this message.</small></p>"})}catch(e){console.error("Acknowledgment failed",e.message)}
+ try{await resend(process.env.RESEND_API_KEY,{from:"TenderCrest AI <contact@tendercrestai.com>",to:[email],reply_to:"hello@tendercrestai.com",subject:"We received your TenderCrest AI inquiry",html:"<p>Hi "+esc(name)+",</p><p>Thanks for contacting TenderCrest AI. We've received your message and will review it shortly.</p><p>Best,<br>TenderCrest AI Team</p><p><small>This is an automatic acknowledgment. If you did not contact us, you can disregard this message.</small></p>"})}catch(e){console.error("Acknowledgment failed")}
  return json(200,{ok:true});
 };
