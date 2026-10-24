@@ -6,6 +6,9 @@
 [functions]
   node_bundler = "esbuild"
 
+[functions."airtable-mail-relay"]
+  external_node_modules = ["docx"]
+
 [functions."compliance"]
   external_node_modules = ["pdfjs-dist", "sax"]
   included_files = ["assets/docx-validation.mjs"]
