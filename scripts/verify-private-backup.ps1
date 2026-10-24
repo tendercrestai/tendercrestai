@@ -16,10 +16,19 @@ $pgRestore = Find-PgTool 'pg_restore'
 & $pgDump --version
 & $pgRestore --version
 $docker = (Get-Command docker -ErrorAction Stop).Source
-& $docker version --format '{{.Server.Version}}'
+$dockerContext = 'desktop-linux'
+$endpoint = & $docker context inspect $dockerContext --format '{{.Endpoints.docker.Host}}'
+if ($LASTEXITCODE -ne 0 -or -not ([string]$endpoint).Trim().StartsWith('npipe://', [StringComparison]::OrdinalIgnoreCase)) {
+    throw 'Restore requires the desktop-linux Docker Desktop context with a local npipe:// endpoint.'
+}
+# Pin every Docker command, including cleanup, to the verified local context.
+function Invoke-LocalDocker {
+    & $script:docker --context $script:dockerContext @args
+}
+Invoke-LocalDocker version --format '{{.Server.Version}}'
 if ($LASTEXITCODE -ne 0) { throw 'Start Docker Desktop with Linux containers, then run again.' }
 $image = 'supabase/postgres:17.6.1.136'
-& $docker pull $image
+Invoke-LocalDocker pull $image
 if ($LASTEXITCODE -ne 0) { throw 'Database image download failed. No backup or restore was attempted.' }
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $suffix = [guid]::NewGuid().ToString('N').Substring(0, 8)
@@ -61,40 +70,43 @@ try {
     # Ownership/grants remain in the original archive; omit them only for this data/schema test.
     & $pgRestore --no-owner --no-privileges --file=$restoreSql $archive 2> (Join-Path $folder 'conversion-private.log')
     if ($LASTEXITCODE -ne 0) { throw 'Archive-to-SQL conversion failed.' }
-    & $docker volume create $volume | Out-Null
+    Invoke-LocalDocker volume create $volume | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Could not create a disposable Docker volume.' }
     $volumeCreated = $true
     # This is a generated LOCAL password, never the production password.
     $localPassword = [guid]::NewGuid().ToString('N')
-    & $docker run -d --name $container --network none --mount "type=volume,source=$volume,target=/var/lib/postgresql/data" -e "POSTGRES_PASSWORD=$localPassword" -e POSTGRES_DB=postgres $image postgres -c config_file=/etc/postgresql/postgresql.conf -c cron.launch_active_jobs=off -c listen_addresses= | Out-Null
+    Invoke-LocalDocker run -d --name $container --network none --mount "type=volume,source=$volume,target=/var/lib/postgresql/data" -e "POSTGRES_PASSWORD=$localPassword" -e POSTGRES_DB=postgres $image postgres -c config_file=/etc/postgresql/postgresql.conf -c cron.launch_active_jobs=off -c listen_addresses= | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Disposable database failed to start.' }
     $created = $true
     $ready = $false
     for ($i = 0; $i -lt 90; $i++) {
-        & $docker exec $container sh -c 'test "$(cat /proc/1/comm)" = postgres && pg_isready -h /var/run/postgresql -U supabase_admin -d postgres' *> $null
-        if ($LASTEXITCODE -eq 0) { $ready = $true; break }
+        $processName = Invoke-LocalDocker exec $container cat /proc/1/comm 2>$null
+        if ($LASTEXITCODE -eq 0 -and ([string]$processName).Trim() -in @('postgres', '.postgres-wrapp')) {
+            Invoke-LocalDocker exec $container pg_isready -h /var/run/postgresql -U supabase_admin -d postgres *> $null
+            if ($LASTEXITCODE -eq 0) { $ready = $true; break }
+        }
         Start-Sleep -Seconds 2
     }
     if (-not $ready) { throw 'Disposable database did not become ready.' }
     # These DROP/CREATE commands can only reach the unique local container, never Supabase.
-    & $docker exec $container psql -X -v ON_ERROR_STOP=1 -h /var/run/postgresql -U supabase_admin -d template1 -c 'DROP DATABASE postgres WITH (FORCE);' > $log 2>&1
+    Invoke-LocalDocker exec $container psql -X -v ON_ERROR_STOP=1 -h /var/run/postgresql -U supabase_admin -d template1 -c 'DROP DATABASE postgres WITH (FORCE);' > $log 2>&1
     if ($LASTEXITCODE -ne 0) { throw 'Could not empty the disposable database.' }
-    & $docker exec $container psql -X -v ON_ERROR_STOP=1 -h /var/run/postgresql -U supabase_admin -d template1 -c 'CREATE DATABASE postgres TEMPLATE template0;' >> $log 2>&1
+    Invoke-LocalDocker exec $container psql -X -v ON_ERROR_STOP=1 -h /var/run/postgresql -U supabase_admin -d template1 -c 'CREATE DATABASE postgres TEMPLATE template0;' >> $log 2>&1
     if ($LASTEXITCODE -ne 0) { throw 'Could not create the disposable restore database.' }
-    & $docker cp $restoreSql "${container}:/tmp/restore-private.sql"
+    Invoke-LocalDocker cp $restoreSql "${container}:/tmp/restore-private.sql"
     if ($LASTEXITCODE -ne 0) { throw 'Could not copy SQL into the disposable database.' }
-    & $docker exec -e 'PGOPTIONS=-c session_replication_role=replica' $container psql -X --single-transaction -v ON_ERROR_STOP=1 -h /var/run/postgresql -U supabase_admin -d postgres -f /tmp/restore-private.sql >> $log 2>&1
+    Invoke-LocalDocker exec -e 'PGOPTIONS=-c session_replication_role=replica' $container psql -X --single-transaction -v ON_ERROR_STOP=1 -h /var/run/postgresql -U supabase_admin -d postgres -f /tmp/restore-private.sql >> $log 2>&1
     $restoreCode = $LASTEXITCODE
     if ($restoreCode -ne 0) { throw "Restore failed (exit $restoreCode). Keep the archive and log private; report only the error category, not document data." }
-    & $docker exec $container psql -X -v ON_ERROR_STOP=1 -h /var/run/postgresql -U supabase_admin -d postgres -c "SELECT count(*) AS public_tables FROM information_schema.tables WHERE table_schema='public'; SELECT count(*) AS knowledge_documents FROM public.kb_documents; SELECT count(*) AS auth_users FROM auth.users; SELECT version FROM supabase_migrations.schema_migrations ORDER BY version;" >> $log 2>&1
+    Invoke-LocalDocker exec $container psql -X -v ON_ERROR_STOP=1 -h /var/run/postgresql -U supabase_admin -d postgres -c "SELECT count(*) AS public_tables FROM information_schema.tables WHERE table_schema='public'; SELECT count(*) AS knowledge_documents FROM public.kb_documents; SELECT count(*) AS auth_users FROM auth.users; SELECT version FROM supabase_migrations.schema_migrations ORDER BY version;" >> $log 2>&1
     if ($LASTEXITCODE -ne 0) { throw 'Restored database verification failed.' }
     $verified = $true
 }
 finally {
     $env:PGPASSWORD = $oldPassword
     $env:PGSSLMODE = $oldSslMode
-    if ($created) { & $docker rm -f -v $container | Out-Null; if ($LASTEXITCODE -ne 0) { Write-Warning "Remove local test container manually: $container"; $verified = $false } }
-    if ($volumeCreated) { & $docker volume rm $volume | Out-Null; if ($LASTEXITCODE -ne 0) { Write-Warning "Remove local test volume manually: $volume"; $verified = $false } }
+    if ($created) { Invoke-LocalDocker rm -f -v $container | Out-Null; if ($LASTEXITCODE -ne 0) { Write-Warning "Remove local test container manually: $container"; $verified = $false } }
+    if ($volumeCreated) { Invoke-LocalDocker volume rm $volume | Out-Null; if ($LASTEXITCODE -ne 0) { Write-Warning "Remove local test volume manually: $volume"; $verified = $false } }
     if (Test-Path -LiteralPath $restoreSql) { Remove-Item -LiteralPath $restoreSql -Force }
 }
 if (-not $verified) { throw 'Backup verification or temporary-data cleanup is incomplete.' }
