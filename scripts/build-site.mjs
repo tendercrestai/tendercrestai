@@ -8,7 +8,7 @@ const destination = resolve(root, "dist");
 // internal runbooks, SQL fixtures, credentials, or future unreviewed files.
 const pages = [
   "index.html", "auth.html", "contact.html", "rfp-upload.html", "compliance.html",
-  "workspace.html", "knowledge.html", "security.html", "product.html", "samples.html", "googleb40d2fbef272897b.html", "robots.txt", "sitemap.xml"
+  "workspace.html", "knowledge.html", "security.html", "product.html", "samples.html", "demo.html", "googleb40d2fbef272897b.html", "robots.txt", "sitemap.xml"
 ];
 const assets = [
   "workspace.mjs", "workspace.css", "private-rfp-upload.mjs", "rfp-upload.mjs", "rfp-document.mjs", "upload-attempt.mjs", "proposal-status.mjs",
@@ -26,7 +26,8 @@ for (const asset of assets) {
 const samples = [
   "fictional-rfp.txt", "fictional-company-evidence.txt",
   "illustrative-compliance-matrix.csv", "illustrative-compliance-matrix.xlsx",
-  "illustrative-proposal-draft.docx", "illustrative-proposal-draft.pdf"
+  "illustrative-proposal-draft.docx", "illustrative-proposal-draft.pdf",
+  "fictional-workspace-package.zip", "workspace-evidence.png", "workspace-editor.png", "workspace-review.png", "evaluation-scorecard.csv"
 ];
 await mkdir(resolve(destination, "samples"), { recursive: true });
 for (const sample of samples) await cp(resolve(root, "samples", sample), resolve(destination, "samples", sample));
