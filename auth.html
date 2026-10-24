@@ -141,6 +141,7 @@
       <h2>My account</h2>
       <p id="accountEmail"></p>
       <button id="workspaceBtn">Open Proposal Workspace</button>
+      <p><a id="workspace-link" href="/workspace.html" hidden>Open team proposal workspace</a></p>
       <button id="knowledgeBtn" type="button">Open Knowledge Base</button>
       <button id="logoutBtn" class="secondary">Log out</button>
     </section>
@@ -159,6 +160,7 @@
     );
 
     const $ = id => document.getElementById(id);
+    fetch('/.netlify/functions/proposal-config').then(r=>r.json()).then(c=>{const link=$('workspace-link');if(link&&c.enabled&&Object.values(c.features||{}).every(Boolean))link.hidden=false;}).catch(()=>{});
     const views = ["login", "signup", "forgot", "reset", "account"];
     const redirectBase = location.origin + "/auth.html";
     let recoveryMode = false;

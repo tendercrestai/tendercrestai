@@ -1,0 +1,40 @@
+const {randomUUID,createHash}=require('node:crypto');
+const kb=require('./knowledge-base');
+const core=require('./proposal-core');
+const BUCKET='proposal-artifacts';
+function enabled(feature){if(process.env.PROPOSAL_WORKSPACE_ENABLED!=='true'||feature&&process.env['PROPOSAL_'+feature.toUpperCase()+'_ENABLED']!=='true')kb.fail(503,'This workspace feature is not enabled.');}
+const rpc=async(config,name,args)=>{const value=await kb.rpc(config,'pw_'+name,args);return ['require','commit','enqueue'].includes(name)&&Array.isArray(value)?value[0]:value;};
+const db=(config,path,options={})=>kb.database(config,path,{...options,service:true,fetcher:(url,init)=>fetch(url,{...init,headers:{...init.headers,Prefer:'return=representation'}})});
+async function project(config,user,id,roles){const p=await rpc(config,'require',{p_project:kb.uuid(id),p_user:user.id,...(roles?{p_roles:roles}:{})});p.state=core.refresh(p.state,p.evidence_epoch);return p;}
+async function members(config,p,user){const labels=user?await rpc(config,'people',{p_project:p.id,p_user:user.id,p_directory:false}):[];const rows=await db(config,'pw_members?project_id=eq.'+p.id+'&select=user_id,role,email_opt_in');const active=await db(config,'kb_memberships?org_id=eq.'+p.org_id+'&active=eq.true&select=user_id,role');return rows.filter(m=>active.some(a=>a.user_id===m.user_id)).map(m=>{const orgRole=active.find(a=>a.user_id===m.user_id).role;return {...m,label:labels.find(x=>x.user_id===m.user_id)?.label||m.user_id,orgRole,role:orgRole==='viewer'||m.role==='reviewer'&&!['owner','reviewer'].includes(orgRole)?'viewer':m.role};});}
+async function commit(config,user,p,state,operation,details={}){return rpc(config,'commit',{p_project:p.id,p_user:user.id,p_revision:p.revision,p_epoch:p.evidence_epoch,p_state:state,p_operation:operation,p_details:details});}
+async function storage(config,path,method='GET',bytes,mime){const r=await fetch(config.url+'/storage/v1/'+path,{method,headers:{apikey:config.serviceKey,Authorization:'Bearer '+config.serviceKey,...(mime?{'Content-Type':mime}:{})},body:bytes,signal:AbortSignal.timeout(30000)});if(!r.ok)kb.fail(r.status===409?409:503,'Private artifact storage is temporarily unavailable.');return r;}
+async function putFile(config,p,{id=randomUUID(),name,mime,bytes,kind,sourceDocumentId=null,expiresAt=null}){
+ if(typeof name!=='string'||!name.trim()||name.length>200||/[\\/\x00-\x1f\x7f]/.test(name)||name==='.'||name==='..')kb.fail(400,'Invalid artifact filename.');
+ if(bytes.length>52428800)kb.fail(413,'Artifact exceeds 50 MiB; reduce attachments.');const path=p.org_id+'/'+p.id+'/'+id;
+ const existing=await db(config,'pw_files?id=eq.'+id+'&select=*');if(existing[0]){const f=existing[0];if(f.project_id!==p.id||f.kind!==kind||f.revision!==p.revision||f.evidence_epoch!==p.evidence_epoch)kb.fail(409,'Artifact identity changed.');return f;}
+ try{await storage(config,'object/'+BUCKET+'/'+path,'POST',bytes,mime);}catch(e){if(e.status!==409)throw e;await storage(config,'object/'+BUCKET,'DELETE',JSON.stringify({prefixes:[path]}),'application/json');await storage(config,'object/'+BUCKET+'/'+path,'POST',bytes,mime);}
+ const row={id,project_id:p.id,org_id:p.org_id,kind,name,mime,path,size_bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex'),source_document_id:sourceDocumentId,revision:p.revision,evidence_epoch:p.evidence_epoch,expires_at:expiresAt};
+ try{await db(config,'pw_files',{method:'POST',body:row});}catch(e){await storage(config,'object/'+BUCKET,'DELETE',JSON.stringify({prefixes:[path]}),'application/json').catch(()=>{});throw e;}return row;
+}
+async function signedFile(config,user,p,id){const rows=await db(config,'pw_files?id=eq.'+kb.uuid(id)+'&project_id=eq.'+p.id+'&select=*');const f=rows[0];if(!f||f.expires_at&&Date.parse(f.expires_at)<Date.now())kb.fail(404,'Artifact expired or unavailable.');if(f.kind==='export'&&(f.evidence_epoch!==p.evidence_epoch))kb.fail(409,'Evidence changed; export a newly reviewed revision.');if(f.kind==='export'){const jobs=await db(config,'pw_jobs?id=eq.'+f.id+'&project_id=eq.'+p.id+'&status=eq.Completed&select=input');if(!jobs[0])kb.fail(409,'Artifact job is not complete.');if(jobs[0].input.draft!==true&&(!p.state.finalApproval||f.revision!==p.revision||p.state.finalApproval.contentHash!==core.contentHash(p.state)))kb.fail(409,'Final approval changed; generate a current reviewed package.');}if(f.kind==='attachment'){const docs=await db(config,'kb_documents?id=eq.'+kb.uuid(f.source_document_id)+'&org_id=eq.'+p.org_id+'&status=eq.Ready&select=id');if(!docs[0])kb.fail(409,'Supporting source is no longer available.');}await project(config,user,p.id);const r=await storage(config,'object/sign/'+BUCKET+'/'+f.path,'POST',JSON.stringify({expiresIn:60}),'application/json');const signed=await r.json();const rel=signed.signedURL||signed.signedUrl;if(typeof rel!=='string'||!rel.startsWith('/object/sign/'+BUCKET+'/'+f.path+'?'))kb.fail(503,'Private download could not be authorized.');return {url:config.url+'/storage/v1'+rel,name:f.name,expiresIn:60};}
+function workerSettings(){const x=kb.workerSettings();return {...x,url:x.url.replace('/knowledge-worker-background','/proposal-worker-background')};}
+async function dispatch(job){if(job.status==='Completed')return false;try{const w=workerSettings();const r=await fetch(w.url,{method:'POST',headers:{'Content-Type':'application/json','x-kb-worker-secret':w.secret},body:JSON.stringify({jobId:job.id}),signal:AbortSignal.timeout(5000)});return !r.ok;}catch{return true;}}
+async function notify(config,p,actor,users,key,kind){for(const id of new Set(users.filter(Boolean))){await rpc(config,'notify',{p_project:p.id,p_actor:actor,p_user:kb.uuid(id),p_key:key,p_kind:kind});}}
+function verifyAnalysis(w){
+ for(const r of w.requirements){if(!Array.isArray(r.sources)||!r.sources.length)kb.fail(409,'A requirement has no source.');for(const source of r.sources){const document=w.analysis.documents.find(d=>d.id===source.document_id),segment=document?.segments.find(s=>s.id===source.segment_id);if(!segment||!source.quote||!segment.text.includes(source.quote)||segment.page!==source.page||segment.section!==source.section)kb.fail(409,'Requirement provenance changed; review the original analysis.');}}
+}
+async function workspace(config,user,p){
+ const people=await members(config,p,user);const mine=people.find(x=>x.user_id===user.id);if(!mine)kb.fail(403,'Project access was removed.');
+ const directory=mine.role==='manager'&&mine.orgRole==='owner'?await rpc(config,'people',{p_project:p.id,p_user:user.id,p_directory:true}):[];
+ const [jobs,files,events,notices,approvals,assessments]=await Promise.all([
+  db(config,'pw_jobs?project_id=eq.'+p.id+'&select=id,kind,revision,status,attempts,result,error_code,created_at&order=created_at.desc&limit=30'),
+  db(config,'pw_files?project_id=eq.'+p.id+'&select=id,name,kind,mime,size_bytes,revision,evidence_epoch,expires_at&order=created_at.desc&limit=100'),
+  db(config,'pw_events?project_id=eq.'+p.id+'&select=*&order=id.desc&limit=100'),
+  db(config,'pw_notifications?project_id=eq.'+p.id+'&user_id=eq.'+user.id+'&select=id,kind,read_at,email_state,created_at&order=created_at.desc&limit=100'),
+  db(config,'pw_approvals?project_id=eq.'+p.id+'&select=id,section_id,revision,evidence_epoch,actor_id,created_at&order=created_at.desc&limit=100'),
+  db(config,'pw_assessments?project_id=eq.'+p.id+'&select=id,revision,evidence_epoch,input_hash,result,created_at&order=created_at.desc&limit=20')]);
+ const rendered=jobs.find(j=>j.status==='Completed'&&j.kind==='export'&&j.result?.contentHash===core.contentHash(p.state)&&j.result?.evidenceEpoch===p.evidence_epoch)?.result;
+ return {project:p,role:mine.role,orgRole:mine.orgRole,members:people,directory,jobs,files,events,notifications:notices,approvals,assessments,readiness:core.readiness(p.state,p.evidence_epoch,rendered)};
+}
+module.exports={kb,core,enabled,rpc,db,project,members,commit,storage,putFile,signedFile,workerSettings,dispatch,notify,verifyAnalysis,workspace,BUCKET};
