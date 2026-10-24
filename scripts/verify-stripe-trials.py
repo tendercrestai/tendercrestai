@@ -11,7 +11,7 @@ def read(path):
   with urllib.request.urlopen(req,timeout=30) as response:return json.load(response)
  except urllib.error.HTTPError as error:raise RuntimeError('Stripe read denied: HTTP '+str(error.code)) from None
  except urllib.error.URLError:raise RuntimeError('Stripe network access unavailable; apply the environment domain configuration') from None
-def verify(links,items_for):
+def verify(links,items_for,promotions_reviewed=False):
  results=[]
  for name,(url,price_id,amount) in PLANS.items():
   candidates=[link for link in links if link.get('url')==url]
@@ -20,7 +20,7 @@ def verify(links,items_for):
   if link.get('active') is not True or link.get('livemode') is not True:issues.append('Payment link must be active and live')
   if link.get('subscription_data',{}).get('trial_period_days')!=14:issues.append('Subscription trial must be exactly 14 days')
   if link.get('payment_method_collection')!='always':issues.append('Payment card collection must be required')
-  if link.get('allow_promotion_codes'):issues.append('Promotion codes require separate review before promising the stated conversion price')
+  if link.get('allow_promotion_codes') and not promotions_reviewed:issues.append('Promotion codes require separate review before promising the stated conversion price')
   items=items_for(link)
   if len(items)!=1:issues.append('Expected a single recurring plan and no extra/setup items')
   else:
@@ -42,7 +42,14 @@ def main():
   page=read('payment_links/'+urllib.parse.quote(link['id'],safe='')+'/line_items?limit=10')
   if page.get('has_more'):return []
   return page.get('data',[])
- results=verify(links,items);print(json.dumps({'plans':results,'all_ready':all(row['ready'] for row in results)},indent=2));return 0 if all(row['ready'] for row in results) else 1
+ # Preserve an existing promotion-code entry box when there are no active
+ # codes. Active promotions still require a deliberate price/terms review.
+ relevant=[link for link in links if link.get('url') in [p[0] for p in PLANS.values()]]
+ promotions_reviewed=False
+ if any(link.get('allow_promotion_codes') for link in relevant):
+  promotions=read('promotion_codes?active=true&limit=100')
+  promotions_reviewed=promotions.get('data')==[] and promotions.get('has_more') is False
+ results=verify(links,items,promotions_reviewed);print(json.dumps({'plans':results,'promotions_reviewed_no_active_codes':promotions_reviewed,'all_ready':all(row['ready'] for row in results)},indent=2));return 0 if all(row['ready'] for row in results) else 1
 if __name__=='__main__':
  try:sys.exit(main())
  except (RuntimeError,KeyError,ValueError) as error:print(json.dumps({'all_ready':False,'error':str(error)}));sys.exit(1)

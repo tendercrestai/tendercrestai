@@ -18,4 +18,8 @@ class GateTests(unittest.TestCase):
   self.items['plink_Pro'].append(copy.deepcopy(self.items['plink_Pro'][0]));self.assertFalse(self.check()[0]['ready'])
  def test_missing_or_duplicate_links_fail_closed(self):
   self.links.pop();self.assertFalse(self.check()[2]['ready']);self.links.append(copy.deepcopy(self.links[0]));self.assertFalse(self.check()[0]['ready'])
+ def test_enabled_promotion_box_requires_review_and_never_ignores_active_codes_by_default(self):
+  self.links[0]['allow_promotion_codes']=True
+  self.assertFalse(self.check()[0]['ready'])
+  self.assertTrue(gate.verify(self.links,lambda link:self.items[link['id']],promotions_reviewed=True)[0]['ready'])
 if __name__=='__main__':unittest.main()
