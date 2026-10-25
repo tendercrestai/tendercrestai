@@ -1,6 +1,6 @@
 # Replace the standalone Enterprise offer with plan trials
 
-Status: implementation and local verification prepared; do not merge/advertise this offer until the external checkout and Airtable checks below pass. No production subscription, payment link, account expiry or migration has been changed.
+Status: checkout and formula gates verified after the owner added write permission. Both approved Companies formulas are applied and match the reviewed expressions on readback. Ready for normal application release; no customer subscription, account expiry or SQL migration was changed.
 
 ## Approved policy
 
@@ -44,3 +44,11 @@ All three live Stripe links now pass the read-only release gate: active/live, ex
 Airtable schema inspection now works. In the production **Companies** table, `Calculated Tier` still unconditionally maps Trialing to Enterprise, and `Monthly Quota` still unconditionally gives Trialing 60. These are the remaining release blocker. The exact replacements are committed in `docs/airtable-plan-trial-formulas.json`. They retain unlinked legacy trials at Enterprise/60 while assigning Stripe trials their selected 5/20/60, and preserve paid/complimentary fallback logic. The two formulas passed Airtable's read-only query syntax/reference checks without returning any records and three offline formula-policy tests.
 
 A scoped PATCH of Calculated Tier returned HTTP 403 `INVALID_PERMISSIONS_OR_MODEL_NOT_FOUND`. Neither field was changed; no follow-on PATCH was attempted. The original two formulas are saved in the private workspace release artifacts for rollback. Do not infer write permission from successful schema reads. The owner can paste the two replacements manually into **Companies → field header → Edit field → Formula**, without giving the production service token schema-write access. Re-read both formula definitions and check their validity before merging PR #17. No production application deployment, charge, subscription, customer email, account-expiry change or migration was made during this check.
+
+## Final readiness after schema-write permission
+
+Both scoped formula PATCH requests succeeded with HTTP 200. Fresh schema reads confirm both formulas are valid and exactly match the reviewed expressions after converting Airtable field IDs to names and normalizing string quoting. Original formulas were saved before writes. No customer record, date field or subscription was edited.
+
+All three live Stripe links pass the complete readiness check again. There are no active promotion codes in the reviewed listing. All 198 Node regression tests and five offline verifier tests pass. The application release can proceed through normal PR checks/merge; post-publication verification must attest the exact published commit, correct pricing copy and checkout URLs, absent standalone free form, loaded function routes, private source exclusion and unchanged workspace email flags. A real card checkout, charge or generated proposal is not part of this release verification.
+
+The temporary schema-write permission may be removed from the production Airtable token after formula verification; preserve its existing record read/write and any required schema-read scopes. The rejected read-only attempts above are historical, not current blockers.
