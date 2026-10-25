@@ -1,5 +1,7 @@
 # Customer experience walkthrough
 
+Preview limitation: fresh knowledge indexing currently fails because the test embedding provider denies access. The verified returning-customer journey uses existing approved fictional knowledge. Fix and retest fresh ingestion before production release.
+
 1. Open TenderCrest and choose **Try Interactive Demo — No Credit Card Required**. No signup, upload or provider call occurs.
 2. Select IT services, marketing or consulting. Inspect fictional RFP/profile/evidence, illustrative bid fit and strategy, source-referenced compliance gaps, then the six-part proposal preview. All content is labeled fictional/precomputed.
 3. Choose **Create Free Account**. Existing Supabase signup and verification remain unchanged; signing in returns to the workspace. A paid plan's **Start Free Trial** CTA goes to existing pricing/Stripe terms: card required, 14 days, selected allowance, automatic billing unless canceled.
