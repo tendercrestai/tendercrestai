@@ -52,3 +52,9 @@ The complete final-export/reuse journey above uses the independently existing ap
 - Current public vendor-by-vendor comparison could not be verified under available network access. No competitive superiority claim is made.
 - No production load test, all-browser compatibility claim, OCR for scanned PDFs, perfect DOCX pagination/fidelity, or independent compliance certification.
 - Production migration requires explicit approval plus the current backup/restore procedure and scoped release review. This branch is not a production approval request while the embedding blocker is open.
+
+## Replacement embedding key retest
+
+The owner saved a replacement key on the isolated site. Verified that both primary and branch contexts contain the replacement (different from the expired live credential), with Functions scope, expected key prefix and no surrounding whitespace/quotes. Rebuilt and verified the exact published isolated candidate. OpenAI still rejects authentication: the bounded semantic-search check returns the application's 503 with safe upstream diagnostic **provider HTTP 401**. Fresh indexing remains blocked, not cleared by changing the saved value alone.
+
+Diagnostic-only application commit `88b1700b81ca71ae34fd6575951d9cf5963db42f` adds upstream HTTP status to the existing safe access-denied message; no provider response body, secret or source contents are exposed. All 256 Node regression tests and public build passed. Isolated deploy `6ade2d6610572eb924d516a7` is ready; automatic isolated builds stopped again. Production remains the prior verified deployment. No production migration, key replacement, merge or activation performed. The replacement credential must be verified as active/full before another rebuild and fresh indexing test.
