@@ -1,6 +1,6 @@
 # Customer experience walkthrough
 
-Preview limitation: fresh knowledge indexing currently fails because the test embedding provider denies access. The verified returning-customer journey uses existing approved fictional knowledge. Fix and retest fresh ingestion before production release.
+The embedding-access blocker has been resolved: fresh fictional knowledge indexing and the complete reviewed export/reuse journey passed. Production rollout status is recorded in production-release.md.
 
 1. Open TenderCrest and choose **Try Interactive Demo — No Credit Card Required**. No signup, upload or provider call occurs.
 2. Select IT services, marketing or consulting. Inspect fictional RFP/profile/evidence, illustrative bid fit and strategy, source-referenced compliance gaps, then the six-part proposal preview. All content is labeled fictional/precomputed.

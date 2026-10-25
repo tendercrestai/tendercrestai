@@ -1,6 +1,6 @@
 # Coordinated customer upgrade — implementation and release guide
 
-Status: feature branch only; production release is NOT authorized. New authenticated features default off behind `PROPOSAL_INTELLIGENCE_ENABLED=true`. Anonymous interactive demo is bundled static data and needs no flag or provider. Existing production secrets, trials, allowances, contact and billing integrations are unchanged.
+Status: controlled production rollout conditionally authorized by the owner after passing tests. See production-release.md for the cleared embedding gate, backup scope and exact action; do not infer completion from this preparation document. New authenticated features default off behind `PROPOSAL_INTELLIGENCE_ENABLED=true`. Anonymous interactive demo is bundled static data and needs no flag or provider. Existing production secrets, trials, allowances, contact and billing integrations are unchanged.
 
 ## Implementation inventory
 
