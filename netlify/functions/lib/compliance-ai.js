@@ -1,7 +1,7 @@
 const { createHash } = require("node:crypto");
 const { RequestError } = require("./rfp-security");
 const CATEGORIES = ["Technical", "Legal", "Financial", "Administrative", "Eligibility", "Submission", "Attachment", "Evaluation", "Service Level", "Other"];
-const FACTS = ["Solicitation Number", "Title", "Issuing Organization", "Submission Deadline", "Deadline Timezone", "Scope of Work", "Eligibility", "Technical Requirements", "Pricing", "Submission Instructions", "Required Attachments", "Evaluation Criteria", "Contract Terms", "Special Conditions", "Contract Duration", "Contract Value", "Required Certifications", "Commercial Requirements", "Contractual Risks"];
+const FACTS = ["Solicitation Number", "Title", "Issuing Organization", "Submission Deadline", "Deadline Timezone", "Scope of Work", "Eligibility", "Technical Requirements", "Pricing", "Submission Instructions", "Required Attachments", "Evaluation Criteria", "Contract Terms", "Special Conditions"];
 const str = { type: "string", minLength: 1, maxLength: 3000 };
 // The model selects server-owned excerpts/options; it never authors citation text.
 const schema = {

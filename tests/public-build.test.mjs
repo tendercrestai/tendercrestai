@@ -27,7 +27,7 @@ test("public build excludes internal source and preserves public module dependen
   }
   const config = await readFile(new URL("netlify.toml", root), "utf8");
   assert.match(config, /\[functions\."compliance"\]/);
-  assert.match(config, /included_files\s*=\s*\["assets\/docx-validation\.mjs"/);
+  assert.match(config, /included_files\s*=\s*\["assets\/docx-validation\.mjs"\]/);
   assert.match(config, /publish\s*=\s*"dist"/);
   assert.match(config, /command\s*=\s*"node scripts\/build-site.mjs"/);
 });
