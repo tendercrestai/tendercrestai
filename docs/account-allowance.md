@@ -10,6 +10,10 @@ Server configuration reuses SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SER
 
 Validation: account backend tests cover live/legacy usage, trial allowance, expiry, failed-marker integrity, authentication, identity-selector rejection, no-plan state and a complete active-account request. Chromium fixtures cover mobile/desktop display, refresh, trial expiry, exhausted allowance, no-plan CTA and clearing on logout. Run npm test, python scripts/test-account-usage-browser.py and node scripts/build-site.mjs. Hosted verification must separately report what was actually checked; no customer purchase is needed. Roll back by restoring the prior Netlify deployment; no database rollback is needed.
 
-## Preview status (2026-10-25)
+## Initial deployment attempt (2026-10-25)
 
 Implemented in PR #23. Netlify rejected the isolated build before running it: `Skipped due to account credit usage exceeded` (deploy `6ade568d92e6b0c056325695`). No hosted allowance test or production deployment is claimed. Production remains commit `50ef9b22195a8ac21950c7f8d06b39744c960cea`. The account-page component and actual auth-page wiring pass offline Chromium checks; all 284 Node tests pass. Once Netlify credits are available, rebuild the isolated feature branch, verify the read-only endpoint's authentication and recoverable missing-billing-config state, then complete release verification. No migration or credential rotation is needed.
+
+## Credit top-up retry
+
+After the user restored Netlify credits, isolated deployment `6ade57cf1a75024a8bbf8013` of application commit `6d302e6d7e85670056dffaee498c41d6be4911e8` completed successfully. Actual hosted checks passed for unauthenticated denial, identity-selector rejection and safe unavailable billing configuration. The hosted mobile account page also passed refresh/logout checks, using an intercepted SDK session source with a genuine existing isolated test JWT; application files and usage endpoint were deployed files. The complete local suite remains 284 passing tests. Production deployment and its actual billing result are recorded separately in the release evidence. No billing credentials were copied to the isolated site.
