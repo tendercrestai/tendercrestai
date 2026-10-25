@@ -1,3 +1,7 @@
 *.pdf binary
 *.docx binary
 *.xlsx binary
+
+# Immutable public reference snapshots: preserve original bytes and hashes.
+reference-library/sources/** -text -whitespace
+reference-library/notices/** -text -whitespace
