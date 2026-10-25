@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "market": "US government IT and consulting",
+  "records": [
+    {
+      "id": "18f-agile-bpa-awardees",
+      "title": "18F Agile BPA full-stack pool 3 awardee list",
+      "sourceUrl": "https://github.com/18F/ads-bpa/blob/e92fd50019b83d65396cf347c48e5fd9a7fcb81c/_pages/awardees.md",
+      "supportingUrls": ["https://github.com/18F/ads-bpa/blob/e92fd50019b83d65396cf347c48e5fd9a7fcb81c/data/vendors.yml"],
+      "publisher": "18F / GSA",
+      "jurisdiction": "US federal",
+      "sector": "IT",
+      "documentType": "award_list",
+      "sourceRevision": "e92fd50019b83d65396cf347c48e5fd9a7fcb81c",
+      "reviewStatus": "candidate",
+      "reuseStatus": "pending",
+      "licenceEvidenceUrl": "https://github.com/18F/ads-bpa/blob/e92fd50019b83d65396cf347c48e5fd9a7fcb81c/LICENSE.md",
+      "awardStatus": "not_applicable",
+      "patterns": [],
+      "limitations": "Agency awardee list, not a vendor proposal. Official repository has a public-domain/CC0 notice; that does not license linked third-party submissions or establish the contents of their evaluated responses."
+    },
+    {
+      "id": "nci-agile-bpa-documentation",
+      "title": "NCI Food Recall Impact App technical submission documentation",
+      "sourceUrl": "https://github.com/empowerai/agile-bpa/blob/0e6eaf50ec802416ffbd3fe8e0aaf928467e84a0/README.md",
+      "supportingUrls": ["https://github.com/18F/ads-bpa/blob/e92fd50019b83d65396cf347c48e5fd9a7fcb81c/data/vendors.yml"],
+      "publisher": "NCI Agile Technology Sector; repository currently hosted by empowerai",
+      "jurisdiction": "US federal",
+      "sector": "IT",
+      "documentType": "technical_submission_documentation",
+      "sourceRevision": "0e6eaf50ec802416ffbd3fe8e0aaf928467e84a0",
+      "reviewStatus": "candidate",
+      "reuseStatus": "pending",
+      "licenceEvidenceUrl": "https://github.com/empowerai/agile-bpa/blob/0e6eaf50ec802416ffbd3fe8e0aaf928467e84a0/LICENSE.md",
+      "awardStatus": "unverified",
+      "patterns": [],
+      "limitations": "Agency list names NCI Information Systems. Repository identifies an NCI prototype response. A vendor-level award match is a lead, not verification that this exact revision/document was the evaluated winning response. Repository licence endpoint returned an ISC-style notice; documentation/training reuse scope needs review. Historical 2015 technologies are not current compliance guidance."
+    },
+    {
+      "id": "ais-agile-bpa-documentation",
+      "title": "Applied Information Sciences My Medicine Cabinet prototype documentation",
+      "sourceUrl": "https://github.com/ais-open/AgileBPA",
+      "supportingUrls": ["https://github.com/18F/ads-bpa/blob/e92fd50019b83d65396cf347c48e5fd9a7fcb81c/data/vendors.yml"],
+      "publisher": "Applied Information Sciences",
+      "jurisdiction": "US federal",
+      "sector": "IT",
+      "documentType": "technical_submission_documentation",
+      "sourceRevision": "",
+      "reviewStatus": "candidate",
+      "reuseStatus": "pending",
+      "licenceEvidenceUrl": "",
+      "awardStatus": "unverified",
+      "patterns": [],
+      "limitations": "README identifies Agile Delivery Services BPA 4QTFHS150004 and Applied Information Sciences; agency list names that vendor. Exact submitted revision/award linkage is pending. GitHub repository metadata returned no recognised licence. Not approved for ingestion, model context or training."
+    }
+  ]
+}
