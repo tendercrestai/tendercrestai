@@ -160,7 +160,7 @@
     );
 
     const $ = id => document.getElementById(id);
-    fetch('/.netlify/functions/proposal-config').then(r=>r.json()).then(c=>{const link=$('workspace-link');if(link&&c.enabled&&Object.values(c.features||{}).every(Boolean))link.hidden=false;}).catch(()=>{});
+    fetch('/.netlify/functions/proposal-config').then(r=>r.json()).then(c=>{const link=$('workspace-link');if(link&&c.enabled&&['evidence','builder','collaboration','bid'].every(k=>c.features?.[k]))link.hidden=false;}).catch(()=>{});
     const views = ["login", "signup", "forgot", "reset", "account"];
     const redirectBase = location.origin + "/auth.html";
     let recoveryMode = false;
@@ -253,6 +253,10 @@
 
     async function showAccount(user) {
       if (!user) return;
+      if (new URLSearchParams(location.search).get("next") === "workspace") {
+        location.href = "/workspace.html";
+        return;
+      }
       if (new URLSearchParams(location.search).get("next") === "knowledge") {
         location.replace("/knowledge.html");
         return;
