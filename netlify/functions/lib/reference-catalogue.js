@@ -8,8 +8,9 @@ function snapshot(root,relative,expected){
  const stat=fs.statSync(file);if(!stat.isFile()||stat.size>200000)throw Error('Reference snapshot exceeds its bound');
  const bytes=fs.readFileSync(file);if(digest(bytes)!==expected)throw Error('Reference snapshot integrity mismatch');return bytes;
 }
-function load(root){
- root=fs.realpathSync(root);const manifest=path.join(root,'catalogue.json');if(fs.statSync(manifest).size>3000000)throw Error('Reference manifest exceeds its bound');
+function load(root,manifestName='catalogue.json'){
+ if(!['catalogue.json','production.json'].includes(manifestName))throw Error('Reference manifest is not allowed');
+ root=fs.realpathSync(root);const manifest=path.join(root,manifestName);if(fs.statSync(manifest).size>3000000)throw Error('Reference manifest exceeds its bound');
  const catalogue=patterns.validate(JSON.parse(fs.readFileSync(manifest,'utf8')));
  for(const r of catalogue.records.filter(r=>r.reviewStatus==='approved')){snapshot(root,r.sourcePath,r.sha256);snapshot(root,r.licencePath,r.licenceSha256);}
  return catalogue;

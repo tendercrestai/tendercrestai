@@ -1,0 +1,191 @@
+{
+  "schema": 1,
+  "market": "US government IT and consulting",
+  "records": [
+    {
+      "id": "usds-playbook-01",
+      "title": "Understand what people need",
+      "sourceUrl": "https://github.com/usds/playbook/blob/f5d71f1939efe87db9f0be414bcfa7c489e01c19/_plays/01.md",
+      "supportingUrls": [],
+      "publisher": "United States Digital Service",
+      "jurisdiction": "US federal",
+      "sector": "IT",
+      "documentType": "government_guidance",
+      "sourceRevision": "f5d71f1939efe87db9f0be414bcfa7c489e01c19",
+      "reviewStatus": "approved",
+      "approvalScope": "production",
+      "reuseStatus": "permitted",
+      "licenceEvidenceUrl": "https://github.com/usds/playbook/blob/f5d71f1939efe87db9f0be414bcfa7c489e01c19/README.md",
+      "reuseBasis": "The pinned repository README explicitly states United States Government public-domain status and worldwide CC0 dedication. Preserve the notice. Offline structure guidance only; no endorsement or full winning-response claim.",
+      "reviewedBy": "Codex source/notice review; offline pilot only, not production approval",
+      "reviewedAt": "2026-10-25",
+      "sha256": "3ae222d51cade3efda62c46775d24ec5055d58ce28796d50b37fd5df4817245e",
+      "sourcePath": "sources/usds-playbook-01.md",
+      "licencePath": "notices/usds-playbook-README.md",
+      "licenceSha256": "b065a677a0a25b96c6532123140a932fabc933644440e226ba1672fab7f0cac3",
+      "awardStatus": "not_applicable",
+      "patterns": [
+        {
+          "id": "structure-01",
+          "title": "User needs and evidence plan",
+          "guidance": "Outline user groups, research methods, documented findings and validation activities. Populate findings only from supplied bidder evidence; otherwise mark them as needing input. Do not claim research has occurred without evidence.",
+          "locator": "Play 1; Checklist and Key Questions",
+          "tags": [
+            "users",
+            "user",
+            "research",
+            "usability",
+            "design",
+            "accessibility"
+          ]
+        }
+      ],
+      "limitations": "Government delivery guidance, not a proposal response, award evidence, current procurement law or proof of bidder capabilities. Historical guidance must not override the current solicitation.",
+      "productionApprovedAt": "2026-10-25T04:28:04.135795+00:00",
+      "productionReview": "Source/reuse/hash review completed by Codex; owner authorized production release subject to successful tests. Guidance only, not full winning responses or compliance evidence."
+    },
+    {
+      "id": "usds-playbook-04",
+      "title": "Build the service using agile and iterative practices",
+      "sourceUrl": "https://github.com/usds/playbook/blob/f5d71f1939efe87db9f0be414bcfa7c489e01c19/_plays/04.md",
+      "supportingUrls": [],
+      "publisher": "United States Digital Service",
+      "jurisdiction": "US federal",
+      "sector": "IT",
+      "documentType": "government_guidance",
+      "sourceRevision": "f5d71f1939efe87db9f0be414bcfa7c489e01c19",
+      "reviewStatus": "approved",
+      "approvalScope": "production",
+      "reuseStatus": "permitted",
+      "licenceEvidenceUrl": "https://github.com/usds/playbook/blob/f5d71f1939efe87db9f0be414bcfa7c489e01c19/README.md",
+      "reuseBasis": "The pinned repository README explicitly states United States Government public-domain status and worldwide CC0 dedication. Preserve the notice. Offline structure guidance only; no endorsement or full winning-response claim.",
+      "reviewedBy": "Codex source/notice review; offline pilot only, not production approval",
+      "reviewedAt": "2026-10-25",
+      "sha256": "855d31e547af74d160ed598cb50f85ab4b250b007368de50bc8e2a0c3156039b",
+      "sourcePath": "sources/usds-playbook-04.md",
+      "licencePath": "notices/usds-playbook-README.md",
+      "licenceSha256": "b065a677a0a25b96c6532123140a932fabc933644440e226ba1672fab7f0cac3",
+      "awardStatus": "not_applicable",
+      "patterns": [
+        {
+          "id": "structure-04",
+          "title": "Delivery approach and feedback loop",
+          "guidance": "Outline prioritised work packages, feedback checkpoints, quality practices and acceptance activities. Use current buyer instructions and evidenced delivery capacity. Do not import the reference's example durations, release frequency or technology choices as buyer requirements.",
+          "locator": "Play 4; Checklist and Key Questions",
+          "tags": [
+            "agile",
+            "iterative",
+            "delivery",
+            "sprints",
+            "backlog",
+            "testing",
+            "acceptance"
+          ]
+        }
+      ],
+      "limitations": "Government delivery guidance, not a proposal response, award evidence, current procurement law or proof of bidder capabilities. Historical guidance must not override the current solicitation.",
+      "productionApprovedAt": "2026-10-25T04:28:04.135804+00:00",
+      "productionReview": "Source/reuse/hash review completed by Codex; owner authorized production release subject to successful tests. Guidance only, not full winning responses or compliance evidence."
+    },
+    {
+      "id": "usds-playbook-12",
+      "title": "Use data to drive decisions",
+      "sourceUrl": "https://github.com/usds/playbook/blob/f5d71f1939efe87db9f0be414bcfa7c489e01c19/_plays/12.md",
+      "supportingUrls": [],
+      "publisher": "United States Digital Service",
+      "jurisdiction": "US federal",
+      "sector": "IT",
+      "documentType": "government_guidance",
+      "sourceRevision": "f5d71f1939efe87db9f0be414bcfa7c489e01c19",
+      "reviewStatus": "approved",
+      "approvalScope": "production",
+      "reuseStatus": "permitted",
+      "licenceEvidenceUrl": "https://github.com/usds/playbook/blob/f5d71f1939efe87db9f0be414bcfa7c489e01c19/README.md",
+      "reuseBasis": "The pinned repository README explicitly states United States Government public-domain status and worldwide CC0 dedication. Preserve the notice. Offline structure guidance only; no endorsement or full winning-response claim.",
+      "reviewedBy": "Codex source/notice review; offline pilot only, not production approval",
+      "reviewedAt": "2026-10-25",
+      "sha256": "b1cb8dea34474d63bda5107cb5d5d6af981fd0795d090536298f6b6e22399ebe",
+      "sourcePath": "sources/usds-playbook-12.md",
+      "licencePath": "notices/usds-playbook-README.md",
+      "licenceSha256": "b065a677a0a25b96c6532123140a932fabc933644440e226ba1672fab7f0cac3",
+      "awardStatus": "not_applicable",
+      "patterns": [
+        {
+          "id": "structure-12",
+          "title": "Measurement and operational review",
+          "guidance": "Outline service measures, how they would be collected, reporting ownership and a review loop. Obtain proposed targets and tool capabilities from current buyer instructions and bidder evidence; do not invent an uptime promise or claim monitoring is already deployed.",
+          "locator": "Play 12; Checklist and Key Questions",
+          "tags": [
+            "metrics",
+            "monitoring",
+            "performance",
+            "latency",
+            "measurement",
+            "operations",
+            "outcomes"
+          ]
+        }
+      ],
+      "limitations": "Government delivery guidance, not a proposal response, award evidence, current procurement law or proof of bidder capabilities. Historical guidance must not override the current solicitation.",
+      "productionApprovedAt": "2026-10-25T04:28:04.135806+00:00",
+      "productionReview": "Source/reuse/hash review completed by Codex; owner authorized production release subject to successful tests. Guidance only, not full winning responses or compliance evidence."
+    },
+    {
+      "id": "acumen-agile-prototype",
+      "title": "Acumen GSA Agile Prototype response documentation",
+      "sourceUrl": "https://github.com/buchanan-edwards/gsa-18f-2015-07/blob/dddd3fe4a597f56d778b7d711c234e5af146c8e3/gsa-18f-acumen/README.md",
+      "supportingUrls": [
+        "https://github.com/18F/ads-bpa/blob/e92fd50019b83d65396cf347c48e5fd9a7fcb81c/data/vendors.yml"
+      ],
+      "publisher": "Acumen Solutions response documentation, hosted in Buchanan & Edwards repository",
+      "jurisdiction": "US federal",
+      "sector": "IT",
+      "documentType": "technical_submission_documentation",
+      "sourceRevision": "dddd3fe4a597f56d778b7d711c234e5af146c8e3",
+      "reviewStatus": "approved",
+      "approvalScope": "production",
+      "reuseStatus": "permitted",
+      "licenceEvidenceUrl": "https://github.com/buchanan-edwards/gsa-18f-2015-07/blob/dddd3fe4a597f56d778b7d711c234e5af146c8e3/gsa-18f-acumen/LICENSE.txt",
+      "reuseBasis": "Adjacent project MIT licence expressly includes associated documentation files; retain its copyright and permission notice. No linked assets fetched, no endorsement, and no vendor facts transferred into guidance. Offline structural analysis only.",
+      "reviewedBy": "Codex source/notice review; offline pilot only, not production approval",
+      "reviewedAt": "2026-10-25",
+      "sha256": "87e8ad71dc6c7402942fbd9e9bb54b4fd0cdef39d299951bf7104a94bcf744dd",
+      "sourcePath": "sources/acumen-agile-prototype.md",
+      "licencePath": "notices/acumen-MIT.txt",
+      "licenceSha256": "46cb070a0e9a90af5e8e4c7a6e1834ba1d84ed53c716be4d4a09d51ea3537c10",
+      "awardStatus": "unverified",
+      "awardAssociation": "Official 18F pool-three list names Acumen Solutions Inc. This establishes a vendor lead, not that this exact document/revision was the evaluated winning submission.",
+      "patterns": [
+        {
+          "id": "role-coverage",
+          "title": "Role, capacity and responsibility structure",
+          "guidance": "Provide a role-and-responsibility table keyed to the buyer evaluation needs. State resource assumptions and source-backed qualifications. Do not import names, staffing counts, certifications or technologies from the reference.",
+          "locator": "Project Team; Labor Category",
+          "tags": [
+            "team",
+            "capacity",
+            "staffing",
+            "roles",
+            "resources",
+            "responsibilities"
+          ]
+        },
+        {
+          "id": "approach-rationale",
+          "title": "Explain the technical approach and trade-offs",
+          "guidance": "Organise the approach around the current buyer objectives, options considered, rationale and evidence. Do not adopt this historical prototype technology stack or its claims as your own.",
+          "locator": "Approach",
+          "tags": [
+            "technical",
+            "architecture",
+            "approach",
+            "tradeoffs"
+          ]
+        }
+      ],
+      "limitations": "Historical prototype/response documentation, not a verified full winning proposal. Reuse is limited to source-attributed structure guidance in the offline pilot. Third-party links/assets, names, claims and technology recommendations are not imported into bidder evidence.",
+      "productionApprovedAt": "2026-10-25T04:28:04.135808+00:00",
+      "productionReview": "Source/reuse/hash review completed by Codex; owner authorized production release subject to successful tests. Guidance only, not full winning responses or compliance evidence."
+    }
+  ]
+}
