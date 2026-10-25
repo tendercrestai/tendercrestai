@@ -2,7 +2,7 @@
 
 ## Release behavior
 
-First-party, opt-in conversion cohorts are stored in three private RLS tables. No client role gains report access. A new dedicated `ANALYTICS_SIGNING_SECRET` (random 32+ bytes, different for each site) signs visitor sessions, daily IP admission hashes and opaque payment receipts. `ANALYTICS_ENABLED=true` is needed in build and function contexts. No existing provider keys change. Daily `analytics-maintenance` removes older telemetry, including when collection is disabled.
+First-party, opt-in conversion cohorts are stored in three private RLS tables. No client role gains report access. The two verified-account/billing RPCs use fixed-search-path security definers because hosted service_role cannot read auth.users directly; their execute grants remain service-only, with no new auth table grants. A new dedicated `ANALYTICS_SIGNING_SECRET` (random 32+ bytes, different for each site) signs visitor sessions, daily IP admission hashes and opaque payment receipts. `ANALYTICS_ENABLED=true` is needed in build and function contexts. No existing provider keys change. Daily `analytics-maintenance` removes older telemetry, including when collection is disabled.
 
 In Supabase production SQL Editor, with an authorized administrator session:
 
@@ -28,7 +28,7 @@ The registry is empty. Existing fit and readiness scores remain internal assessm
 
 ## Migration and rollback
 
-Apply only `20261025180000_private_conversion_analytics.sql` after local and isolated checks. It adds three empty tables, service-only RPCs, private aggregate view and nonblocking telemetry triggers. Do not replay the older upload migration. Capture the pre-release function/table/trigger inventory and migration-history entry; no existing business data is rewritten.
+Apply `20261025180000_private_conversion_analytics.sql` followed by `20261025190000_analytics_verified_identity.sql` after local and isolated checks. It adds three empty tables, service-only RPCs, private aggregate view and nonblocking telemetry triggers. Do not replay the older upload migration. Capture the pre-release function/table/trigger inventory and migration-history entry; no existing business data is rewritten.
 
 Rollback collection by setting `ANALYTICS_ENABLED=false` in build/functions and rebuilding. Keep the dedicated signing secret so withdrawals and cleanup continue. Restore the prior application deploy if needed; retain the additive schema initially to preserve deletion and retention. If database trigger removal is required, drop only `growth_uploaded` on storage.objects, `growth_workflow` on public.pw_events and `growth_job` on public.pw_jobs. Do not drop unrelated business tables or restore an old expired AI credential. Full removal of new telemetry should be a separately reviewed privacy deletion, not automatic destructive rollback.
 

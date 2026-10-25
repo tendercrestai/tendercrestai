@@ -15,10 +15,14 @@ select public.growth_collect('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',repeat('a',6
 select public.growth_collect('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',repeat('a',64),'demo_completed','it');
 select public.growth_collect('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',repeat('a',64),'demo_completed','it');
 select pg_temp.ok((select count(*)=2 from growth_events),'duplicate event deduplicated');
+set local role service_role;
 select public.growth_identify('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','11111111-1111-4111-8111-111111111111');
+reset role;
 select pg_temp.ok((select count(*)=0 from growth_events where name='signup_completed'),'old account never counted as new signup');
 select pg_temp.ok((select existing_accounts_connected=1 and consenting_visitors=1 from growth_funnel_private),'private report excludes test traffic and counts connected account');
+set local role service_role;
 select public.growth_billing('fictional@example.invalid',repeat('c',64),now(),'first_payment');
+reset role;
 select public.growth_billing('fictional@example.invalid',repeat('c',64),now(),'first_payment');
 select pg_temp.ok((select verified_first_paying_customers=1 from growth_funnel_private),'trusted payment receipt deduplicates');
 insert into storage.buckets(id,name) values('rfp-documents','rfp-documents');
