@@ -12,7 +12,12 @@ function createHandler(adapters={}){return async event=>{
   if(action==='create'){
    kb.exact(data,['action','orgId','title','company']);const state=core.initial(data.title,data.company);const id=await S.rpc(config,'create',{p_org:kb.uuid(data.orgId),p_user:user.id,p_title:state.title,p_state:state});return kb.reply(200,{id});
   }
-  const readActions=['get','history','revision','download','job','preferences','notificationRead'];const p=await S.project(config,user,data.projectId,readActions.includes(action)?undefined:writable);const memberRows=await S.members(config,p,user),me=memberRows.find(m=>m.user_id===user.id);const reviewer=['manager','reviewer'].includes(me.role)&&['owner','reviewer'].includes(me.orgRole);
+  const readActions=['get','history','revision','download','job','preferences','notificationRead','referenceGuidance'];const p=await S.project(config,user,data.projectId,readActions.includes(action)?undefined:writable);const memberRows=await S.members(config,p,user),me=memberRows.find(m=>m.user_id===user.id);if(!me)kb.fail(403,'Project access was removed.');const reviewer=['manager','reviewer'].includes(me.role)&&['owner','reviewer'].includes(me.orgRole);
+  if(action==='referenceGuidance'){
+   kb.exact(data,['action','projectId','revision','evidenceEpoch','sectionId','jurisdiction','sector']);S.enabled('reference');expected(data,p);
+   const result=(adapters.referenceGuidance||require('./lib/reference-guidance').guidance)(p,data);
+   const current=await S.project(config,user,p.id);expected(data,current);return kb.reply(200,result);
+  }
   if(action==='get'){kb.exact(data,['action','projectId']);return kb.reply(200,await S.workspace(config,user,p));}
   if(action==='history'){kb.exact(data,['action','projectId','page']);const page=data.page??0;if(!Number.isSafeInteger(page)||page<0||page>1000)kb.fail(400,'Invalid history page.');return kb.reply(200,{revisions:await S.db(config,'pw_revisions?project_id=eq.'+p.id+'&select=revision,actor_id,operation,evidence_epoch,created_at&order=revision.desc&limit=25&offset='+page*25),page});}
   if(action==='revision'){kb.exact(data,['action','projectId','revision']);if(!Number.isSafeInteger(data.revision)||data.revision<0)kb.fail(400,'Invalid revision.');const rows=await S.db(config,'pw_revisions?project_id=eq.'+p.id+'&revision=eq.'+data.revision+'&select=*');if(!rows[0])kb.fail(404,'Saved revision unavailable.');return kb.reply(200,{revision:rows[0]});}
