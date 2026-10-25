@@ -111,4 +111,28 @@ async function finish(config, submissionId, status, recordId) {
   });
 }
 
-module.exports = { entitlement, monthlyPeriod, reserve, finish, rpc };
+// Read-only balance: mirror reservation accounting without reserving/releasing credits.
+async function summary(config,company,root,headers,now=Date.now()) {
+  if (!/^rec[A-Za-z0-9]+$/.test(company.id||'')) throw new RequestError(503,'Your billing account needs review.');
+  const fields=company.fields||{},plan=fields['Subscription Tier']||(fields['Complimentary Access']===true?fields['Calculated Tier']:null);
+  let period;
+  try { period=entitlement(company,now); } catch(e) {
+    if(e.status!==403)throw e;
+    return {available:false,state:'inactive',plan:plan||null,message:e.message};
+  }
+  const records=await history(company,root,headers);
+  const failed=new Map(records.filter(r=>FAILED.has(r.fields?.['Pipeline Status'])&&r.fields?.['Credit Reservation ID']).map(r=>[r.fields['Credit Reservation ID'],r.id]));
+  let legacyUsed=0;
+  for(const r of records){const f=r.fields||{};if(f['Credit Reservation ID']||FAILED.has(f['Pipeline Status']))continue;const at=Date.parse(f['Created Date']||r.createdTime);if(!Number.isFinite(at))throw new RequestError(503,'Account usage needs review.');if(at>=Date.parse(period.start)&&at<Date.parse(period.end))legacyUsed++;}
+  let held=0;
+  for(let offset=0;offset<10000;offset+=1000){
+    const q=new URLSearchParams({company_id:'eq.'+company.id,status:'neq.released',and:'(reserved_at.gte.'+period.start+',reserved_at.lt.'+period.end+')',select:'submission_id,record_id,status',order:'submission_id.asc',limit:'1000',offset:String(offset)});
+    const r=await fetch(config.url+'/rest/v1/proposal_credit_reservations?'+q,{headers:{apikey:config.serviceKey,Authorization:'Bearer '+config.serviceKey},signal:AbortSignal.timeout(10000)});
+    if(!r.ok)throw new RequestError(503,'Account usage is temporarily unavailable.');
+    const rows=await r.json();if(!Array.isArray(rows))throw new RequestError(503,'Account usage needs review.');
+    held+=rows.filter(r=>!(r.status==='queued'&&r.record_id&&failed.get(r.submission_id)===r.record_id)).length;
+    if(rows.length<1000){const trial=fields.Status==='Trialing';return {available:true,state:trial?'trial':'active',plan:plan||(trial?'Legacy Enterprise trial':null),allowance:period.quota,used:held+legacyUsed,remaining:Math.max(0,period.quota-held-legacyUsed),periodStart:period.start,periodEnd:period.end,nextResetAt:trial?null:period.end,trialEndsAt:trial?period.end:null,asOf:new Date(now).toISOString()};}
+  }
+  throw new RequestError(503,'Account usage needs review.');
+}
+module.exports = { entitlement, monthlyPeriod, reserve, finish, rpc, summary };
