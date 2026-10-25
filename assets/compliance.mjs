@@ -1,3 +1,4 @@
+import {identifyUsage} from './analytics.mjs';
 import {uploadRfp} from './private-rfp-upload.mjs';
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm";
 import { validateFile } from "./rfp-document.mjs";
@@ -13,6 +14,7 @@ function controls(value) {
   $("workspace").setAttribute("aria-busy",String(value));
 }
 function clearAccount() {
+  void identifyUsage(null);
   epoch++;user=null;state=null;editing=null;paused=true;
   $("workspace").hidden=true;$("login").hidden=false;
   $("documents").value="";$("rows").replaceChildren();$("facts").replaceChildren();$("source-documents").replaceChildren();
@@ -24,7 +26,7 @@ async function session() {
   if(error || !data.session || data.session.user.id!==user?.id) {clearAccount();throw Error("Please sign in again.");}
   const verified=await supabase.auth.getUser();
   if(verified.error || verified.data.user?.id!==user.id) {clearAccount();throw Error("Your session could not be verified. Sign in again.");}
-  return data.session;
+  void identifyUsage(data.session.access_token);return data.session;
 }
 async function api(payload) {
   const current=epoch, auth=await session();

@@ -1,6 +1,6 @@
 const S=require('./proposal-service'),I=require('./customer-intelligence');
-const ACTIONS=new Set(['intelligence','runStrategy','saveIntelligence','intelligenceDecision','runAudit','qualityWeights','auditDisposition','studioPreview','acceptStudio','companyProfile','onboardingProgress','proposalOutcome','reuseSection','conversionFunnel','documentMetadata','saveDocumentMetadata']);
-const READ=new Set(['intelligence','studioPreview','onboardingProgress','conversionFunnel','documentMetadata']);
+const ACTIONS=new Set(['learningReadiness','winProbability','intelligence','runStrategy','saveIntelligence','intelligenceDecision','runAudit','qualityWeights','auditDisposition','studioPreview','acceptStudio','companyProfile','onboardingProgress','proposalOutcome','reuseSection','conversionFunnel','documentMetadata','saveDocumentMetadata']);
+const READ=new Set(['learningReadiness','winProbability','intelligence','studioPreview','onboardingProgress','conversionFunnel','documentMetadata']);
 const on=()=>process.env.PROPOSAL_INTELLIGENCE_ENABLED==='true';
 function requireAudit(p){if(!on())return;const a=p.state.qualityAudit;if(!a||a.auditInputHash!==I.auditInputHash(p.state,p.evidence_epoch)||a.evidenceEpoch!==p.evidence_epoch||a.findings.some(f=>['high','critical'].includes(f.severity)&&!f.resolution))S.kb.fail(409,'Run a current final audit and resolve its high-severity findings before sign-off or final export.');}
 async function handle(data,{config,user,p,me,reviewer,expected}){
@@ -8,6 +8,8 @@ async function handle(data,{config,user,p,me,reviewer,expected}){
  const mutable=!READ.has(data.action);if(mutable&&me.role==='viewer')kb.fail(403,'Read-only project access.');
  const save=async(state,operation)=>{if(Buffer.byteLength(JSON.stringify(state))>2800000)kb.fail(413,'Enhanced report exceeds project capacity. Split this RFP into smaller projects; saved work is unchanged.');const saved=await S.commit(config,user,p,state,'section.saved',{enhancementAction:operation});return kb.reply(200,await S.workspace(config,user,saved));};
  const read=async(value)=>{const current=await S.project(config,user,p.id);expected(data,current);return kb.reply(200,value);};
+ if(data.action==='learningReadiness'){kb.exact(data,base);return read(require('./learning-readiness').readiness(p));}
+ if(data.action==='winProbability'){kb.exact(data,[...base,'market','sector']);if(!['US federal','US state/local'].includes(data.market)||!['IT','consulting','marketing'].includes(data.sector))kb.fail(400,'Choose a supported market and sector.');return read(require('./learning-readiness').probability(p.state,{market:data.market,sector:data.sector}));}
  if(data.action==='intelligence'){kb.exact(data,base);return read({strategy:p.state.strategy||null,audit:p.state.qualityAudit||null,contentHash:core.contentHash(p.state)});}
  if(data.action==='onboardingProgress'){kb.exact(data,base);const docs=await S.db(config,'kb_documents?org_id=eq.'+p.org_id+'&status=eq.Ready&select=id&limit=1');return read(I.onboarding(p.state,docs.length));}
  if(data.action==='runStrategy'){kb.exact(data,base);const s=structuredClone(p.state);s.strategy=I.strategy(s,p.evidence_epoch);s.assessment=s.strategy.assessment;if(s.decision)s.decision.stale=true;s.onboarding={...(s.onboarding||{}),bidReviewedAt:new Date().toISOString()};return save(s,'strategy.completed');}

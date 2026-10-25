@@ -1,4 +1,4 @@
-import { cp, mkdir, rm } from "node:fs/promises";
+import { cp, mkdir, rm, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 
@@ -11,13 +11,23 @@ const pages = [
   "workspace.html", "knowledge.html", "security.html", "product.html", "samples.html", "demo.html", "googleb40d2fbef272897b.html", "robots.txt", "sitemap.xml"
 ];
 const assets = [
-  "customer-workspace.mjs", "interactive-demo.mjs", "demo-data.mjs", "workspace.mjs", "workspace.css", "private-rfp-upload.mjs", "rfp-upload.mjs", "rfp-document.mjs", "upload-attempt.mjs", "proposal-status.mjs",
+  "analytics.mjs", "customer-workspace.mjs", "interactive-demo.mjs", "demo-data.mjs", "workspace.mjs", "workspace.css", "private-rfp-upload.mjs", "rfp-upload.mjs", "rfp-document.mjs", "upload-attempt.mjs", "proposal-status.mjs",
   "docx-validation.mjs", "compliance.mjs", "compliance-model.mjs",
   "compliance-export.mjs", "compliance-handoff.mjs", "compliance.css", "knowledge.mjs", "knowledge.css", "public-pages.css"
 ];
 await rm(destination, { recursive: true, force: true });
 await mkdir(resolve(destination, "assets"), { recursive: true });
-for (const page of pages) await cp(resolve(root, page), resolve(destination, page));
+for (const page of pages) {
+  await cp(resolve(root, page), resolve(destination, page));
+  if (page.endsWith('.html')) {
+    let html = await readFile(resolve(destination, page), 'utf8');
+    if (/<body\b/i.test(html)) {
+      if (process.env.ANALYTICS_ENABLED === 'true') html = html.replace(/<html\b/i, '<html data-usage-analytics="enabled"');
+      html = html.replace(/<\/body>/i, '<script type="module" src="/assets/analytics.mjs"></script></body>');
+      await writeFile(resolve(destination, page), html);
+    }
+  }
+}
 for (const asset of assets) {
   await cp(resolve(root, "assets", asset), resolve(destination, "assets", asset));
 }

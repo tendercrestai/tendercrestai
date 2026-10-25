@@ -1,3 +1,4 @@
+import './analytics.mjs';
 import {scenarios,proposalFor,bidBreakdown} from './demo-data.mjs';
 const root=document.getElementById('interactive-demo');let current=scenarios[0],stage=0;
 const node=(tag,t)=>{const x=document.createElement(tag);if(t!==undefined)x.textContent=t;return x;};
@@ -14,4 +15,4 @@ function render(focus=false){root.replaceChildren();root.append(node('h2','Try t
  if(stage===2){for(const r of current.requirements){const d=node('details');d.open=true;d.append(node('summary',r.status+' · '+r.text),node('p','Source: '+r.source),node('p','Proposed response: '+r.quote),node('p','Evidence: '+r.evidence),node('p','Corrective action: '+r.action));panel.append(d);}panel.append(node('p','Expand or collapse each requirement to inspect its response and evidence gap. Generated text alone never proves compliance.'));}
  if(stage===3){for(const [title,text]of proposalFor(current))panel.append(node('h4',title),node('p',text));panel.append(node('p','End of fictional sample. Your actual project needs original-source review, verified company facts and authorized approvals.'));const links=node('div');links.className='actions';for(const [text,href]of [['Create Free Account','/auth.html?next=workspace'],['Start Free Trial','/#pricing'],['View Pricing','/#pricing']]){const a=node('a',text);a.href=href;a.className='button';links.append(a);}panel.append(links,node('p','Account creation is free. Paid plan trials require a card and last 14 days; the selected plan bills unless canceled. Trial allowances: Pro 5, Growth 20, Enterprise 60.'));}
  root.append(panel);const controls=node('div');controls.className='actions';if(stage)controls.append(button('Previous',()=>{stage--;render(true);}));if(stage<3)controls.append(button('Next: '+stages[stage+1],()=>{stage++;track(stage===3?'demo_completed':'demo_stage_viewed');render(true);}));else controls.append(button('Restart demo',()=>{stage=0;track('demo_started');render(true);}));root.append(controls);if(focus)panel.focus();}
-if(root){track('demo_started');render();}
+if(root){track('demo_started');render();document.addEventListener('tendercrest:analytics-enabled',()=>track('demo_started'));}

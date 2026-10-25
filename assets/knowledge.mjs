@@ -1,3 +1,4 @@
+import {identifyUsage} from './analytics.mjs';
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm';
 import {validateFile} from './rfp-document.mjs';
 const $=id=>document.getElementById(id);
@@ -18,10 +19,10 @@ function clearOrg(){
  for(const id of ['upload-form','search-form','document-filter-form','answer-filter-form','activity-filter-form','team-filter-form','invite-form'])$(id).reset();
  $('invite-link').value='';$('invite-result').hidden=true;resetAnswer();$('source-dialog').close();guide();
 }
-function signedOut(){clearOrg();user=null;$('workspace').hidden=true;$('login').hidden=false;$('organizations').replaceChildren();message('Sign in to access your private organization library.');}
+function signedOut(){void identifyUsage(null);clearOrg();user=null;$('workspace').hidden=true;$('login').hidden=false;$('organizations').replaceChildren();message('Sign in to access your private organization library.');}
 async function session(){
  const {data,error}=await supabase.auth.getSession();if(error||!data.session||data.session.user.id!==user?.id){signedOut();throw Error('Sign in again.');}
- const verified=await supabase.auth.getUser();if(verified.error||verified.data.user?.id!==user.id){signedOut();throw Error('Session verification failed. Sign in again.');}return data.session;
+ const verified=await supabase.auth.getUser();if(verified.error||verified.data.user?.id!==user.id){signedOut();throw Error('Session verification failed. Sign in again.');}void identifyUsage(data.session.access_token);return data.session;
 }
 async function api(payload){
  const current=epoch,s=await session();const response=await fetch('/.netlify/functions/knowledge',{method:'POST',headers:{Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify(payload)});const result=await response.json();

@@ -1,3 +1,4 @@
+import {identifyUsage} from './analytics.mjs';
 import { createClient } from
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm";
 
@@ -32,6 +33,7 @@ function notify(message, error = false) {
 }
 
 function requireLogin() {
+  void identifyUsage(null);
   statusTracker.stop();
   user = null;
   selected = null;
@@ -87,7 +89,7 @@ async function session() {
     );
   }
 
-  return data.session;
+  void identifyUsage(data.session.access_token);return data.session;
 }
 
 async function hash(value) {
