@@ -1,6 +1,8 @@
 # Validation and deployment evidence — 2026-10-25
 
-## Release state
+Current result: released through PR #19 after the embedding blocker cleared. See [production execution evidence](production-release.md#execution-result--released-2026-10-25) for the migration, active application commit, live checks and rollback. Earlier failures below are historical and retained for traceability.
+
+## Pre-release snapshot (historical)
 
 - Branch: `feature/customer-intelligence-upgrade`.
 - Draft PR: https://github.com/tendercrestai/tendercrestai/pull/19 — not merged.
@@ -58,3 +60,7 @@ The complete final-export/reuse journey above uses the independently existing ap
 The owner saved a replacement key on the isolated site. Verified that both primary and branch contexts contain the replacement (different from the expired live credential), with Functions scope, expected key prefix and no surrounding whitespace/quotes. Rebuilt and verified the exact published isolated candidate. OpenAI still rejects authentication: the bounded semantic-search check returns the application's 503 with safe upstream diagnostic **provider HTTP 401**. Fresh indexing remains blocked, not cleared by changing the saved value alone.
 
 Diagnostic-only application commit `88b1700b81ca71ae34fd6575951d9cf5963db42f` adds upstream HTTP status to the existing safe access-denied message; no provider response body, secret or source contents are exposed. All 256 Node regression tests and public build passed. Isolated deploy `6ade2d6610572eb924d516a7` is ready; automatic isolated builds stopped again. Production remains the prior verified deployment. No production migration, key replacement, merge or activation performed. The replacement credential must be verified as active/full before another rebuild and fresh indexing test.
+
+## Final gate closure
+
+The corrected replacement key passed semantic search and fresh indexing after an isolated rebuild. Thirteen real fresh-document workflow checks passed through approved citations, current clean audit, final reviewed Word/PDF package and knowledge reuse. Production key rotation, guarded additive migration and normal PR #19 merge followed the owner's conditional approval. Production passed 18 disabled-feature checks, 28 enabled-feature API checks, 24 actual Chromium checks and the five-page mobile/desktop public check. No production customer record, account, email, checkout or payment was created or changed by these read-only smoke checks. The new schema and configuration changes are listed explicitly in production-release.md.

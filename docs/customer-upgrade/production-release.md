@@ -23,4 +23,16 @@ Fresh read-only snapshot captured the two affected document-metadata rows, organ
 
 Rollback: set PROPOSAL_INTELLIGENCE_ENABLED=false and redeploy the verified commit, or restore prior deploy if necessary. Keep the additive schema and customer records. Restore neither the expired credential nor a full database merely to roll back UI/code. Full disaster recovery is a separate action.
 
-Execution result is recorded after the action; this preparation section alone does not claim production completion.
+The execution result below supersedes earlier preparation status.
+
+## Execution result — released 2026-10-25
+
+PR #19 merged normally at `2e39672952b398371ccea6ecfbb4d7eb2586520d`. Production migration `20261025090000` registered; all three function bodies match the reviewed source, every existing document field is preserved, RLS/private buckets remain intact and direct client execution of the new mutation RPCs is denied.
+
+Initial production deployment `6ade32140bd0f3dfb0d6eb7c` passed 18 checks with intelligence disabled. Active deployment `6ade32fdc8373fb62d733294` published the same commit with intelligence enabled and passed 28 API/security checks and 24 Chromium checks at mobile/desktop. Five public pages also passed mobile/desktop checks. All six prior feature switches stay enabled; project email remains false, existing Stripe URLs/trial terms unchanged. Production embedding query succeeded with the tested replacement key.
+
+Production authenticated smoke uses only the previously authorized Test1 owner and existing fictional empty project. Read/guard checks leave its saved state and revision unchanged; no customer source content was sent to a model. Positive fresh-document indexing through final reviewed Word/PDF export and reuse passed in the isolated environment (13 checks). The production browser initially expected source metadata fields, but Test1 has no sources; corrected the test to verify its actual library navigation/empty state, then all 24 checks passed. This does not claim a positive full-RFP production generation run.
+
+Preferred immediate rollback: set `PROPOSAL_INTELLIGENCE_ENABLED=false` in Production and restore verified flags-off deployment `6ade32140bd0f3dfb0d6eb7c` (or rebuild the same commit). It retains the working embedding credential. Preserve schema, source metadata and project history. Do not restore an older deployment's expired credential. The older application baseline remains `e592f9b7224138b4f60c872abeae2ea0552713ba`; rebuilding it requires the current working configuration.
+
+This follow-up updates public workflow/privacy descriptions and release reports only. It does not change application functions, migration, credentials or feature settings. Any subsequent documentation-only published commit retains the verified application source above. Final deployment identity is also recorded in the PR release comment.

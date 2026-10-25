@@ -1,6 +1,6 @@
 # Coordinated customer upgrade — implementation and release guide
 
-Status: controlled production rollout conditionally authorized by the owner after passing tests. See production-release.md for the cleared embedding gate, backup scope and exact action; do not infer completion from this preparation document. New authenticated features default off behind `PROPOSAL_INTELLIGENCE_ENABLED=true`. Anonymous interactive demo is bundled static data and needs no flag or provider. Existing production secrets, trials, allowances, contact and billing integrations are unchanged.
+Status: application released via PR #19 after passing the remaining provider, backup, migration and production checks. See production-release.md for actual execution and rollback. Authenticated additions use PROPOSAL_INTELLIGENCE_ENABLED; it is now true in Production. Billing/trials and email settings are preserved. The expired embedding credential was replaced with the successfully tested dedicated key; no other existing credentials were changed.
 
 ## Implementation inventory
 
@@ -31,7 +31,7 @@ Run `bash scripts/test-customer-upgrade-sql.sh` against an isolated local Docker
 
 ## Environment and preview
 
-Existing server configuration: SUPABASE_URL/PUBLISHABLE_KEY/SERVICE_ROLE_KEY; KB_ENABLED, KB_WORKER_SECRET/ORIGIN and embedding settings; COMPLIANCE_PREVIEW_ENABLED and COMPLIANCE_AI_API_KEY/MODEL; existing five PROPOSAL component/workspace flags. New flag PROPOSAL_INTELLIGENCE_ENABLED (unset/false disables authenticated additions). No new secret required. KB_WORKER_ORIGIN must be the actual isolated deployment origin when testing. PROPOSAL_EMAIL_LIVE remains false. No production environment edits.
+Existing server configuration: SUPABASE_URL/PUBLISHABLE_KEY/SERVICE_ROLE_KEY; KB_ENABLED, KB_WORKER_SECRET/ORIGIN and embedding settings; COMPLIANCE_PREVIEW_ENABLED and COMPLIANCE_AI_API_KEY/MODEL; existing five PROPOSAL component/workspace flags. New flag PROPOSAL_INTELLIGENCE_ENABLED (unset/false disables authenticated additions). No new secret required. KB_WORKER_ORIGIN must be the actual isolated deployment origin when testing. PROPOSAL_EMAIL_LIVE remains false. Production edits were limited to the tested embedding credential and the new feature flag, as recorded in production-release.md.
 
 Preview must point exclusively at test Supabase, keep generation/payment/customer-email automations disabled, use only approved fictional users/data and never invoke live card checkout. No service-role key may reach dist or public configuration. Manual API/deploy packaging is acceptable on the isolated site if repository-linked previews are unavailable. Record actual deploy URL and source commit in validation.md.
 
