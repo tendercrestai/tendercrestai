@@ -1,0 +1,1 @@
+exports.handler=async event=>({statusCode:event.httpMethod==='GET'?200:405,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:JSON.stringify(event.httpMethod==='GET'?{enabled:process.env.ANALYTICS_ENABLED==='true',consentVersion:'usage-v1',visitorDays:30,retentionDays:90}:{})});

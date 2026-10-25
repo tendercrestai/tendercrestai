@@ -1,0 +1,35 @@
+begin;
+create function pg_temp.ok(value boolean,label text) returns void language plpgsql as $$begin if value is distinct from true then raise exception 'FAIL: %',label;end if;raise notice 'PASS: %',label;end$$;
+select pg_temp.ok(not has_table_privilege('authenticated','public.growth_events','select'),'authenticated has no global event access');
+select pg_temp.ok(not has_table_privilege('anon','public.growth_funnel_private','select'),'anonymous has no report access');
+select pg_temp.ok(not has_function_privilege('authenticated','public.growth_record(uuid,text,timestamptz,text)','execute'),'trusted metrics are service-only');
+select pg_temp.ok((select bool_and(relrowsecurity) from pg_class where relname in ('growth_events','growth_visitors','growth_admissions')),'all telemetry tables enable RLS');
+insert into auth.users(id,email,created_at) values ('11111111-1111-4111-8111-111111111111','fictional@example.invalid',now()-interval '1 year');
+select public.growth_start('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',repeat('a',64),'google','us_gov_proposal_pilot','production',false,now()+interval '30 days');
+select public.growth_start('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',repeat('b',64),'reddit','other','test',true,now()+interval '30 days');
+do $$begin
+ begin perform public.growth_collect('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',repeat('a',64),'first_payment','none');raise exception 'FAIL forged payment';exception when invalid_parameter_value then raise notice 'PASS forged payment rejected';end;
+ begin perform public.growth_collect('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',repeat('a',64),'demo_completed','it');raise exception 'FAIL completion without start';exception when invalid_parameter_value then raise notice 'PASS demo requires start';end;
+end$$;
+select public.growth_collect('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',repeat('a',64),'demo_started','it');
+select public.growth_collect('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',repeat('a',64),'demo_completed','it');
+select public.growth_collect('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',repeat('a',64),'demo_completed','it');
+select pg_temp.ok((select count(*)=2 from growth_events),'duplicate event deduplicated');
+select public.growth_identify('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','11111111-1111-4111-8111-111111111111');
+select pg_temp.ok((select count(*)=0 from growth_events where name='signup_completed'),'old account never counted as new signup');
+select pg_temp.ok((select existing_accounts_connected=1 and consenting_visitors=1 from growth_funnel_private),'private report excludes test traffic and counts connected account');
+select public.growth_billing('fictional@example.invalid',repeat('c',64),now(),'first_payment');
+select public.growth_billing('fictional@example.invalid',repeat('c',64),now(),'first_payment');
+select pg_temp.ok((select verified_first_paying_customers=1 from growth_funnel_private),'trusted payment receipt deduplicates');
+insert into storage.buckets(id,name) values('rfp-documents','rfp-documents');
+insert into rfp_uploads values('11111111-1111-4111-8111-111111111111','fictional/source.txt');
+insert into storage.objects(bucket_id,name) values('rfp-documents','fictional/source.txt');
+select pg_temp.ok((select count(*)=1 from growth_events where name='rfp_uploaded'),'actual object upload records milestone');
+select public.growth_withdraw('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+select pg_temp.ok((select count(*)=0 from growth_events),'withdrawal cascades all visitor events');
+select pg_temp.ok((select count(*)=0 from growth_funnel_private),'withdrawn and test visitors absent from report');
+do $$begin
+ for i in 1..10 loop perform public.growth_admit(repeat('f',64),'start');end loop;
+ begin perform public.growth_admit(repeat('f',64),'start');raise exception 'FAIL cap';exception when raise_exception then if sqlerrm='FAIL cap' then raise;end if;raise notice 'PASS admission cap enforced';end;
+end$$;
+rollback;

@@ -1,0 +1,7 @@
+"""Private administrator report using existing Supabase management access. No customer identities printed."""
+import argparse,os,json,urllib.request,urllib.error,datetime,math
+p=argparse.ArgumentParser();p.add_argument('--project',choices=['vfdwaqgfepvoujprtuww','wcrrywzleylmdsqqlise'],required=True);p.add_argument('--days',type=int,default=30);p.add_argument('--spend-usd',type=float);args=p.parse_args();assert 1<=args.days<=90;assert args.spend_usd is None or (math.isfinite(args.spend_usd) and args.spend_usd>=0)
+sql="select * from public.growth_funnel_private where cohort_date>=current_date-"+str(args.days)+" order by cohort_date,channel,campaign"
+req=urllib.request.Request('https://api.supabase.com/v1/projects/'+args.project+'/database/query',method='POST',data=json.dumps({'query':sql,'read_only':True}).encode(),headers={'Authorization':'Bearer '+os.environ['SUPABASE_MANAGEMENT_TOKEN'],'Content-Type':'application/json'})
+with urllib.request.urlopen(req,timeout=30) as r:rows=json.load(r)
+paid=sum(r['verified_first_paying_customers'] for r in rows);print(json.dumps({'scope':'Consented first-party cohorts; production only; test traffic excluded. Not all website traffic or an accounting ledger. Trials need time to mature.','rows':rows,'cashAcquisitionCostUSD':args.spend_usd/paid if args.spend_usd is not None and paid else None,'spendSource':'Operator supplied, not an advertising-platform import' if args.spend_usd is not None else 'Not supplied'},indent=2))

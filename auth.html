@@ -151,6 +151,7 @@
   </main>
 
   <script type="module">
+    import {identifyUsage} from "/assets/analytics.mjs";
     import { createClient } from
       "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm";
 
@@ -252,7 +253,8 @@
     });
 
     async function showAccount(user) {
-      if (!user) return;
+      if (!user) {void identifyUsage(null);return;}
+      supabase.auth.getSession().then(({data})=>identifyUsage(data.session?.access_token||null)).catch(()=>{});
       if (new URLSearchParams(location.search).get("next") === "workspace") {
         location.href = "/workspace.html";
         return;
@@ -277,6 +279,7 @@
     });
 
     $("logoutBtn").addEventListener("click", async () => {
+      void identifyUsage(null);
       const { error } = await supabase.auth.signOut();
       if (error) return notify(error.message, true);
       show("login");

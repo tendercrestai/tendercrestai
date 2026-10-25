@@ -88,6 +88,7 @@ exports.handler = async event => {
     const body={records:[record],typecast:false};
     if(!existing) body.performUpsert={fieldsToMergeOn:['Stripe Subscription ID']};
     await request(ROOT,{method:'PATCH',headers,body:JSON.stringify(body)});
+    await require('./lib/growth-analytics').billing(sub,customer,state);
     return response(200,'Billing synchronized');
   } catch {
     // Stripe retries non-2xx deliveries. Do not acknowledge failed Airtable writes.
