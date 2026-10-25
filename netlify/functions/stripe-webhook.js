@@ -47,8 +47,10 @@ exports.handler = async event => {
     const plan=items.length===1 && items[0].quantity===1 && PLANS[id(items[0].price)];
     if(!plan) throw new Error('Unsupported price requires review');
     const item = items[0];
-    const periodStart = item.current_period_start;
-    const periodEnd = item.current_period_end;
+    // Trial eligibility must stop at Stripe's trial_end, even when the item
+    // reports a longer billing interval. Renewal then uses the paid interval.
+    const periodStart = sub.status==='trialing' ? sub.trial_start : item.current_period_start;
+    const periodEnd = sub.status==='trialing' ? sub.trial_end : item.current_period_end;
     if (!Number.isInteger(periodStart) || !Number.isInteger(periodEnd) || periodEnd <= periodStart) throw new Error('Billing period requires review');
     const enabled=['active','trialing'].includes(sub.status);
     const paid=sub.latest_invoice?.paid===true || sub.latest_invoice?.status==='paid';
@@ -80,7 +82,7 @@ exports.handler = async event => {
     // Preserve that representation until an explicit schema migration is performed.
     fields['Amount Paid']=plan[1];
     if(!existing) fields['Company Name']=customer.name || email;
-    if(paid && Number.isFinite(sub.latest_invoice?.status_transitions?.paid_at)) fields['Last Billing Date']=new Date(sub.latest_invoice.status_transitions.paid_at*1000).toISOString().slice(0,10);
+    if(state==='Active' && paid && Number.isFinite(sub.latest_invoice?.status_transitions?.paid_at)) fields['Last Billing Date']=new Date(sub.latest_invoice.status_transitions.paid_at*1000).toISOString().slice(0,10);
     fields['Cancellation Date']=sub.canceled_at ? new Date(sub.canceled_at*1000).toISOString().slice(0,10) : null;
     const record=existing ? {id:existing.id,fields} : {fields};
     const body={records:[record],typecast:false};

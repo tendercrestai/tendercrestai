@@ -648,44 +648,13 @@
         </p>
       </div>
 
+      <div class="workflow" id="trial-policy">
+        <h2>Try your selected plan free for 14 days</h2>
+        <p>A payment card is required at Stripe checkout. Use the same email address you use to sign in to TenderCrest AI. Unless you cancel before the trial ends, your selected plan automatically starts billing at the monthly price shown below. Manage cancellation through the Billing Portal.</p>
+        <p>Your trial includes up to <strong>5 proposals on Pro, 20 on Growth, or 60 on Enterprise</strong> across the entire 14-day period. It does not reset during the trial. Monthly allowances start with the paid billing period after a successful payment.</p>
+        <p>The standalone free Enterprise offer is no longer available. Existing legacy free trials keep their original expiry and do not automatically become paid subscriptions.</p>
+      </div>
       <div class="pricing-grid">
-
-        <!-- ENTERPRISE TRIAL -->
-        <div class="pricing-card test-card">
-          <div class="badge-pill">TRY THE EMAIL-DRAFT WORKFLOW · $0</div>
-          <div class="card-title">Proposal generation trial</div>
-          <div class="card-desc">
-            Try the existing emailed AI-draft workflow without a credit card.
-            Trial eligibility and remaining allowance are checked when you submit.
-          </div>
-
-          <div class="price-wrap">
-            <span class="price-num">$0</span>
-            <span class="price-period">/ eligible trial</span>
-          </div>
-
-          <form class="card-form" onsubmit="handleTestActivation(event)">
-            <input type="text" id="test-company" class="input-field"
-                   placeholder="Your Company Name" required>
-            <input type="email" id="test-email" class="input-field"
-                   placeholder="Your Work Email" required>
-            <button type="submit" class="btn btn-green">
-              Continue to the draft form
-            </button>
-          </form>
-
-          <p style="font-size:.75rem;color:#64748b;text-align:center">
-            Entering details does not create an account or subscription.
-            Proposal submission requires sign-in and an eligible account.
-          </p>
-
-          <ul class="features-list">
-            <li><span class="check-icon">✓</span> <strong>60 Enterprise RFP</strong> Proposals / month</li>
-            <li><span class="check-icon">✓</span> Federal Section L&amp;M and commercial SOW draft workflow</li>
-            <li><span class="check-icon">✓</span> AI-assisted draft generation</li>
-            <li><span class="check-icon">✓</span> Direct Proposal Email Delivery</li>
-          </ul>
-        </div>
 
         <!-- PRO -->
         <div class="pricing-card">
@@ -701,7 +670,7 @@
           <div style="margin-bottom:1.25rem">
             <a href="https://buy.stripe.com/dRm9AT6PcaJT44U622dby00"
                class="btn btn-primary" target="_blank"
-               rel="noopener noreferrer">Choose plan</a>
+               rel="noopener noreferrer">Start 14-day free trial</a>
           </div>
           <ul class="features-list">
             <li><span class="check-icon">✓</span> <strong>5 Proposals</strong> per month</li>
@@ -725,7 +694,7 @@
           <div style="margin-bottom:1.25rem">
             <a href="https://buy.stripe.com/eVqfZh4H44lv8laaiidby01"
                class="btn btn-primary" target="_blank"
-               rel="noopener noreferrer">Choose plan</a>
+               rel="noopener noreferrer">Start 14-day free trial</a>
           </div>
           <ul class="features-list">
             <li><span class="check-icon">✓</span> <strong>20 Proposals</strong> per month</li>
@@ -749,7 +718,7 @@
           <div style="margin-bottom:1.25rem">
             <a href="https://buy.stripe.com/14AdR92yW4lvcBq0HIdby02"
                class="btn btn-primary" target="_blank"
-               rel="noopener noreferrer">Choose plan</a>
+               rel="noopener noreferrer">Start 14-day free trial</a>
           </div>
           <ul class="features-list">
             <li><span class="check-icon">✓</span> <strong>60 Proposals</strong> per month</li>
@@ -1127,20 +1096,6 @@ let submissionId = crypto.randomUUID();
       } else {
         rec.textContent = '';
       }
-    }
-
-    function handleTestActivation(e) {
-      e.preventDefault();
-
-      const company = document.getElementById('test-company').value.trim();
-      const email = document.getElementById('test-email').value.trim();
-
-      if (!company || !email) return;
-
-      document.getElementById('company-name').value = company;
-      document.getElementById('submitter-email').value = email;
-
-      switchTab('portal');
     }
 
     function loadSampleData(type = 'gov') {

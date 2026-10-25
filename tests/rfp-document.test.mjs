@@ -157,9 +157,10 @@ test("all page scripts parse and existing workspace retains pricing and upload n
 
   assert.ok(html.includes('href="/rfp-upload.html"'));
   assert.ok(html.includes("billing.stripe.com/p/login/"));
-  // Trial navigation must survive marketing-copy changes.
-  assert.ok(html.includes('onsubmit="handleTestActivation(event)"'));
-  assert.ok(html.includes('id="test-company"'));
-  assert.ok(html.includes('id="test-email"'));
+  // Every paid plan has a Stripe trial entry point; the standalone free
+  // Enterprise provisioning form must not survive the policy change.
+  assert.equal((html.match(/Start 14-day free trial<\/a>/g) || []).length, 3);
+  assert.ok(!html.includes('handleTestActivation'));
+  assert.ok(html.includes('id="trial-policy"'));
   assert.ok(html.includes("Authorization"));
 });

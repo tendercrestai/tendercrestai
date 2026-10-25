@@ -27,7 +27,6 @@ let settings;
 let metadata;
 let env;
 let creditLedger;
-let trialClaimed;
 
 const json = (value, status = 200) =>
   new Response(JSON.stringify(value), {
@@ -53,7 +52,6 @@ beforeEach(() => {
 
   ledger = new Map();
   creditLedger = new Map();
-  trialClaimed = false;
   calls = [];
   settings = {};
 
@@ -86,12 +84,6 @@ beforeEach(() => {
 
     if (route.pathname.startsWith("/rest/v1/rpc/")) {
       if (settings.creditDown) return json({}, 503);
-      if (route.pathname.endsWith("claim_free_trial")) {
-        if (trialClaimed) return json({ create: false });
-        trialClaimed = true;
-        return json({ create: true, start: new Date(Date.now() - 1000).toISOString(), end: new Date(Date.now() + 30 * 86400000).toISOString() });
-      }
-      if (route.pathname.endsWith("bind_free_trial")) return json({ ok: true });
       if (route.pathname.endsWith("reserve_proposal_credit")) {
         if (settings.creditCode) return json({ code: settings.creditCode });
         const used = [...creditLedger.values()].filter(row => row.status !== "released").length;
@@ -177,12 +169,7 @@ beforeEach(() => {
     }
 
     if (route.pathname.endsWith("/tbliWnP6ThqA02G5L")) {
-      if (options.method === "POST") {
-        return json({
-          id: "recTrial",
-          fields: payload.fields
-        }, 201);
-      }
+      assert.notEqual(options.method, "POST", "Submission must not provision a free company account");
 
       if (settings.accountDown) return json({}, 503);
 
@@ -201,7 +188,7 @@ beforeEach(() => {
                 "Stripe Subscription ID": settings.complimentary ? undefined : "sub_example",
                 "Complimentary Access": settings.complimentary || false,
                 "Billing Period Start": new Date(Date.now() - 86400000).toISOString(),
-                "Billing Period End": settings.expired ? new Date(Date.now() - 1000).toISOString() : new Date(Date.now() + 29 * 86400000).toISOString(),
+                "Billing Period End": settings.expired ? new Date(Date.now() - 1000).toISOString() : new Date(Date.now() + (settings.status === "Trialing" ? 13 : 29) * 86400000).toISOString(),
                 "Proposals Pipeline": (settings.history || []).map(row => row.id),
                 "Company Credentials Digest": "Saved credentials"
               }
@@ -286,32 +273,16 @@ test("reserves one credit before queueing reviewed text with its reservation mar
   assert.equal(queueCalls().length, 1);
 });
 
-test("creates a free trial without Stripe and does not wait for computed quota", async () => {
+test("new accounts must complete plan checkout without creating a free Enterprise trial or consuming credits", async () => {
   settings.newTrial = true;
-  assert.equal((await run()).statusCode, 200);
-
-  const trial = calls.find(call =>
-    call.url.includes("/tbliWnP6ThqA02G5L") &&
-    call.options.method === "POST"
-  );
-
-  const trialFields = JSON.parse(trial.options.body).fields;
-  assert.ok(Date.parse(trialFields["Billing Period Start"]) < Date.parse(trialFields["Billing Period End"]));
-  const { ["Billing Period Start"]: start, ["Billing Period End"]: end, ...rest } = trialFields;
-  assert.deepEqual(rest, {
-    "Company Name": "Example",
-    "Billing Email": "owner@example.com",
-    "Subscription Tier": "Enterprise ($1,299/mo)",
-    Status: "Trialing",
-    "Amount Paid": 0
-  });
-
-  assert.deepEqual(
-    JSON.parse(queueCalls()[0].options.body).fields.Company,
-    ["recTrial"]
-  );
-
-  assert.ok(calls.every(call => !call.url.includes("stripe")));
+  const response=await run();
+  assert.equal(response.statusCode,403);
+  assert.equal(body(response).code,"subscription_required");
+  assert.equal(body(response).billingUrl,"/#pricing");
+  assert.equal(queueCalls().length,0);
+  assert.equal(creditLedger.size,0);
+  assert.ok(!calls.some(call => call.options.method === "POST" && call.url.endsWith("/tbliWnP6ThqA02G5L")));
+  assert.ok(!calls.some(call => /claim_free_trial|bind_free_trial/.test(call.url)));
 });
 
 test("cannot submit another user's document, a missing upload, or mismatched bytes", async () => {
@@ -529,11 +500,12 @@ test("ambiguous queue responses retain their credit", async () => {
   assert.equal(creditLedger.get(ID).status, "uncertain");
 });
 
-test("simultaneous unknown-account submissions create only one free trial", async () => {
+test("simultaneous unknown-account submissions cannot provision free trials", async () => {
   settings.newTrial = true;
   const results = await Promise.all([run(), run({ ...input, submissionId: OTHER })]);
-  assert.deepEqual(results.map(result => result.statusCode).sort(), [200, 503]);
-  assert.equal(calls.filter(call => call.url.endsWith("/tbliWnP6ThqA02G5L") && call.options.method === "POST").length, 1);
+  assert.deepEqual(results.map(result => result.statusCode), [403,403]);
+  assert.equal(calls.filter(call => call.url.endsWith("/tbliWnP6ThqA02G5L") && call.options.method === "POST").length, 0);
+  assert.equal(creditLedger.size,0);
 });
 
 test("owner-approved complimentary accounts use monthly credits without a Stripe subscription", async () => {
@@ -541,4 +513,13 @@ test("owner-approved complimentary accounts use monthly credits without a Stripe
   assert.equal((await run()).statusCode, 200);
   assert.equal(creditLedger.get(ID).status, "queued");
   assert.ok(calls.every(call => !call.url.includes("api.stripe.com")));
+});
+test('selected Stripe trial plan caps are enforced before queueing, not Airtable computed remaining values', async () => {
+  for(const [tier,quota] of [['Pro ($299/mo)',5],['Growth ($699/mo)',20],['Enterprise ($1,299/mo)',60]]) {
+    settings.status='Trialing';settings.tier=tier;settings.creditCode='quota_exceeded';
+    assert.equal((await run()).statusCode,429);
+    const reservation=calls.filter(call=>call.url.endsWith('/reserve_proposal_credit')).at(-1);
+    assert.equal(JSON.parse(reservation.options.body).p_quota,quota);
+    assert.equal(queueCalls().length,0);
+  }
 });

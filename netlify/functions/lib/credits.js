@@ -35,7 +35,7 @@ function entitlement(company, now = Date.now()) {
   if (now < start || now >= end) {
     throw new RequestError(403, 'Your allowance has expired or renewal payment is pending.');
   }
-  const quota = fields.Status === 'Trialing' ? 60 : QUOTAS[fields['Subscription Tier'] || (complimentary ? fields['Calculated Tier'] : '')];
+  const quota = trial ? 60 : QUOTAS[fields['Subscription Tier'] || (complimentary ? fields['Calculated Tier'] : '')];
   if (!quota) throw new RequestError(503, 'Your subscription plan needs review.');
   return { start: new Date(start).toISOString(), end: new Date(end).toISOString(), quota };
 }

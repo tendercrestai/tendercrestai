@@ -83,3 +83,34 @@ test('invalid signatures and failed Airtable writes are not acknowledged', async
   settings.writeFail = true;
   assert.equal((await handler(event())).statusCode, 503);
 });
+test('a Stripe trial persists exact trial dates instead of a longer item billing period', async () => {
+  sub.status='trialing'; sub.trial_start=1790812800; sub.trial_end=1792022400;
+  sub.latest_invoice={status:'paid',amount_paid:0};
+  assert.equal((await handler(event('customer.subscription.created',{id:'sub_current'}))).statusCode,200);
+  const fields=writes[0].records[0].fields;
+  assert.equal(fields.Status,'Trialing');
+  assert.equal(fields['Billing Period Start'],'2026-10-01T00:00:00.000Z');
+  assert.equal(fields['Billing Period End'],'2026-10-15T00:00:00.000Z');
+  assert.ok(!('Last Billing Date' in fields));
+});
+test('a trial without valid provider trial boundaries cannot obtain an inferred monthly allowance', async () => {
+  sub.status='trialing';
+  for(const [start,end] of [[undefined,undefined],[1792022400,1790812800],[1790812800,null]]) {
+    sub.trial_start=start;sub.trial_end=end;
+    assert.equal((await handler(event('customer.subscription.updated',{id:'sub_current'}))).statusCode,503);
+  }
+  assert.equal(writes.length,0);
+});
+test('trial conversion uses the new paid interval and payment failures revoke access', async () => {
+  sub.status='trialing';sub.trial_start=1790812800;sub.trial_end=1792022400;
+  assert.equal((await handler(event('customer.subscription.created',{id:'sub_current'}))).statusCode,200);
+  sub.status='active';sub.items.data[0].current_period_start=1792022400;sub.items.data[0].current_period_end=1794700800;
+  assert.equal((await handler(event('invoice.paid'))).statusCode,200);
+  const paid=writes[1].records[0].fields;assert.equal(paid.Status,'Active');assert.equal(paid['Billing Period Start'],'2026-10-15T00:00:00.000Z');assert.equal(paid['Billing Period End'],'2026-11-15T00:00:00.000Z');
+  sub.status='past_due';sub.latest_invoice.status='open';assert.equal((await handler(event('invoice.payment_failed'))).statusCode,200);assert.equal(writes[2].records[0].fields.Status,'Past Due');
+});
+test('a zero-dollar trial invoice is not recorded as a paid billing date', async () => {
+  sub.status='trialing';sub.trial_start=1790812800;sub.trial_end=1792022400;
+  assert.equal((await handler(event('customer.subscription.created',{id:'sub_current'}))).statusCode,200);
+  assert.ok(!('Last Billing Date' in writes[0].records[0].fields));
+});

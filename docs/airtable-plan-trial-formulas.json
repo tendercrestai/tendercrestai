@@ -1,0 +1,4 @@
+{
+  "Calculated Tier": "IF(AND({Status}=\"Trialing\",NOT({Stripe Subscription ID})),\"Enterprise ($1,299/mo)\",IF(OR({Subscription Tier}=\"Pro ($299/mo)\",{Subscription Tier}=\"Growth ($699/mo)\",{Subscription Tier}=\"Enterprise ($1,299/mo)\"),{Subscription Tier},IF({Amount Paid}>=120000,\"Enterprise ($1,299/mo)\",IF({Amount Paid}>=60000,\"Growth ($699/mo)\",\"Pro ($299/mo)\"))))",
+  "Monthly Quota": "SWITCH({Calculated Tier},\"Pro ($299/mo)\",5,\"Growth ($699/mo)\",20,\"Enterprise ($1,299/mo)\",60,5)"
+}
