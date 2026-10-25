@@ -1,6 +1,6 @@
 # Award-informed proposal guidance: proposed implementation
 
-Status: US government IT/consulting focus confirmed by the owner. Initial public-source research and an offline catalogue/retrieval boundary are prepared. Three research candidates are recorded; none is approved for production retrieval or verified as a full winning proposal response. No model was fine-tuned, paid provider invoked, production feature enabled, or public marketing claim added.
+Status: US government IT/consulting focus confirmed by the owner. Initial public-source research and an offline catalogue/retrieval boundary are prepared. Three research candidates and four offline-reviewed source snapshots are recorded; none is approved for production retrieval or verified as a full winning proposal response. No model was fine-tuned, paid provider invoked, production feature enabled, or public marketing claim added.
 
 ## Existing engines and integration boundaries
 
@@ -35,6 +35,6 @@ Do not publish 'trained on winning bids', a win-rate improvement, guaranteed com
 
 ## Pending inputs and release work
 
-Inspect additional public source links, provenance and reuse conditions within the confirmed US government IT/consulting market. The initial catalogue validator and offline structure-only retrieval interface are implemented in netlify/functions/lib/reference-patterns.js, with six tests using explicit synthetic review fixtures. reference-library/catalogue.json contains three actual research candidates, all excluded from retrieval pending review. Next add verified source ingestion and offline benchmark fixtures, then review actual proposal-response documents before activation. Implement engine integrations separately for code-managed compliance/project previews and the external Airtable generation prompts. Do not promise that changing the Netlify model alone upgrades all three paths.
+Inspect additional public source links, provenance and reuse conditions within the confirmed US government IT/consulting market. The initial catalogue validator and offline structure-only retrieval interface are implemented in netlify/functions/lib/reference-patterns.js, with six tests using explicit synthetic review fixtures. reference-library/catalogue.json now also contains four pinned, integrity-checked sources approved only for the offline pilot. Default production retrieval remains empty; the three original candidates remain pending review. Next add verified source ingestion and offline benchmark fixtures, then review actual proposal-response documents before activation. Implement engine integrations separately for code-managed compliance/project previews and the external Airtable generation prompts. Do not promise that changing the Netlify model alone upgrades all three paths.
 
 Production database changes, ingestion/model usage, activation and public USP claims should follow concrete reviewable implementation and test results. Existing billing/trial settings, customer drafts, email delivery and production access are outside this initial design task and remain unchanged.

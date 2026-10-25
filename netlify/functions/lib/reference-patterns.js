@@ -16,24 +16,24 @@ function validate(catalogue){
   if(!Array.isArray(r.supportingUrls)||r.supportingUrls.length>10||r.supportingUrls.some(u=>!url(u)))fail('invalid supporting URLs');
   if(!Array.isArray(r.patterns)||r.patterns.length>20||r.patterns.some(p=>!text(p.id,100)||!text(p.title,200)||!text(p.guidance,2000)||!text(p.locator,300)||!Array.isArray(p.tags)||p.tags.length>20||p.tags.some(t=>!text(t,50))))fail('invalid patterns');
   if(r.reviewStatus==='approved'){
-   if(r.reuseStatus!=='permitted'||!url(r.licenceEvidenceUrl)||!text(r.reuseBasis,2000)||!text(r.reviewedBy,100)||!/^\d{4}-\d{2}-\d{2}$/.test(r.reviewedAt||'')||!Number.isFinite(Date.parse(r.reviewedAt))||new Date(r.reviewedAt).toISOString().slice(0,10)!==r.reviewedAt||!/^[a-f0-9]{64}$/.test(r.sha256||''))fail('approved source lacks review/reuse/integrity evidence');
+   if(!['offline_pilot','production'].includes(r.approvalScope)||r.reuseStatus!=='permitted'||!url(r.licenceEvidenceUrl)||!text(r.reuseBasis,2000)||!text(r.reviewedBy,100)||!/^\d{4}-\d{2}-\d{2}$/.test(r.reviewedAt||'')||!Number.isFinite(Date.parse(r.reviewedAt))||new Date(r.reviewedAt).toISOString().slice(0,10)!==r.reviewedAt||!/^[a-f0-9]{64}$/.test(r.sha256||''))fail('approved source lacks review/reuse/integrity evidence');
   }
   if(r.awardStatus==='verified'&&(!url(r.awardEvidenceUrl)||!text(r.vendorName,300)||!text(r.procurementId,200)||!text(r.awardRationale,2000)))fail('award verification lacks matching evidence');
  }
  return catalogue;
 }
-function eligible(r){return r.reviewStatus==='approved'&&r.reuseStatus==='permitted'&&['proposal_response','technical_submission_documentation','government_guidance'].includes(r.documentType);}
+function eligible(r,mode='production'){return r.reviewStatus==='approved'&&r.reuseStatus==='permitted'&&(r.approvalScope==='production'||mode==='offline_pilot'&&r.approvalScope==='offline_pilot')&&['proposal_response','technical_submission_documentation','government_guidance'].includes(r.documentType);}
 function winningResponse(r){return eligible(r)&&r.documentType==='proposal_response'&&r.awardStatus==='verified';}
-function retrieve(catalogue,{jurisdiction,sector,query,limit=3,excludeProcurementIds=[]}){
+function retrieve(catalogue,{jurisdiction,sector,query,limit=3,excludeProcurementIds=[],mode='production'}){
  validate(catalogue);
- if(!['US federal','US state/local'].includes(jurisdiction)||!['IT','consulting'].includes(sector)||typeof query!=='string'||!query.trim()||query.length>30000||!Number.isInteger(limit)||limit<1||limit>5||!Array.isArray(excludeProcurementIds)||excludeProcurementIds.some(id=>!text(id,200)))fail('invalid retrieval query');
+ if(!['production','offline_pilot'].includes(mode)||!['US federal','US state/local'].includes(jurisdiction)||!['IT','consulting'].includes(sector)||typeof query!=='string'||!query.trim()||query.length>30000||!Number.isInteger(limit)||limit<1||limit>5||!Array.isArray(excludeProcurementIds)||excludeProcurementIds.some(id=>!text(id,200)))fail('invalid retrieval query');
  const tokens=new Set(query.toLowerCase().match(/[a-z0-9]{3,}/g)||[]);
  const suggestions=[];
  for(const r of catalogue.records){
-  if(!eligible(r)||r.jurisdiction!==jurisdiction||r.sector!==sector||excludeProcurementIds.includes(r.procurementId))continue;
+  if(!eligible(r,mode)||r.jurisdiction!==jurisdiction||r.sector!==sector||excludeProcurementIds.includes(r.procurementId))continue;
   for(const p of r.patterns){
    const tags=new Set(p.tags.flatMap(t=>t.toLowerCase().match(/[a-z0-9]{3,}/g)||[]));const matches=[...tokens].filter(t=>tags.has(t));if(!matches.length)continue;
-   suggestions.push({sourceId:r.id,patternId:p.id,title:p.title,guidance:p.guidance,sourceUrl:r.sourceUrl,locator:p.locator,sha256:r.sha256,documentType:r.documentType,verifiedWinningResponse:winningResponse(r),matchedTerms:matches,permittedUse:'structure_guidance_only',canSupportCompliance:false,requiresHumanReview:true,untrustedReferenceData:true});
+   suggestions.push({sourceId:r.id,patternId:p.id,title:p.title,guidance:p.guidance,sourceUrl:r.sourceUrl,locator:p.locator,sha256:r.sha256,documentType:r.documentType,approvalScope:r.approvalScope,verifiedWinningResponse:winningResponse(r),matchedTerms:matches,permittedUse:'structure_guidance_only',canSupportCompliance:false,requiresHumanReview:true,untrustedReferenceData:true});
   }
  }
  return suggestions.sort((a,b)=>b.matchedTerms.length-a.matchedTerms.length||a.sourceId.localeCompare(b.sourceId)||a.patternId.localeCompare(b.patternId)).slice(0,limit);

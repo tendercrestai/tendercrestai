@@ -1,6 +1,6 @@
 # US government IT/consulting reference pilot
 
-Research metadata only. No source in catalogue.json is approved for model context, training or production retrieval. `retrieve()` currently returns zero suggestions for this catalogue. There are no verified full winning proposal responses in the initial collection. No private customer evidence belongs in this directory.
+Offline research pilot only. Three candidate records remain unapproved. Four source snapshots have been reviewed for offline structural guidance: three US Digital Services Playbook plays and one Acumen technical-documentation example. None is approved for production retrieval or model training. Default production-mode retrieval still returns zero suggestions. There are no verified full winning proposal responses. No private customer evidence belongs in this directory.
 
 ## Sources inspected
 
@@ -23,3 +23,22 @@ SAM.gov and USAspending identify opportunities, vendors and award context; they 
 Direct HTTP probes of SAM.gov, USAspending, GAO, GSA eLibrary and Austin procurement were blocked/unavailable under this environment's current network policy. A draft preserves existing destinations and adds sam.gov, www.usaspending.gov, api.usaspending.gov, www.gao.gov, www.gsaelibrary.gsa.gov and www.austintexas.gov. Saving the draft is not publication/application: the owner must review/save and publish the environment before direct-source research can proceed. GitHub API access enabled the limited initial research above without bypassing those restrictions.
 
 A stronger public USP should follow verified response coverage and a held-out benchmark against the current engine. Until then, do not publish 'trained on winning bids', measured uplift, win-rate or compliance guarantees.
+
+## Second research pass and reproducible offline preview
+
+SAM.gov and USAspending now return HTTP 200 through this environment; GAO returned HTTP 403. This supersedes the initial access probes above; no GAO access control was bypassed. These portals do not by themselves establish access to full winning proposal text.
+
+Four offline-reviewed snapshots are pinned by commit and SHA-256 in the catalogue:
+
+- USDS Playbook play 1: user needs, research and validation.
+- USDS Playbook play 4: iterative delivery and feedback.
+- USDS Playbook play 12: measurement and operational review.
+- Acumen GSA Agile Prototype README: technical-approach justification and role/responsibility structure. The adjacent MIT notice explicitly covers associated documentation and is retained verbatim. The official agency list contains Acumen Solutions Inc, but the evaluated-document/revision linkage is not verified. This source remains technical documentation, not a full verified winning response. No vendor facts or historical technology choices are transferred into pattern guidance.
+
+USDS's pinned README contains the US Government public-domain/CC0 declaration and is retained. Reference source code, links and assets are never executed or followed automatically. Copied snapshots are internal research artifacts excluded from the static build.
+
+Reproduce with `python scripts/collect-reference-pilot.py`. This uses the existing GitHub CLI for public, pinned repository content only, verifies Git blob integrity, bounds sizes, decodes UTF-8 and records SHA-256. It does not request a model or traverse private repositories. Scope approval is `offline_pilot`, not production. `reference-catalogue.js` rejects changed source/notice bytes and paths escaping the library root.
+
+Run `node scripts/reference-pilot.mjs tests/fixtures/proposal/rfp.txt` to inspect an offline context preview. It returns source-attributed structure suggestions, exact source locators/hashes and explicit evidence/compliance boundaries; it does not repeat the complete input RFP, generate a proposal, send data to a model or mark compliance. It defaults to US federal IT for this initial CLI; the underlying retriever also validates sector/jurisdiction inputs. Current extraction is lexical/tag based, not semantic retrieval or a learned model. No production caller imports the pilot modules.
+
+The fictional development fixture demonstrates capacity/role structure, delivery/feedback structure and user validation. It still requires the bidder's own current ISO certificate, authorized project evidence, capacity assumptions and required attachments. The library cannot supply those. This is a development example, not a held-out benchmark or proof of a quality/time/win-rate improvement.
