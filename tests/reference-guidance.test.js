@@ -24,3 +24,6 @@ test('unsupported catalogue coverage returns no-match rather than another market
 test('a corrupt deployed source never returns advice or private exception details',async()=>{
  const parent=fs.mkdtempSync(path.join(os.tmpdir(),'reference-prod-test-'));try{fs.cpSync(path.resolve(__dirname,'../reference-library'),parent,{recursive:true});fs.appendFileSync(path.join(parent,'sources/usds-playbook-01.md'),'changed');const handler=createHandler({referenceGuidance:(a,b)=>guidance(a,b,{libraryRoot:parent})});const r=await handler(event(data()));assert.equal(r.statusCode,503);assert.ok(!r.body.includes(parent));assert.ok(!r.body.includes('PRIVATE'));}finally{fs.rmSync(parent,{recursive:true,force:true});}
 });
+test('a revision changed while guidance is calculated is rejected by the final state check',async()=>{
+ const handler=createHandler({referenceGuidance:(a,b)=>{const r=guidance(a,b);p.revision++;return r;}});assert.equal((await handler(event(data()))).statusCode,409);
+});

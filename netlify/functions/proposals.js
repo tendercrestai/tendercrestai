@@ -16,7 +16,7 @@ function createHandler(adapters={}){return async event=>{
   if(action==='referenceGuidance'){
    kb.exact(data,['action','projectId','revision','evidenceEpoch','sectionId','jurisdiction','sector']);S.enabled('reference');expected(data,p);
    const result=(adapters.referenceGuidance||require('./lib/reference-guidance').guidance)(p,data);
-   await S.project(config,user,p.id);return kb.reply(200,result);
+   const current=await S.project(config,user,p.id);expected(data,current);return kb.reply(200,result);
   }
   if(action==='get'){kb.exact(data,['action','projectId']);return kb.reply(200,await S.workspace(config,user,p));}
   if(action==='history'){kb.exact(data,['action','projectId','page']);const page=data.page??0;if(!Number.isSafeInteger(page)||page<0||page>1000)kb.fail(400,'Invalid history page.');return kb.reply(200,{revisions:await S.db(config,'pw_revisions?project_id=eq.'+p.id+'&select=revision,actor_id,operation,evidence_epoch,created_at&order=revision.desc&limit=25&offset='+page*25),page});}
