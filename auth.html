@@ -140,6 +140,7 @@
     <section id="account" class="hidden">
       <h2>My account</h2>
       <p id="accountEmail"></p>
+      <section id="accountUsage" aria-label="Proposal allowance" aria-live="polite" style="border:1px solid #cbd5e1;border-radius:8px;padding:16px;margin:16px 0"></section>
       <button id="workspaceBtn">Open Proposal Workspace</button>
       <p><a id="workspace-link" href="/workspace.html" hidden>Open team proposal workspace</a></p>
       <button id="knowledgeBtn" type="button">Open Knowledge Base</button>
@@ -151,6 +152,7 @@
   </main>
 
   <script type="module">
+    import {createAccountUsage} from "/assets/account-usage.mjs";
     import {identifyUsage} from "/assets/analytics.mjs";
     import { createClient } from
       "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm";
@@ -161,6 +163,7 @@
     );
 
     const $ = id => document.getElementById(id);
+    const accountUsage=createAccountUsage($("accountUsage"),()=>supabase.auth.getSession());
     fetch('/.netlify/functions/proposal-config').then(r=>r.json()).then(c=>{const link=$('workspace-link');if(link&&c.enabled&&['evidence','builder','collaboration','bid'].every(k=>c.features?.[k]))link.hidden=false;}).catch(()=>{});
     const views = ["login", "signup", "forgot", "reset", "account"];
     const redirectBase = location.origin + "/auth.html";
@@ -253,7 +256,7 @@
     });
 
     async function showAccount(user) {
-      if (!user) {void identifyUsage(null);return;}
+      if (!user) {accountUsage.clear();void identifyUsage(null);return;}
       supabase.auth.getSession().then(({data})=>identifyUsage(data.session?.access_token||null)).catch(()=>{});
       if (new URLSearchParams(location.search).get("next") === "workspace") {
         location.href = "/workspace.html";
@@ -264,6 +267,7 @@
         return;
       }
       $("accountEmail").textContent = "Signed in as: " + user.email;
+      void accountUsage.show(user);
       show("account");
     }
 
@@ -279,6 +283,7 @@
     });
 
     $("logoutBtn").addEventListener("click", async () => {
+      accountUsage.clear();
       void identifyUsage(null);
       const { error } = await supabase.auth.signOut();
       if (error) return notify(error.message, true);
@@ -286,6 +291,12 @@
     });
 
     supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        accountUsage.clear();
+        void identifyUsage(null);
+        $("accountEmail").textContent = "";
+        if (!recoveryMode) show("login");
+      }
       if (event === "PASSWORD_RECOVERY") {
         recoveryMode = true;
         show("reset");
