@@ -28,6 +28,8 @@ Production changes in this audit: read-only inspection only. Source fixes are on
 | F14 | Medium | Isolated Auth site/redirects pointed to an old preview and minimum password length differed from the UI/production. | Isolated site URL and allowlist aligned while retaining prior entries; minimum length set to 12. Production Auth unchanged. |
 | F15 | Medium | Revision API supports pagination but UI loaded only page zero, hiding revisions older than the first 25 entries. | “Load older revisions” with page advancement and a clear end state. |
 
+| F16 | High | The isolated site's `SUBMISSION_ENABLED=false` variable was not read by the submission handler; missing credentials, rather than the intended switch, prevented dispatch. | Honor an explicit false before any authentication/storage/provider request. Unset production behavior is preserved; no flag is enabled. |
+
 ## Unresolved findings and product priorities
 
 ### G01 — Signup/password-reset email needs production verification — highest priority

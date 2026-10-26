@@ -247,6 +247,10 @@ exports.handler = async function (event) {
     return response;
   }
 
+  if (process.env.SUBMISSION_ENABLED === "false") {
+    return reply(503, { error: "Proposal submission is disabled for this deployment." });
+  }
+
   if (
     event.isBase64Encoded ||
     typeof event.body !== "string" ||
