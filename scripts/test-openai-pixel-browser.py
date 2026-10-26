@@ -15,6 +15,10 @@ with sync_playwright() as p:
   assert len(calls)==expected,(path,action,calls)
   if expected:
    assert page.evaluate('oaiq.q[0][1].debug') is False
+   assert page.evaluate('Array.from(oaiq.q[1])')==['measure','page_viewed',{'type':'contents'}]
+   page.get_by_role('button',name='Advertising tracking settings',exact=True).click()
+   page.get_by_role('button',name='Allow OpenAI advertising tracking',exact=True).click()
+   assert page.evaluate('oaiq.q.length')==2
    page.get_by_role('button',name='Advertising tracking settings',exact=True).click()
    page.get_by_role('button',name='Decline advertising tracking',exact=True).click();page.wait_for_timeout(300)
    assert len(calls)==1 and page.evaluate('typeof window.oaiq')=='undefined'
