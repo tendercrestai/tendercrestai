@@ -31,3 +31,6 @@
 [functions."proposal-worker-background"]
   external_node_modules = ["pdfkit", "docx", "fflate"]
   included_files = ["netlify/functions/assets/DejaVuSans.ttf", "netlify/functions/assets/DejaVuSans-Bold.ttf", "assets/compliance-export.mjs", "assets/compliance-model.mjs"]
+
+[functions."customer-care-maintenance"]
+  schedule = "37 * * * *"

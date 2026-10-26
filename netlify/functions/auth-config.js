@@ -4,5 +4,5 @@ exports.handler=async event=>{
  if(event.httpMethod!=='GET')return {statusCode:405,headers:{...headers,Allow:'GET'},body:'{}'};
  const url=(process.env.SUPABASE_URL||'').replace(/\/$/,''),key=process.env.SUPABASE_PUBLISHABLE_KEY;
  if(!/^https:\/\/[a-z0-9]{20}\.supabase\.co$/.test(url)||!/^sb_publishable_[A-Za-z0-9_.-]+$/.test(key||''))return {statusCode:503,headers,body:JSON.stringify({error:'Account connection is temporarily unavailable. Reload this page to retry.'})};
- return {statusCode:200,headers,body:JSON.stringify({url,key})};
+ return {statusCode:200,headers,body:JSON.stringify({url,key,customerCare:process.env.CUSTOMER_CARE_ENABLED==='true',authenticatedCheckout:process.env.AUTHENTICATED_CHECKOUT_ENABLED==='true',personalDeletion:process.env.CUSTOMER_DELETION_EXECUTION_ENABLED==='true'})};
 };

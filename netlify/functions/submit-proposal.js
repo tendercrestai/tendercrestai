@@ -116,7 +116,8 @@ async function queueProposal(validated, attempt, context) {
   } = validated;
 
   let { qualifications } = validated;
-  const pat = process.env.AIRTABLE_PAT;
+  const source=require('./lib/billing-source').billingSource();
+  const pat = source.pat;
 
   if (!pat) {
     return reply(503, {
@@ -124,7 +125,7 @@ async function queueProposal(validated, attempt, context) {
     });
   }
 
-  const root = "https://api.airtable.com/v0/appsaqdp3UZdhB2VH";
+  const root = source.root;
   const headers = {
     Authorization: "Bearer " + pat,
     "Content-Type": "application/json"
@@ -140,10 +141,11 @@ async function queueProposal(validated, attempt, context) {
     );
 
     const searchUrl =
-      root + "/tbliWnP6ThqA02G5L?filterByFormula=" + formula +
+      root + "/"+source.company+"?filterByFormula=" + formula +
       "&maxRecords=2";
 
-    const search = await fetch(searchUrl, {
+    const bound=await require('./lib/customer-care').boundCompany(context.config,context.user,root,headers);
+    const search = bound ? {ok:true,json:async()=>({records:[bound]})} : await fetch(searchUrl, {
       headers,
       signal: AbortSignal.timeout(10000)
     });
@@ -193,7 +195,7 @@ async function queueProposal(validated, attempt, context) {
     // Any uncertain response after this point must not blindly retry.
     attempt.dispatched = true;
 
-    const insert = await fetch(root + "/tblkL2ct7mYtUTu9S", {
+    const insert = await fetch(root + "/"+source.proposals, {
       method: "POST",
       headers,
       signal: AbortSignal.timeout(10000),

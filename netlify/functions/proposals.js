@@ -8,17 +8,20 @@ function createHandler(adapters={}){return async event=>{
  try{
   S.enabled();const data=kb.parse(event,100000),config=kb.configuration(),{user,token}=await kb.authenticate(event,config);const action=data.action;await S.rpc(config,'admit',{p_org:null,p_user:user.id,p_action:'read'});
   if(action==='list'){
-   kb.exact(data,['action']);const rows=await kb.database(config,'pw_projects?select=id,org_id,title,revision,evidence_epoch,created_by,updated_at&order=updated_at.desc&limit=200',{token});return kb.reply(200,{projects:rows});
+   kb.exact(data,['action','page','query']);const page=data.page??0;if(!Number.isSafeInteger(page)||page<0||page>1000||data.query!==undefined&&(typeof data.query!=='string'||data.query.length>200))kb.fail(400,'Invalid project search.');const query=new URLSearchParams({select:'id,org_id,title,revision,evidence_epoch,created_by,updated_at',order:'updated_at.desc,id.desc',limit:'51',offset:String(page*50)});if(data.query?.trim())query.set('title','ilike.*'+data.query.trim().replace(/[\*%]/g,'')+'*');const rows=await kb.database(config,'pw_projects?'+query,{token});return kb.reply(200,{projects:rows.slice(0,50),page,hasMore:rows.length>50});
   }
   if(action==='create'){
    kb.exact(data,['action','orgId','title','company']);const state=core.initial(data.title,data.company);const id=await S.rpc(config,'create',{p_org:kb.uuid(data.orgId),p_user:user.id,p_title:state.title,p_state:state});return kb.reply(200,{id});
   }
-  const readActions=['get','history','revision','download','job','preferences','notificationRead','referenceGuidance'];const p=await S.project(config,user,data.projectId,(readActions.includes(action)||upgrade.READ.has(action))?undefined:writable);const memberRows=await S.members(config,p,user),me=memberRows.find(m=>m.user_id===user.id);if(!me)kb.fail(403,'Project access was removed.');const reviewer=['manager','reviewer'].includes(me.role)&&['owner','reviewer'].includes(me.orgRole);
+  const readActions=['browse','get','history','revision','download','job','preferences','notificationRead','referenceGuidance'];const p=await S.project(config,user,data.projectId,(readActions.includes(action)||upgrade.READ.has(action))?undefined:writable);const memberRows=await S.members(config,p,user),me=memberRows.find(m=>m.user_id===user.id);if(!me)kb.fail(403,'Project access was removed.');const reviewer=['manager','reviewer'].includes(me.role)&&['owner','reviewer'].includes(me.orgRole);
   const enhanced=await upgrade.handle(data,{config,user,p,me,reviewer,expected});if(enhanced)return enhanced;
   if(action==='referenceGuidance'){
    kb.exact(data,['action','projectId','revision','evidenceEpoch','sectionId','jurisdiction','sector']);S.enabled('reference');expected(data,p);
    const result=(adapters.referenceGuidance||require('./lib/reference-guidance').guidance)(p,data);
    const current=await S.project(config,user,p.id);expected(data,current);return kb.reply(200,result);
+  }
+  if(action==='browse'){
+   kb.exact(data,['action','projectId','kind','page']);const kinds={jobs:['pw_jobs','id,kind,revision,status,attempts,result,created_at'],files:['pw_files','id,name,kind,mime,size_bytes,revision,expires_at,created_at'],activity:['pw_events','id,action,revision,created_at'],notifications:['pw_notifications','id,kind,read_at,email_state,created_at'],assessments:['pw_assessments','id,revision,result,created_at'],approvals:['pw_approvals','id,section_id,revision,created_at']};const shape=kinds[data.kind],page=data.page??0;if(!Object.hasOwn(kinds,data.kind)||!shape||!Number.isSafeInteger(page)||page<0||page>1000)kb.fail(400,'Invalid saved-record page.');const query=new URLSearchParams({project_id:'eq.'+p.id,select:shape[1],order:'created_at.desc,id.desc',limit:'51',offset:String(page*50)});if(data.kind==='notifications')query.set('user_id','eq.'+user.id);const rows=await S.db(config,shape[0]+'?'+query);return kb.reply(200,{items:rows.slice(0,50),page,hasMore:rows.length>50});
   }
   if(action==='get'){kb.exact(data,['action','projectId']);return kb.reply(200,await S.workspace(config,user,p));}
   if(action==='history'){kb.exact(data,['action','projectId','page']);const page=data.page??0;if(!Number.isSafeInteger(page)||page<0||page>1000)kb.fail(400,'Invalid history page.');return kb.reply(200,{revisions:await S.db(config,'pw_revisions?project_id=eq.'+p.id+'&select=revision,actor_id,operation,evidence_epoch,created_at&order=revision.desc&limit=25&offset='+page*25),page});}

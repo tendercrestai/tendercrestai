@@ -1,0 +1,47 @@
+const kb=require('./knowledge-base'),{createHash}=require('node:crypto');
+const enabled=()=>process.env.CUSTOMER_CARE_ENABLED==='true';
+const plans={pro:{price:'price_1UJqs7FinOspVJZ4xHjda0xZ',allowance:5},growth:{price:'price_1UJquQFinOspVJZ4MQWPDG5c',allowance:20},enterprise:{price:'price_1UJqwTFinOspVJZ4VPhpCVcG',allowance:60}};
+async function db(config,path,options={}){return kb.database(config,path,{...options,service:true});}
+async function claimDelivery({to,subject,message,deliveryKey,submissionId}){
+ const config=kb.configuration(),uid=await kb.rpc(config,'cc_verified_email_user',{p_email:to});
+ if(!deliveryKey||typeof deliveryKey!=='string'||!/^[A-Za-z0-9:_-]{10,150}$/.test(deliveryKey))kb.fail(400,'A stable delivery key is required.');
+ const key='relay:'+createHash('sha256').update(deliveryKey).digest('hex');
+ return {...await kb.rpc(config,'cc_claim_delivery',{p_key:key,p_user:uid,p_subject:subject,p_body:message,p_submission:submissionId||null,p_recipient_hash:createHash('sha256').update(to.trim().toLowerCase()).digest('hex')}),config,key};
+}
+// Backward-compatible mapping only when one exact generated body belongs to this verified recipient.
+// Ambiguous/old automation payloads are never guessed or globally content-deduplicated.
+async function inferLegacyDelivery(to,message){
+ try{const config=kb.configuration(),uid=await kb.rpc(config,'cc_verified_email_user',{p_email:to});if(!uid)return null;const source=require('./billing-source').billingSource();if(!source.pat)return null;
+ const submissions=await db(config,'rfp_submissions?user_id=eq.'+uid+'&status=eq.queued&record_id=not.is.null&select=id,record_id&order=created_at.desc&limit=25');const valid=submissions.filter(r=>/^rec[A-Za-z0-9]+$/.test(r.record_id));if(!valid.length)return null;
+ const q=new URLSearchParams({filterByFormula:'OR('+valid.map(r=>"RECORD_ID()='"+r.record_id+"'").join(',')+')',maxRecords:'25'});const r=await fetch(source.root+'/'+source.proposals+'?'+q,{headers:{Authorization:'Bearer '+source.pat},signal:AbortSignal.timeout(10000)});if(!r.ok)return null;const data=await r.json();if(!Array.isArray(data.records)||data.offset)return null;
+ const normalize=value=>require('./proposal-email').normalizeBrand(value).replace(/\r\n?/g,'\n').trim();const target=normalize(message);if(target.length<50)return null;const matches=data.records.filter(row=>valid.some(s=>s.record_id===row.id)&&Object.values(row.fields||{}).some(v=>{const text=typeof v==='string'?v:v&&v.state==='generated'&&v.isStale!==true&&typeof v.value==='string'?v.value:null;return text!==null&&normalize(text)===target;}));if(matches.length!==1||valid.filter(s=>s.record_id===matches[0].id).length!==1)return null;const original=valid.find(s=>s.record_id===matches[0].id);return {deliveryKey:'proposal:'+original.record_id,submissionId:original.id};
+ }catch{return null;}
+}
+async function requestDeletion(config,user,{documentId,kind,reason}){
+ kb.uuid(documentId);if(!['rfp','knowledge'].includes(kind))kb.fail(400,'Choose an uploaded RFP or knowledge source.');kb.text(reason,2000);if(reason.trim().length<5)kb.fail(400,'Please provide a deletion reason of at least five characters.');
+ let document;
+ if(kind==='rfp'){const rows=await db(config,'rfp_uploads?id=eq.'+documentId+'&user_id=eq.'+user.id+'&select=id');document=rows[0];}
+ else{const rows=await db(config,'kb_documents?id=eq.'+documentId+'&select=id,org_id');document=rows[0];if(document)await kb.membership(config,user.token,user,document.org_id);const members=document&&await db(config,'kb_memberships?org_id=eq.'+document.org_id+'&user_id=eq.'+user.id+'&active=eq.true&select=role');if(!members?.some(m=>m.role==='owner'))kb.fail(403,'An organization owner must request knowledge deletion.');}
+ if(!document)kb.fail(404,'Owned document unavailable.');
+ const existing=await db(config,'cc_deletion_requests?user_id=eq.'+user.id+'&document_id=eq.'+documentId+'&kind=eq.'+kind+'&select=id,state');if(existing[0])return existing[0];
+ const rows=await db(config,'cc_deletion_requests',{method:'POST',body:{user_id:user.id,document_id:documentId,kind,state:'Review required',reason},fetcher:(url,init)=>fetch(url,{...init,headers:{...init.headers,Prefer:'return=representation'}})});return rows?.[0]||{state:'Review required'};
+}
+async function checkout(user,{plan,requestKey},fetcher=fetch){
+ if(process.env.AUTHENTICATED_CHECKOUT_ENABLED!=='true')kb.fail(503,'Authenticated checkout is not active. Existing plan links and billing support remain available.');
+ if(typeof plan!=='string'||!Object.hasOwn(plans,plan)||!kb.UUID.test(requestKey||''))kb.fail(400,'Choose a supported plan.');
+ const test=process.env.CUSTOMER_CARE_TEST_MODE==='true',key=test?process.env.STRIPE_TEST_KEY:process.env.STRIPE_CHECKOUT_KEY;
+ if(!key||test&&!/^(sk|rk)_test_/.test(key)||!test&&!/^(sk|rk)_live_/.test(key))kb.fail(503,'Checkout credentials need review.');
+ // Test prices must be configured explicitly; never send a live price to test mode.
+ const price=test?process.env['STRIPE_TEST_'+plan.toUpperCase()+'_PRICE']:plans[plan].price;if(!test&&!/^price_[A-Za-z0-9]+$/.test(price||''))kb.fail(503,'The selected test price is not configured.');
+ if(!test){const customers=await fetcher('https://api.stripe.com/v1/customers?email='+encodeURIComponent(user.email)+'&limit=2',{headers:{Authorization:'Bearer '+key},signal:AbortSignal.timeout(10000)});if(!customers.ok)kb.fail(503,'Billing identity could not be checked.');const found=await customers.json();if(found.has_more||!Array.isArray(found.data)||found.data.length>1)kb.fail(409,'Billing identity needs review. Use the existing billing portal.');if(found.data[0]){const r=await fetcher('https://api.stripe.com/v1/subscriptions?customer='+encodeURIComponent(found.data[0].id)+'&status=all&limit=100',{headers:{Authorization:'Bearer '+key},signal:AbortSignal.timeout(10000)});if(!r.ok)kb.fail(503,'Subscription history could not be checked.');const subscriptions=await r.json();if(subscriptions.has_more||!Array.isArray(subscriptions.data)||subscriptions.data.length)kb.fail(409,'An existing or previous subscription needs review. Use the billing portal rather than starting another trial.');}}
+ const origin=test?process.env.CUSTOMER_CARE_TEST_ORIGIN:'https://www.tendercrestai.com';if(!/^https:\/\/[a-z0-9.-]+\.netlify\.app$/.test(origin||'')&&origin!=='https://www.tendercrestai.com')kb.fail(503,'Checkout origin needs review.');
+ const pending=await kb.rpc(kb.configuration(),'cc_begin_checkout',{p_user:user.id,p_key:requestKey,p_plan:plan});if(pending.state==='Created'&&pending.url?.startsWith('https://checkout.stripe.com/'))return {url:pending.url,trialDays:14,allowance:plans[plan].allowance,cardRequired:true};
+ const data=new URLSearchParams({mode:'subscription',...(price?{'line_items[0][price]':price}:{'line_items[0][price_data][currency]':'usd','line_items[0][price_data][unit_amount]':String({pro:29900,growth:69900,enterprise:129900}[plan]),'line_items[0][price_data][recurring][interval]':'month','line_items[0][price_data][product_data][name]':'TenderCrest fictional '+plan+' QA'}),'line_items[0][quantity]':'1',customer_email:user.email,client_reference_id:user.id,'metadata[tendercrest_user_id]':user.id,'subscription_data[metadata][tendercrest_user_id]':user.id,'subscription_data[metadata][tendercrest_plan]':plan,'subscription_data[metadata][tendercrest_test]':String(test),'subscription_data[trial_period_days]':'14',payment_method_collection:'always',success_url:origin+'/auth.html?checkout=complete',cancel_url:origin+'/auth.html?checkout=canceled'});
+ let r;try{r=await fetcher('https://api.stripe.com/v1/checkout/sessions',{method:'POST',headers:{Authorization:'Bearer '+key,'Idempotency-Key':'tc-checkout-'+user.id+'-'+pending.request_key,'Content-Type':'application/x-www-form-urlencoded'},body:data,signal:AbortSignal.timeout(15000)});}catch{await kb.rpc(kb.configuration(),'cc_finish_checkout',{p_user:user.id,p_key:pending.request_key,p_state:'Uncertain',p_url:null});kb.fail(503,'Checkout outcome needs verification. Retry retains the same protected request.');}
+ if(!r.ok){await kb.rpc(kb.configuration(),'cc_finish_checkout',{p_user:user.id,p_key:pending.request_key,p_state:r.status>=500||[409,429].includes(r.status)?'Uncertain':'Failed',p_url:null});kb.fail(503,'Checkout could not be created. No payment is confirmed.');}const result=await r.json();if(typeof result.url!=='string'||!result.url.startsWith('https://checkout.stripe.com/')||!new RegExp('^cs_'+(test?'test_':'live_')+'[A-Za-z0-9]+$').test(result.id||''))kb.fail(503,'Checkout response could not be verified.');await kb.rpc(kb.configuration(),'cc_finish_checkout',{p_user:user.id,p_key:pending.request_key,p_state:'Created',p_url:result.url,p_provider:result.id||null});return {url:result.url,trialDays:14,allowance:plans[plan].allowance,cardRequired:true};
+}
+async function boundCompany(config,user,root,headers){
+ if(!enabled())return null;const rows=await db(config,'cc_billing_bindings?user_id=eq.'+user.id+'&select=company_id');if(!rows[0])return null;
+ if(!/^rec[A-Za-z0-9]+$/.test(rows[0].company_id))kb.fail(503,'Billing link needs review.');const r=await fetch(root+'/'+require('./billing-source').billingSource().company+'/'+rows[0].company_id,{headers,signal:AbortSignal.timeout(10000)});if(!r.ok)kb.fail(503,'Linked billing account is temporarily unavailable.');return r.json();
+}
+module.exports={inferLegacyDelivery,boundCompany,enabled,plans,db,claimDelivery,requestDeletion,checkout};

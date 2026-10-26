@@ -1,0 +1,11 @@
+# FICTIONAL TenderCrest delivery verification
+
+This is an authorized test of the TenderCrest AI email and Word delivery workflow.
+
+## Test scope
+No real buyer, tender, company capability, certification, project result or financial commitment is represented.
+
+## Expected result
+The email contains a readable fictional draft and one editable Word attachment. The same retained test draft should be downloadable only by the verified recipient account.
+
+TenderCrest AI Autonomous Engine

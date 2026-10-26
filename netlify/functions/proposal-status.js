@@ -57,7 +57,8 @@ exports.handler = async event => {
     if (!RECORD.test(saved.record_id || "")) {
       return reply(503, { error: "Submission status is temporarily unavailable." });
     }
-    const pat = process.env.AIRTABLE_PAT;
+    const source=require('./lib/billing-source').billingSource();
+    const pat = source.pat;
     if (!pat) return reply(503, { error: "Proposal status is temporarily unavailable." });
     // Fetch only the status field; do not fetch or expose document/draft text.
     const query = new URLSearchParams({
@@ -66,7 +67,7 @@ exports.handler = async event => {
     });
     query.append("fields[]", "Pipeline Status");
     const upstream = await fetch(
-      "https://api.airtable.com/v0/appsaqdp3UZdhB2VH/tblkL2ct7mYtUTu9S?" + query,
+      source.root+"/"+source.proposals+"?"+query,
       {
         headers: { Authorization: "Bearer " + pat },
         signal: AbortSignal.timeout(10000)
