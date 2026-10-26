@@ -523,3 +523,10 @@ test('selected Stripe trial plan caps are enforced before queueing, not Airtable
     assert.equal(queueCalls().length,0);
   }
 });
+
+test("an explicitly disabled deployment cannot dispatch or consume a credit", async () => {
+  process.env.SUBMISSION_ENABLED='false';
+  global.fetch=async()=>{throw Error('No remote access is allowed while disabled');};
+  const response=await handler({httpMethod:'POST',body:JSON.stringify(input),headers:{authorization:'Bearer fixture'}});
+  assert.equal(response.statusCode,503);assert.match(JSON.parse(response.body).error,/disabled/);assert.equal(calls.length,0);
+});

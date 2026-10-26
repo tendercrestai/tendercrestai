@@ -146,7 +146,7 @@ test("all page scripts parse and existing workspace retains pricing and upload n
             .replace("await initializePage();", "initializePage();")
         : match[2];
 
-      new vm.Script(code);
+      new vm.Script(match[1].includes('type="module"') ? "(async()=>{\n" + code + "\n})" : code);
     }
   }
 

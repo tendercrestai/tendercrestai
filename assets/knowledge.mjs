@@ -1,3 +1,4 @@
+import {customerFetch} from './customer-request.mjs';
 import {identifyUsage} from './analytics.mjs';
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm';
 import {validateFile} from './rfp-document.mjs';
@@ -25,7 +26,7 @@ async function session(){
  const verified=await supabase.auth.getUser();if(verified.error||verified.data.user?.id!==user.id){signedOut();throw Error('Session verification failed. Sign in again.');}void identifyUsage(data.session.access_token);return data.session;
 }
 async function api(payload){
- const current=epoch,s=await session();const response=await fetch('/.netlify/functions/knowledge',{method:'POST',headers:{Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify(payload)});const result=await response.json();
+ const current=epoch,s=await session();const response=await customerFetch('/.netlify/functions/knowledge',{method:'POST',headers:{Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify(payload)});const result=await response.json();
  if(current!==epoch)throw Error('Account or organization changed.');if(response.status===401)signedOut();if(!response.ok)throw Error(result.error||'Knowledge request failed.');return result;
 }
 function button(text,fn,secondary=false){const b=node('button',text);b.type='button';if(secondary)b.className='secondary';b.onclick=()=>perform(fn);return b;}

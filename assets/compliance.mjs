@@ -1,3 +1,4 @@
+import {customerFetch} from './customer-request.mjs';
 import {identifyUsage} from './analytics.mjs';
 import {uploadRfp} from './private-rfp-upload.mjs';
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm";
@@ -30,7 +31,7 @@ async function session() {
 }
 async function api(payload) {
   const current=epoch, auth=await session();
-  const response=await fetch("/.netlify/functions/compliance",{
+  const response=await customerFetch("/.netlify/functions/compliance",{
     method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+auth.access_token},
     body:JSON.stringify(payload)
   });

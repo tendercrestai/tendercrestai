@@ -18,6 +18,7 @@ def route(r):
  u=urlparse(r.request.url)
  if u.netloc=='cdn.jsdelivr.net':r.fulfill(content_type='text/javascript',body=SDK);return
  assert u.netloc=='discovery.fixture.invalid','Unexpected external request '+u.netloc
+ if u.path.endswith('/auth-config'):r.fulfill(json={'url':'https://wcrrywzleylmdsqqlise.supabase.co','key':'sb_publishable_fixture'});return
  if u.path.endswith('/knowledge-config'):r.fulfill(json={'enabled':True,'url':'https://db.fixture.invalid','key':'public-fixture'});return
  if u.path.endswith('/knowledge'):
   p=r.request.post_data_json;actions.append(p);action=p['action'];org=p.get('orgId',A);out={}

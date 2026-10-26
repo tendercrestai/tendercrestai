@@ -142,7 +142,10 @@
       <p id="accountEmail"></p>
       <section id="accountUsage" aria-label="Proposal allowance" aria-live="polite" style="border:1px solid #cbd5e1;border-radius:8px;padding:16px;margin:16px 0"></section>
       <button id="workspaceBtn">Open Proposal Workspace</button>
-      <p><a id="workspace-link" href="/workspace.html" hidden>Open team proposal workspace</a></p>
+      <p><a href="/#portal">Generate an emailed proposal draft</a> · <a href="/rfp-upload.html">Upload an RFP for an emailed draft</a></p>
+      <p><a href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00" target="_blank" rel="noopener noreferrer">Manage subscription, payment methods and invoices</a> · <a href="/#pricing">View plans and trial terms</a></p>
+      <p><a href="/contact.html">Get account or billing help</a></p>
+
       <button id="knowledgeBtn" type="button">Open Knowledge Base</button>
       <button id="logoutBtn" class="secondary">Log out</button>
     </section>
@@ -157,14 +160,14 @@
     import { createClient } from
       "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm";
 
-    const supabase = createClient(
-      "https://vfdwaqgfepvoujprtuww.supabase.co",
-      "sb_publishable_7J1W7gPugOUuVnCWKpS24A_ozYw0KM3"
-    );
+    import {loadAuthConfig,showAuthUnavailable,authDestination,authReturnQuery} from "/assets/auth-journey.mjs";
+const authConfig=await loadAuthConfig().catch(error=>{showAuthUnavailable(error);return null;});
+if(authConfig){
+    const supabase=createClient(authConfig.url,authConfig.key);
 
     const $ = id => document.getElementById(id);
     const accountUsage=createAccountUsage($("accountUsage"),()=>supabase.auth.getSession());
-    fetch('/.netlify/functions/proposal-config').then(r=>r.json()).then(c=>{const link=$('workspace-link');if(link&&c.enabled&&['evidence','builder','collaboration','bid'].every(k=>c.features?.[k]))link.hidden=false;}).catch(()=>{});
+
     const views = ["login", "signup", "forgot", "reset", "account"];
     const redirectBase = location.origin + "/auth.html";
     let recoveryMode = false;
@@ -204,7 +207,7 @@
           password: $("signupPassword").value,
           options: {
             data: { full_name: $("signupName").value.trim() },
-            emailRedirectTo: redirectBase
+            emailRedirectTo: redirectBase + authReturnQuery(location.search)
           }
         });
         if (error) throw error;
@@ -233,7 +236,7 @@
       run(e.currentTarget, async () => {
         const { error } = await supabase.auth.resetPasswordForEmail(
           $("forgotEmail").value.trim(),
-          { redirectTo: redirectBase + "?mode=reset" }
+          { redirectTo: redirectBase + "?mode=reset" + authReturnQuery(location.search).replace(/^\?/,"&") }
         );
         if (error) throw error;
         notify("If this email is registered, you will receive a password reset link.");
@@ -251,31 +254,22 @@
         await supabase.auth.signOut();
         show("login");
         notify("Password updated. Please log in.");
-        history.replaceState(null, "", "/auth.html");
+        history.replaceState(null, "", "/auth.html" + authReturnQuery(location.search));
       });
     });
 
     async function showAccount(user) {
       if (!user) {accountUsage.clear();void identifyUsage(null);return;}
       supabase.auth.getSession().then(({data})=>identifyUsage(data.session?.access_token||null)).catch(()=>{});
-      if (new URLSearchParams(location.search).get("next") === "workspace") {
-        location.href = "/workspace.html";
-        return;
-      }
-      if (new URLSearchParams(location.search).get("next") === "knowledge") {
-        location.replace("/knowledge.html");
-        return;
-      }
+      const destination=authDestination(location.search);
+      if(destination){location.replace(destination);return;}
       $("accountEmail").textContent = "Signed in as: " + user.email;
       void accountUsage.show(user);
       show("account");
     }
 
      $("workspaceBtn").addEventListener("click", () => {
-      location.href =
-        new URLSearchParams(location.search).get("next") === "rfp-upload"
-          ? "/rfp-upload.html"
-          : "/#portal";
+      location.href = "/workspace.html";
     });
 
     $("knowledgeBtn").addEventListener("click", () => {
@@ -325,7 +319,8 @@
     }
 
     initialize();
-  </script>
+  }
+</script>
 </body>
 </html>
 

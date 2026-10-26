@@ -25,6 +25,7 @@ with sync_playwright() as pw:
  def route(r):
   url=r.request.url
   if 'cdn.jsdelivr.net' in url:r.fulfill(body=sdk,content_type='text/javascript');return
+  if url.endswith('/.netlify/functions/auth-config'):r.fulfill(json={'url':'https://vfdwaqgfepvoujprtuww.supabase.co','key':'sb_publishable_fixture'});return
   if url.endswith('/.netlify/functions/proposal-config'):r.fulfill(json={'enabled':False});return
   if url.endswith('/.netlify/functions/account-usage'):r.fulfill(json={'available':True,'state':'active','plan':'Pro ($299/mo)','used':2,'remaining':3,'allowance':5,'periodEnd':'2026-11-20T12:00:00Z','asOf':'2026-10-25T12:00:00Z'});return
   from urllib.parse import urlparse
