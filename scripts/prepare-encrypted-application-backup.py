@@ -22,7 +22,7 @@ snapshot=query(sql)[0]['snapshot']
 site='7eda7e3f-b48d-48b6-8fea-3af646ea6851' if args.project=='vfdwaqgfepvoujprtuww' else '6e9deecc-bd7c-45c1-be22-ff1dd016e1f5'
 h={'Authorization':'Bearer '+os.environ['NETLIFY_AUTH_TOKEN']};siteinfo=json.loads(request('https://api.netlify.com/api/v1/sites/'+site,headers=h));env=json.loads(request('https://api.netlify.com/api/v1/accounts/'+siteinfo['account_id']+'/env?site_id='+site,headers=h));config={}
 for item in env:
- values=[x for x in item.get('values',[]) if x.get('context') in ['production','all']]
+ values=[x for x in item.get('values',[]) if x.get('context')=='production'] or [x for x in item.get('values',[]) if x.get('context')=='all']
  if values:config[item['key']]=values[-1].get('value','')
 assert config['SUPABASE_URL']=='https://'+args.project+'.supabase.co'
 objects=[];total=0

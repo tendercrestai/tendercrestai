@@ -32,5 +32,11 @@
   external_node_modules = ["pdfkit", "docx", "fflate"]
   included_files = ["netlify/functions/assets/DejaVuSans.ttf", "netlify/functions/assets/DejaVuSans-Bold.ttf", "assets/compliance-export.mjs", "assets/compliance-model.mjs"]
 
-[functions."customer-care-maintenance"]
-  schedule = "37 * * * *"
+[functions."customer-operations-scheduled"]
+  schedule = "7,22,37,52 * * * *"
+
+[functions."analytics-retention-scheduled"]
+  schedule = "17 3 * * *"
+
+[functions."workspace-reminders-scheduled"]
+  schedule = "0 * * * *"
