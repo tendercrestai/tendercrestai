@@ -1,0 +1,3 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {customerFetch} from '../assets/customer-request.mjs';
+test('an interrupted request preserves mutation uncertainty and never automatically retries',async()=>{let calls=0;await assert.rejects(()=>customerFetch('/protected',{method:'POST',body:'fictional'},async(url,options)=>{calls++;assert.ok(options.signal instanceof AbortSignal);throw new DOMException('Timeout','TimeoutError');}),/server may have saved/);assert.equal(calls,1);});
+test('server validation and authorization failures remain available to the caller unchanged',async()=>{const response=new Response('{"error":"Conflict"}',{status:409});assert.equal(await customerFetch('/protected',{},async()=>response),response);});

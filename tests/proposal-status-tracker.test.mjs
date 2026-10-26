@@ -138,3 +138,8 @@ test("both submission pages start and resume the shared tracker", async () => {
   assert.ok(upload.includes("statusTracker.resume(user.id)"));
   assert.ok(!workspace.includes("},4000)"));
 });
+
+test("terminal failures include a support reference without exposing document content", async () => {
+  const f=fixture([{status:'failed'}]);f.tracker.start(ID,OWNER);await flush();
+  assert.equal(f.updates[0].reference,ID);assert.ok(f.updates[0].message.includes('Support reference: '+ID));assert.equal(f.timers.size,0);
+});

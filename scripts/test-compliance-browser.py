@@ -79,6 +79,9 @@ def route_request(route):
     if parsed.netloc != "fixture.tendercrest.invalid":
         route.fulfill(content_type="text/css", body="")
         return
+    if parsed.path == "/.netlify/functions/auth-config":
+        route.fulfill(json={"url":"https://wcrrywzleylmdsqqlise.supabase.co","key":"sb_publishable_fixture"})
+        return
     if parsed.path == "/.netlify/functions/compliance-config":
         route.fulfill(json={"url": "https://fixture.supabase.co",
                            "key": "sb_publishable_fixture", "enabled": True})

@@ -76,7 +76,7 @@ export function createProposalStatusTracker({
       }
       if (response.status === 404) {
         forget(tracked.owner);
-        onUpdate({ label: "Submission not found", message: "This submission could not be found in your account. Contact support before submitting again.", error: true });
+        onUpdate({ label: "Submission not found", message: "This submission could not be found in your account. Contact support before submitting again. Support reference: " + tracked.id + ".", error: true });
         return;
       }
       if (!response.ok) throw new Error("Status unavailable");
@@ -85,7 +85,7 @@ export function createProposalStatusTracker({
       const progress = PROGRESS[result.status];
       if (!progress) throw new Error("Unknown status");
       failures = 0;
-      onUpdate({ ...progress, status: result.status });
+      onUpdate({ ...progress, status: result.status, reference: tracked.id, message: progress.error ? progress.message + ' Support reference: ' + tracked.id + '.' : progress.message });
       if (progress.terminal) {
         stop();
         return;

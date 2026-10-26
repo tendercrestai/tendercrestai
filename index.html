@@ -1042,10 +1042,15 @@ let submissionId = crypto.randomUUID();
       window.scrollTo({top:0,behavior:'smooth'});
     }
 
+    function emailLoginUrl() {
+      const id=new URLSearchParams(location.search).get('compliance');
+      return '/auth.html?next=email-draft'+(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id||'')?'&compliance='+encodeURIComponent(id):'');
+    }
+
     // Authentication wrapper is installed below.
     function switchTab(tabId, updateHash = true) {
       if (tabId === 'portal') {
-        window.location.href = '/auth.html';
+        window.location.href = emailLoginUrl();
         return;
       }
       displayTab(tabId,updateHash);
@@ -1290,10 +1295,11 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
     import { createClient } from
       "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm";
 
-    const supabase = createClient(
-      "https://vfdwaqgfepvoujprtuww.supabase.co",
-      "sb_publishable_7J1W7gPugOUuVnCWKpS24A_ozYw0KM3"
-    );
+    import {loadAuthConfig,showAuthUnavailable} from "/assets/auth-journey.mjs";
+const authConfig=await loadAuthConfig().catch(error=>{showAuthUnavailable(error);return null;});
+if(!authConfig){const route=location.hash.slice(1);displayTab(['pricing','workspace-access'].includes(route)?'pricing':'overview',false);}
+if(authConfig){
+    const supabase=createClient(authConfig.url,authConfig.key);
 
     window.tendercrestSupabase = supabase;
     const statusTracker = createProposalStatusTracker({
@@ -1307,7 +1313,7 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
         }
       },
       onAuthExpired() {
-        window.location.href = '/auth.html';
+        window.location.href = emailLoginUrl();
       }
     });
     window.tendercrestProposalTracker = statusTracker;
@@ -1350,7 +1356,7 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
         const user = await checkAuthentication();
 
         if (!user) {
-          window.location.href = '/auth.html';
+          window.location.href = emailLoginUrl();
           return;
         }
 
@@ -1432,7 +1438,8 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
 
     await initializePage();
     initializeComplianceHandoff();
-  </script>
+  }
+</script>
 </body>
 </html>
 

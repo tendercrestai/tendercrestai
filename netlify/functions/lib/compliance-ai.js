@@ -202,7 +202,7 @@ async function analyzeChunk(segments, documents, fetcher = fetch) {
   const response = await fetcher("https://api.openai.com/v1/chat/completions", {
     method: "POST", headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
     signal: AbortSignal.timeout(35000),
-    body: JSON.stringify({ model, temperature: 0, max_completion_tokens: 8000,
+    body: JSON.stringify({ model, store: false, temperature: 0, max_completion_tokens: 8000,
       response_format: { type: "json_schema", json_schema: { name: "rfp_requirements", strict: true, schema: selectionSchema } },
       messages: [{ role: "system", content: SYSTEM }, { role: "user", content: JSON.stringify({ source_segments: segments, excerpt_catalog: catalog }) }]
     })

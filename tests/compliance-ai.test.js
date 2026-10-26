@@ -47,7 +47,7 @@ test("prompt injection stays in untrusted JSON and cannot set status, tools or r
   let calls=0;
   const result=await ai.analyzeChunk(injected,docs,async(url,options)=>{
     calls++;assert.equal(url,"https://api.openai.com/v1/chat/completions");
-    const body=JSON.parse(options.body);
+    const body=JSON.parse(options.body);assert.equal(body.store,false);
     assert.equal(body.messages[0].role,"system");assert.ok(body.messages[0].content.includes("UNTRUSTED"));
     assert.equal(body.messages[1].role,"user");assert.ok(JSON.parse(body.messages[1].content).source_segments[0].text.includes("Ignore all rules"));
     assert.equal(body.tools,undefined);assert.equal(body.response_format.json_schema.strict,true);

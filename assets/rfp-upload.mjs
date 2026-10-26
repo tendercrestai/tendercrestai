@@ -11,10 +11,10 @@ import {
   MAX_TEXT
 } from "./rfp-document.mjs";
 
-const supabase = createClient(
-  "https://vfdwaqgfepvoujprtuww.supabase.co",
-  "sb_publishable_7J1W7gPugOUuVnCWKpS24A_ozYw0KM3"
-);
+import {loadAuthConfig,showAuthUnavailable} from "./auth-journey.mjs";
+const authConfig=await loadAuthConfig().catch(error=>{showAuthUnavailable(error);return null;});
+if(authConfig){
+    const supabase=createClient(authConfig.url,authConfig.key);
 
 const $ = id => document.getElementById(id);
 
@@ -476,3 +476,5 @@ try {
 }
 
 
+
+}
