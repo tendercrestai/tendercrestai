@@ -8,6 +8,15 @@ async function claimDelivery({to,subject,message,deliveryKey,submissionId}){
  const key='relay:'+createHash('sha256').update(deliveryKey).digest('hex');
  return {...await kb.rpc(config,'cc_claim_delivery',{p_key:key,p_user:uid,p_subject:subject,p_body:message,p_submission:submissionId||null,p_recipient_hash:createHash('sha256').update(to.trim().toLowerCase()).digest('hex')}),config,key};
 }
+// Backward-compatible mapping only when one exact generated body belongs to this verified recipient.
+// Ambiguous/old automation payloads are never guessed or globally content-deduplicated.
+async function inferLegacyDelivery(to,message){
+ try{const config=kb.configuration(),uid=await kb.rpc(config,'cc_verified_email_user',{p_email:to});if(!uid)return null;const source=require('./billing-source').billingSource();if(!source.pat)return null;
+ const submissions=await db(config,'rfp_submissions?user_id=eq.'+uid+'&status=eq.queued&record_id=not.is.null&select=id,record_id&order=created_at.desc&limit=25');const valid=submissions.filter(r=>/^rec[A-Za-z0-9]+$/.test(r.record_id));if(!valid.length)return null;
+ const q=new URLSearchParams({filterByFormula:'OR('+valid.map(r=>"RECORD_ID()='"+r.record_id+"'").join(',')+')',maxRecords:'25'});const r=await fetch(source.root+'/'+source.proposals+'?'+q,{headers:{Authorization:'Bearer '+source.pat},signal:AbortSignal.timeout(10000)});if(!r.ok)return null;const data=await r.json();if(!Array.isArray(data.records)||data.offset)return null;
+ const normalize=value=>require('./proposal-email').normalizeBrand(value).replace(/\r\n?/g,'\n').trim();const target=normalize(message);if(target.length<50)return null;const matches=data.records.filter(row=>valid.some(s=>s.record_id===row.id)&&Object.values(row.fields||{}).some(v=>{const text=typeof v==='string'?v:v&&v.state==='generated'&&v.isStale!==true&&typeof v.value==='string'?v.value:null;return text!==null&&normalize(text)===target;}));if(matches.length!==1||valid.filter(s=>s.record_id===matches[0].id).length!==1)return null;const original=valid.find(s=>s.record_id===matches[0].id);return {deliveryKey:'proposal:'+original.record_id,submissionId:original.id};
+ }catch{return null;}
+}
 async function requestDeletion(config,user,{documentId,kind,reason}){
  kb.uuid(documentId);if(!['rfp','knowledge'].includes(kind))kb.fail(400,'Choose an uploaded RFP or knowledge source.');kb.text(reason,2000);if(reason.trim().length<5)kb.fail(400,'Please provide a deletion reason of at least five characters.');
  let document;
@@ -19,7 +28,7 @@ async function requestDeletion(config,user,{documentId,kind,reason}){
 }
 async function checkout(user,{plan,requestKey},fetcher=fetch){
  if(process.env.AUTHENTICATED_CHECKOUT_ENABLED!=='true')kb.fail(503,'Authenticated checkout is not active. Existing plan links and billing support remain available.');
- if(!plans[plan]||!kb.UUID.test(requestKey||''))kb.fail(400,'Choose a supported plan.');
+ if(typeof plan!=='string'||!Object.hasOwn(plans,plan)||!kb.UUID.test(requestKey||''))kb.fail(400,'Choose a supported plan.');
  const test=process.env.CUSTOMER_CARE_TEST_MODE==='true',key=test?process.env.STRIPE_TEST_KEY:process.env.STRIPE_CHECKOUT_KEY;
  if(!key||test&&!/^(sk|rk)_test_/.test(key)||!test&&!/^(sk|rk)_live_/.test(key))kb.fail(503,'Checkout credentials need review.');
  // Test prices must be configured explicitly; never send a live price to test mode.
@@ -35,4 +44,4 @@ async function boundCompany(config,user,root,headers){
  if(!enabled())return null;const rows=await db(config,'cc_billing_bindings?user_id=eq.'+user.id+'&select=company_id');if(!rows[0])return null;
  if(!/^rec[A-Za-z0-9]+$/.test(rows[0].company_id))kb.fail(503,'Billing link needs review.');const r=await fetch(root+'/'+require('./billing-source').billingSource().company+'/'+rows[0].company_id,{headers,signal:AbortSignal.timeout(10000)});if(!r.ok)kb.fail(503,'Linked billing account is temporarily unavailable.');return r.json();
 }
-module.exports={boundCompany,enabled,plans,db,claimDelivery,requestDeletion,checkout};
+module.exports={inferLegacyDelivery,boundCompany,enabled,plans,db,claimDelivery,requestDeletion,checkout};

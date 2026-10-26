@@ -5,7 +5,7 @@ import argparse,pathlib,json,base64,gzip,hashlib,subprocess,os,uuid,time,re
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 p=argparse.ArgumentParser();p.add_argument('directory');args=p.parse_args();root=pathlib.Path(args.directory);manifest=json.loads((root/'manifest.json').read_text());encrypted=(root/'application-backup.enc').read_bytes();assert hashlib.sha256(encrypted).hexdigest()==manifest['encryptedSHA256'];key=base64.b64decode((root/'recovery-key.txt').read_bytes(),validate=False);magic=b'TENDERCREST-BACKUP-V1\n';assert encrypted.startswith(magic);nonce=encrypted[len(magic):len(magic)+12];data=json.loads(gzip.decompress(AESGCM(key).decrypt(nonce,encrypted[len(magic)+12:],b'tendercrest-application-snapshot-v1')))
 for obj in data['objects']:assert hashlib.sha256(base64.b64decode(obj['bytes'])).hexdigest()==obj['sha256']
-env={k:v for k,v in os.environ.items() if k not in ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH']};docker=['docker','--host=unix:///var/run/docker.sock'];container='tc-data-restore-'+uuid.uuid4().hex[:12]
+env={k:v for k,v in os.environ.items() if k not in ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH']};docker=['docker','--host=unix:///var/run/docker.sock'];container='tc-data-restore-'+uuid.uuid4().hex[:12];volume=container+'-data'
 def call(args,sql=None):
  r=subprocess.run(docker+args,input=sql,text=True,capture_output=True,env=env)
  if r.returncode:
@@ -15,7 +15,8 @@ def call(args,sql=None):
 q=lambda v:'"'+v.replace('"','""')+'"'
 def sql(statement):return call(['exec','-i',container,'psql','-X','-q','-U','postgres','-v','ON_ERROR_STOP=1','-t','-A'],statement)
 try:
- call(['run','-d','--name',container,'--network','none','-e','POSTGRES_HOST_AUTH_METHOD=trust','pgvector/pgvector:0.8.1-pg17'])
+ call(['volume','create','--label','tendercrest.purpose=application-data-restore',volume])
+ call(['run','-d','--name',container,'--mount','type=volume,source='+volume+',target=/var/lib/postgresql/data','--network','none','-e','POSTGRES_HOST_AUTH_METHOD=trust','pgvector/pgvector:0.8.1-pg17'])
  for _ in range(30):
   if subprocess.run(docker+['exec',container,'pg_isready','-U','postgres'],capture_output=True,env=env).returncode==0:break
   time.sleep(1)
@@ -38,4 +39,9 @@ try:
  counts={table:int(sql('select count(*) from public.'+q(table)+';').strip()) for table in tables};assert counts==manifest['publicTableCounts']
  manifest.update(restoreDrillPassed=True,restoreDrillScope='Public table data, keys/relationships, private-object hash integrity in disposable PostgreSQL. Managed Auth credentials, policies/functions execution, provider settings and off-workspace recovery not certified.',restoredTableCounts=counts,verifiedObjectHashes=len(data['objects']));(root/'manifest.json').write_text(json.dumps(manifest,indent=2));os.chmod(root/'manifest.json',0o600)
  print(json.dumps({'applicationDataRestorePassed':True,'tables':len(counts),'objectsVerified':len(data['objects']),'nativeFullDatabaseRestore':False,'offWorkspaceCopyConfirmed':False}))
-finally:subprocess.run(docker+['rm','-f',container],capture_output=True,env=env)
+finally:
+ subprocess.run(docker+['rm','-f','-v',container],capture_output=True,env=env)
+ cleanup=subprocess.run(docker+['volume','rm',volume],capture_output=True,env=env)
+ if cleanup.returncode and subprocess.run(docker+['volume','inspect',volume],capture_output=True,env=env).returncode==0:raise RuntimeError('Temporary restore volume cleanup failed; operator review required')
+ if (root/'manifest.json').exists():
+  manifest=json.loads((root/'manifest.json').read_text());manifest['temporaryDatabaseVolumeRemoved']=True;(root/'manifest.json').write_text(json.dumps(manifest,indent=2));os.chmod(root/'manifest.json',0o600)

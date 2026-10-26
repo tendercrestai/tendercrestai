@@ -19,7 +19,8 @@ exports.handler=async(event)=>{
  const care=require('./lib/customer-care');
  try{
   const output=await presentation(subject,message);
-  if(care.enabled()&&d.deliveryKey){receipt=await care.claimDelivery({to:email,subject:output.subject,message:output.text,deliveryKey:d.deliveryKey,submissionId:d.submissionId});if(!receipt.send)return reply(200,{ok:true,id:receipt.providerId,deliveryState:receipt.status,duplicate:true});}
+  let identity=d.deliveryKey?{deliveryKey:d.deliveryKey,submissionId:d.submissionId}:null;if(care.enabled()&&!identity)identity=await care.inferLegacyDelivery(email,message);
+  if(care.enabled()&&identity){receipt=await care.claimDelivery({to:email,subject:output.subject,message:output.text,...identity});if(!receipt.send)return reply(200,{ok:true,id:receipt.providerId,deliveryState:receipt.status,duplicate:true});}
   dispatched=true;
   const r=await fetch("https://api.resend.com/emails",{method:"POST",headers:{"Authorization":"Bearer "+process.env.RESEND_API_KEY,"Content-Type":"application/json",...(receipt?{"Idempotency-Key":receipt.key}:{})},body:JSON.stringify({from:"TenderCrest AI <hello@tendercrestai.com>",reply_to:"hello@tendercrestai.com",to:[email],subject:output.subject,text:output.text,html:output.html,attachments:[output.attachment],...(receipt?{tags:[{name:'tendercrest_delivery',value:receipt.id}]}:{})}),signal:AbortSignal.timeout(15000)});
   if(!r.ok){if(receipt)await require('./lib/knowledge-base').rpc(receipt.config,'cc_finish_delivery',{p_id:receipt.id,p_status:r.status>=500?'Uncertain':'Failed',p_provider:null});console.error("Resend rejected proposal email",r.status);return reply(502,{error:"Delivery provider rejected request"})}
