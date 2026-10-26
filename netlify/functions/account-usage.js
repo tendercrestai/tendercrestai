@@ -5,11 +5,12 @@ exports.handler=async event=>{
  if(Object.keys(event.queryStringParameters||{}).length)return reply(400,{error:'Unexpected request fields.'});
  try{
   const config=security.configuration(),{user}=await security.authenticate(event,config);
-  if(!process.env.AIRTABLE_PAT)throw new security.RequestError(503,'Account usage is temporarily unavailable.');
-  const root='https://api.airtable.com/v0/appsaqdp3UZdhB2VH',headers={Authorization:'Bearer '+process.env.AIRTABLE_PAT};
+  const source=require('./lib/billing-source').billingSource();if(!source.pat)throw new security.RequestError(503,'Account usage is temporarily unavailable.');
+  const root=source.root,headers={Authorization:'Bearer '+source.pat};
+  const bound=await require('./lib/customer-care').boundCompany(config,user,root,headers);if(bound)return reply(200,await credits.summary(config,bound,root,headers));
   const email=user.email.trim().toLowerCase().replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   const q=new URLSearchParams({filterByFormula:"LOWER(TRIM({Billing Email})) = '"+email+"'",maxRecords:'2'});
-  const r=await fetch(root+'/tbliWnP6ThqA02G5L?'+q,{headers,signal:AbortSignal.timeout(10000)});
+  const r=await fetch(root+'/'+source.company+'?'+q,{headers,signal:AbortSignal.timeout(10000)});
   if(!r.ok)throw new security.RequestError(503,'Account usage is temporarily unavailable.');
   const data=await r.json();if(!Array.isArray(data.records)||data.records.length>1)throw new security.RequestError(503,'Your billing account needs review. Please contact support.');
   if(!data.records.length)return reply(200,{available:false,state:'no_plan',message:'No proposal subscription is linked to your verified sign-in email. If you already subscribed using another billing email, contact support to link your account.'});

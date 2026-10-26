@@ -8,10 +8,10 @@ test("browser auth follows deployment configuration and never embeds production 
 
 test("production queue targets the original Airtable schema", async () => {
   const source = await readFile(
-    new URL("../netlify/functions/submit-proposal.js", import.meta.url), "utf8"
+    new URL("../netlify/functions/lib/billing-source.js", import.meta.url), "utf8"
   );
   assert.ok(source.includes("https://api.airtable.com/v0/appsaqdp3UZdhB2VH"));
   assert.ok(source.includes("tbliWnP6ThqA02G5L"));
   assert.ok(source.includes("tblkL2ct7mYtUTu9S"));
-  assert.ok(!source.includes("appsDmtQ1XOE8Gjtr"));
+  assert.ok(source.includes("test&&process.env.SUPABASE_URL!=="));
 });

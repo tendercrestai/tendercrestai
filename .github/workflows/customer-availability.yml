@@ -1,0 +1,25 @@
+name: Customer availability checks
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 */6 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: customer-availability
+  cancel-in-progress: true
+jobs:
+  public-journeys:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check public pages and account configuration without customer data
+        shell: bash
+        run: |
+          set -euo pipefail
+          for page in / /auth.html /workspace.html /rfp-upload.html /contact.html; do
+            curl --fail --silent --show-error --max-time 10 --output /dev/null "https://www.tendercrestai.com${page}"
+            echo "PASS ${page}"
+          done
+          curl --fail --silent --show-error --max-time 10 https://www.tendercrestai.com/.netlify/functions/auth-config |
+            python3 -c 'import sys,json; c=json.load(sys.stdin); assert c["url"]=="https://vfdwaqgfepvoujprtuww.supabase.co"; assert c["key"].startswith("sb_publishable_"); print("PASS production account configuration")'

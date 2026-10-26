@@ -65,7 +65,7 @@ async function history(company, root, headers) {
     let offset;
     do {
       if (offset) query.set('offset', offset);
-      const response = await fetch(root + '/tblkL2ct7mYtUTu9S?' + query, { headers, signal: AbortSignal.timeout(10000) });
+      const response = await fetch(root + '/'+require('./billing-source').billingSource().proposals+'?' + query, { headers, signal: AbortSignal.timeout(10000) });
       if (!response.ok) throw new RequestError(503, 'Account usage is temporarily unavailable.');
       const data = await response.json();
       if (!Array.isArray(data.records)) throw new RequestError(503, 'Account usage needs review.');

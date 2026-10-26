@@ -742,7 +742,7 @@
         <p><a class="btn btn-outline" href="/workspace.html">Open your workspace</a> <a href="/product.html">See the workflow</a></p>
       </div>
 
-      <div class="billing-manage-banner">
+      <section aria-label="Plan scope"><h3>What your plan allowance covers</h3><p>Pro, Growth and Enterprise proposal counts apply to the emailed AI-draft service. Company knowledge, integrated workspace editing and saved-package exports do not deduct those proposal credits. Access still requires verified sign-in, appropriate organization/project roles and configured processing limits. No new seat, storage or support entitlement is added by this clarification.</p><p>For the smoothest billing setup, use the same verified email for your TenderCrest login and Stripe checkout. Already paid with another address? Contact support for secure linking; do not purchase twice.</p><p><a href="/auth.html">Check your current allowance</a> · <a href="/contact.html">Get billing help</a></p></section><div class="billing-manage-banner">
         <p>Need to manage payment methods, download invoices, or cancel your subscription?</p>
         <a href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00"
            target="_blank" rel="noopener noreferrer">
@@ -1302,6 +1302,7 @@ if(authConfig){
     const supabase=createClient(authConfig.url,authConfig.key);
 
     window.tendercrestSupabase = supabase;
+    if(authConfig.authenticatedCheckout){const routes={'https://buy.stripe.com/dRm9AT6PcaJT44U622dby00':'pro','https://buy.stripe.com/eVqfZh4H44lv8laaiidby01':'growth','https://buy.stripe.com/14AdR92yW4lvcBq0HIdby02':'enterprise'};for(const link of document.querySelectorAll('a[href^="https://buy.stripe.com/"]'))if(routes[link.href])link.href='/auth.html?next=checkout&plan='+routes[link.href];}
     const statusTracker = createProposalStatusTracker({
       supabase,
       storageKey: 'tendercrest-workspace-status',

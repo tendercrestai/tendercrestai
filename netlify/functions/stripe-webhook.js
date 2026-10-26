@@ -22,7 +22,9 @@ async function request(url, options) {
 }
 exports.handler = async event => {
   if(event.httpMethod!=='POST') return response(405,'Method not allowed');
-  const {STRIPE_WEBHOOK_SECRET, STRIPE_READ_KEY, AIRTABLE_PAT} = process.env;
+  let source;try{source=require('./lib/billing-source').billingSource();}catch{return response(503,'Billing environment needs review');}
+  const isTest=source.test,ROOT=source.root+'/'+source.company;
+  const STRIPE_WEBHOOK_SECRET=isTest?process.env.STRIPE_TEST_WEBHOOK_SECRET:process.env.STRIPE_WEBHOOK_SECRET,STRIPE_READ_KEY=isTest?process.env.STRIPE_TEST_KEY:process.env.STRIPE_READ_KEY,AIRTABLE_PAT=source.pat;
   if(!STRIPE_WEBHOOK_SECRET || !STRIPE_READ_KEY || !AIRTABLE_PAT) return response(503,'Billing synchronization is not configured');
   const raw=event.isBase64Encoded ? Buffer.from(event.body||'','base64') : Buffer.from(event.body||'','utf8');
   if(raw.length>1000000) return response(413,'Request too large');
@@ -30,7 +32,7 @@ exports.handler = async event => {
   if(!verified(raw,signature,STRIPE_WEBHOOK_SECRET)) return response(400,'Invalid signature');
   let hook;
   try {hook=JSON.parse(raw.toString('utf8'));} catch {return response(400,'Invalid payload');}
-  if(hook.livemode!==true) return response(400,'Live billing events required');
+  if(hook.livemode!==!isTest) return response(400,'Billing event mode must match the deployment');
   if(!EVENTS.has(hook.type)) return response(200,'Event ignored');
   try {
     const object=hook.data?.object;
@@ -39,12 +41,14 @@ exports.handler = async event => {
     const stripe = path => request('https://api.stripe.com/v1/'+path,{headers:{Authorization:'Bearer '+STRIPE_READ_KEY,'Stripe-Version':'2026-08-26.dahlia'}});
     // Fetch current Stripe state: event order and retries never dictate entitlements.
     const sub=await stripe('subscriptions/'+encodeURIComponent(subscriptionId)+'?expand%5B%5D=latest_invoice');
-    if(sub.livemode!==true || id(sub.customer) === undefined) throw new Error('Unexpected subscription');
+    if(sub.livemode!==!isTest || id(sub.customer) === undefined) throw new Error('Unexpected subscription');
     const customerId=id(sub.customer);
     const customer=await stripe('customers/'+encodeURIComponent(customerId));
     if(customer.deleted || !customer.email) throw new Error('Billing customer requires review');
     const items=sub.items?.data||[];
-    const plan=items.length===1 && items[0].quantity===1 && PLANS[id(items[0].price)];
+    const testPlan=isTest&&sub.metadata?.tendercrest_test==='true'&&{pro:['Pro ($299/mo)',29900],growth:['Growth ($699/mo)',69900],enterprise:['Enterprise ($1,299/mo)',129900]}[sub.metadata?.tendercrest_plan];
+    const testPrice=items[0]?.price;const testPriceValid=testPlan&&testPrice?.currency==='usd'&&testPrice.unit_amount===testPlan[1]&&testPrice.recurring?.interval==='month'&&testPrice.recurring?.interval_count===1;
+    const plan=items.length===1 && items[0].quantity===1 && (isTest?(testPriceValid&&testPlan):PLANS[id(items[0].price)]);
     if(!plan) throw new Error('Unsupported price requires review');
     const item = items[0];
     // Trial eligibility must stop at Stripe's trial_end, even when the item
@@ -87,7 +91,8 @@ exports.handler = async event => {
     const record=existing ? {id:existing.id,fields} : {fields};
     const body={records:[record],typecast:false};
     if(!existing) body.performUpsert={fieldsToMergeOn:['Stripe Subscription ID']};
-    await request(ROOT,{method:'PATCH',headers,body:JSON.stringify(body)});
+    const updated=await request(ROOT,{method:'PATCH',headers,body:JSON.stringify(body)});
+    if(process.env.CUSTOMER_CARE_ENABLED==='true'&&sub.metadata?.tendercrest_user_id){const kb=require('./lib/knowledge-base');const uid=sub.metadata.tendercrest_user_id;if(!kb.UUID.test(uid))throw Error('Invalid billing identity metadata');const companyId=updated.records?.[0]?.id||existing?.id;if(!companyId)throw Error('Billing record missing');await kb.rpc(kb.configuration(),'cc_bind_billing',{p_user:uid,p_company:companyId,p_customer:customerId,p_subscription:subscriptionId});}
     await require('./lib/growth-analytics').billing(sub,customer,state);
     return response(200,'Billing synchronized');
   } catch {
