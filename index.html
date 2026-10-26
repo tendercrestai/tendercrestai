@@ -1067,7 +1067,11 @@ let submissionId = crypto.randomUUID();
         history.pushState(null,'','#' + tabId);
       }
 
-      window.scrollTo({top:0,behavior:'smooth'});
+      if (!updateHash && location.hash === '#product-film') {
+        document.getElementById('product-film')?.scrollIntoView({behavior:'auto'});
+      } else {
+        window.scrollTo({top:0,behavior:'smooth'});
+      }
     }
 
     function emailLoginUrl() {

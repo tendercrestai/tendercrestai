@@ -19,7 +19,7 @@ Regenerate: `python scripts/render-product-film.py`; build: `node scripts/build-
 ## Verification
 
 - 329 existing Node tests passed.
-- 42 real-media Chromium checks passed across homepage/demo and widths 390, 768 and 1280, including reduced motion, no initial MP4 request, keyboard play, five loaded caption cues, pause, seeking/end/replay, no browser errors, responsive layout, failed-source fallback, no-JavaScript transcript/controls and private-source exclusion.
+- 45 real-media Chromium checks passed across homepage/demo and widths 390, 768 and 1280, including reduced motion, no initial MP4 request, keyboard play, five loaded caption cues, pause, seeking/end/replay, no browser errors, responsive layout, failed-source fallback, no-JavaScript transcript/controls and private-source exclusion.
 - 28 existing interactive-demo/customer-workspace browser regressions passed.
 - Pixel/codec metadata inspected and opening, evidence and export scenes visually reviewed. These are Chromium viewport checks, not physical iPhone/Safari testing. No narration is included.
 
