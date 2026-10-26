@@ -33,7 +33,7 @@
   included_files = ["netlify/functions/assets/DejaVuSans.ttf", "netlify/functions/assets/DejaVuSans-Bold.ttf", "assets/compliance-export.mjs", "assets/compliance-model.mjs"]
 
 [functions."customer-operations-scheduled"]
-  schedule = "*/15 * * * *"
+  schedule = "7,22,37,52 * * * *"
 
 [functions."analytics-retention-scheduled"]
   schedule = "17 3 * * *"

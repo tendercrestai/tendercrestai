@@ -21,13 +21,13 @@ Quarter-hour health produces up to 2,880 scheduled invocations per 30-day month 
 
 ## Schema and rollout
 
-Apply only `20261026100000_reminder_email_budget.sql`, recording its exact source in migration history, after local/isolated checks and a fresh encrypted backup/restore drill. This adds one empty service-only RLS table and RPC; existing business data is not rewritten. Stage first with reminder emails disabled. Verify scheduled endpoints return 404, normal operator routes deny anonymous calls, account recovery/ownership and existing journeys pass. Deploy the reviewed commit, then verify native provider and scheduler evidence. Owner explicitly authorized future opt-in reminders, with no backlog campaign.
+Apply only `20261026100000_reminder_email_budget.sql`, recording its exact source in migration history, after local/isolated checks and a fresh encrypted backup/restore drill. This adds one empty service-only RLS table and RPC; existing business data is not rewritten. Stage first with reminder emails disabled. Verify scheduled endpoints deny public HTTP (403/404), normal operator routes deny anonymous calls, account recovery/ownership and existing journeys pass. Deploy the reviewed commit, then verify native provider and scheduler evidence. Owner explicitly authorized future opt-in reminders, with no backlog campaign.
 
 Rollback: set `PROPOSAL_EMAIL_LIVE=false`, restore the prior application deployment and disable the new scheduler registrations if necessary. Preserve receipt, admission and request history. Existing Checkout activation and all plan terms remain unchanged. Do not drop customer tables or restore an expired key.
 
 ## Verification
 
-Local: 328 Node tests and 93 SQL assertions passed. Account-hub browser regression passed. Fresh pre-migration encrypted snapshot: 36 public tables, seven private objects; isolated public-data/object integrity restore passed and its temporary volume was removed. Hosted, provider-event and actual scheduler results belong in the release artifact after execution; configuration alone is not a pass.
+Local: 329 Node tests and 93 SQL assertions passed. Account-hub browser regression passed. Fresh pre-migration encrypted snapshot: 36 public tables, seven private objects; isolated public-data/object integrity restore passed and its temporary volume was removed. Hosted, provider-event and actual scheduler results belong in the release artifact after execution; configuration alone is not a pass.
 
 ## Unavoidable remaining evidence
 
