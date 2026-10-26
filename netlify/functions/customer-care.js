@@ -17,7 +17,7 @@ exports.handler=async event=>{try{
  }
  if(p.action==='runHealthChecks'){kb.exact(p,['action']);kb.verifyWorker(event);return kb.reply(200,await require('./customer-care-maintenance').run(config));}
  if(p.action==='health'){kb.exact(p,['action']);kb.verifyWorker(event);const rows=await C.db(config,'cc_health?select=name,status,observed_at,detail&order=name');return kb.reply(200,{checks:rows,notice:'Only recorded checks are shown. An absent or stale check is not a pass.'});}
- const {user,token}=await kb.authenticate(event,config);user.token=token;await kb.rpc(config,'pw_admit',{p_org:null,p_user:user.id,p_action:p.action==='download'?'export':p.action==='checkout'?'create':['requestDeletion','deleteUnusedPersonalSource'].includes(p.action)?'write':'read'});
+ const {user,token}=await kb.authenticate(event,config);user.token=token;await kb.rpc(config,'pw_admit',{p_org:null,p_user:user.id,p_action:p.action==='download'?'export':p.action==='checkout'?'create':['requestDeletion','deleteUnusedPersonalSource','archiveKnowledge','recoverLegacyDraft'].includes(p.action)?'write':'read'});
  const page=p.page??0;if(!Number.isSafeInteger(page)||page<0||page>1000)kb.fail(400,'Invalid page.');
  if(p.action==='history'){
   kb.exact(p,['action','page']);const [deliveries,submissions]=await Promise.all([
@@ -28,11 +28,24 @@ exports.handler=async event=>{try{
  if(p.action==='submissionStatus'){
   kb.exact(p,['action','submissionId']);kb.uuid(p.submissionId);return require('./proposal-status').handler({...event,httpMethod:'GET',queryStringParameters:{submissionId:p.submissionId}});
  }
+ if(p.action==='recoverLegacyDraft'){
+  kb.exact(p,['action','submissionId']);return kb.reply(200,await require('./lib/legacy-recovery').recover(config,user,p.submissionId));
+ }
  if(p.action==='download'){
   kb.exact(p,['action','deliveryId']);const rows=await C.db(config,'cc_deliveries?id=eq.'+kb.uuid(p.deliveryId)+'&user_id=eq.'+user.id+'&select=subject,body,expires_at');const d=rows[0];if(!d||Date.parse(d.expires_at)<=Date.now())kb.fail(404,'Retained proposal unavailable or expired.');const result=await require('./lib/proposal-email').presentation(d.subject,d.body);return kb.reply(200,{attachment:result.attachment});
  }
  if(p.action==='documents'){
   kb.exact(p,['action','page']);const rows=await C.db(config,'rfp_uploads?user_id=eq.'+user.id+'&select=id,file_name,created_at&order=created_at.desc,id.desc&limit=21&offset='+page*20);return kb.reply(200,{documents:rows.slice(0,20),hasMore:rows.length>20,page});
+ }
+ if(p.action==='knowledgeDocuments'){
+  kb.exact(p,['action','page']);const memberships=await C.db(config,'kb_memberships?user_id=eq.'+user.id+'&active=eq.true&role=eq.owner&select=org_id&limit=101');if(memberships.length>100)kb.fail(409,'Select a knowledge workspace directly for this account.');
+  if(!memberships.length)return kb.reply(200,{documents:[],page,hasMore:false});const ids=memberships.map(m=>kb.uuid(m.org_id));
+  const docs=await C.db(config,'kb_documents?org_id=in.('+ids.join(',')+')&select=id,org_id,file_name,status,created_at&order=created_at.desc,id.desc&limit=21&offset='+page*20);return kb.reply(200,{documents:docs.slice(0,20),hasMore:docs.length>20,page});
+ }
+ if(p.action==='archiveKnowledge'){
+  kb.exact(p,['action','documentId','orgId','confirm']);kb.uuid(p.documentId);kb.uuid(p.orgId);if(p.confirm!=='ARCHIVE SOURCE '+p.documentId)kb.fail(400,'Confirm the exact knowledge document to archive.');
+  const owners=await C.db(config,'kb_memberships?org_id=eq.'+p.orgId+'&user_id=eq.'+user.id+'&active=eq.true&role=eq.owner&select=user_id');if(!owners.length)kb.fail(403,'An active organization owner must archive this shared source.');
+  await kb.rpc(config,'kb_archive',{p_org:p.orgId,p_user:user.id,p_document:p.documentId});return kb.reply(200,{archived:true,notice:'Source archived from future retrieval; dependent answers require review. Original bytes, existing exports and received emails are not deleted. Request deletion separately for retention/dependency review.'});
  }
  if(p.action==='requestDeletion'){
   kb.exact(p,['action','documentId','kind','reason','confirm']);if(p.confirm!=='REQUEST DELETION')kb.fail(400,'Explicit deletion-request confirmation required.');const result=await C.requestDeletion(config,user,p);return kb.reply(200,{request:result,notice:'Request recorded for dependency and retention review. Data has not been deleted. Archive, shared project copies, billing records and provider/email retention are separate.'});
