@@ -27,7 +27,6 @@ Production changes in this audit: read-only inspection only. Source fixes are on
 | F13 | Medium | Compliance requests relied on the provider's default storage behavior while section writing explicitly set `store:false`. | Explicit `store:false` and a request-shape regression assertion. This is not Zero Data Retention and does not alter the accepted provider retention limitation. |
 | F14 | Medium | Isolated Auth site/redirects pointed to an old preview and minimum password length differed from the UI/production. | Isolated site URL and allowlist aligned while retaining prior entries; minimum length set to 12. Production Auth unchanged. |
 | F15 | Medium | Revision API supports pagination but UI loaded only page zero, hiding revisions older than the first 25 entries. | “Load older revisions” with page advancement and a clear end state. |
-
 | F16 | High | The isolated site's `SUBMISSION_ENABLED=false` variable was not read by the submission handler; missing credentials, rather than the intended switch, prevented dispatch. | Honor an explicit false before any authentication/storage/provider request. Unset production behavior is preserved; no flag is enabled. |
 
 ## Unresolved findings and product priorities
@@ -121,3 +120,7 @@ No real card checkout/charge, automatic trial-to-paid renewal, cancellation/refu
 3. Address G02 paid-identity linking and G03/G04 delivery visibility/deduplication together.
 4. Establish G05 deletion operations and G07 backup/monitoring readiness.
 5. Prioritize OCR, larger-list navigation and a clear workspace commercial policy from actual customer needs. Keep reminders/training/paid automation disabled until their own release gates are satisfied.
+
+## Final validation status
+
+Application commit `2f2d94a64508b7cdcf4e35764d919acbb39872bb` is available on the isolated preview at https://tendercrestai-pr6-isolated-20261021.netlify.app. All 293 Node tests, 128 local SQL assertions, seven offline browser suites, five separate privacy-browser checks, and 12 actual-SDK hosted preview checks passed. The new customer-journey suite includes 16 checks. The live anonymous sweep covered 22 page/width states and the local link scan covered 110 links. Production remains `c39f360bf290a5cd27781f3b5092dd491301cd0e`; PR #24 is unmerged. Temporary private sessions were removed and isolated automatic builds stopped after validation. Raw local evidence is under `/workspace/scratch/journey-audit/`.
