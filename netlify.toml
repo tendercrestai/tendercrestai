@@ -40,3 +40,8 @@
 
 [functions."workspace-reminders-scheduled"]
   schedule = "0 * * * *"
+
+[[headers]]
+  for = "/assets/product-film/*.vtt"
+  [headers.values]
+    Content-Type = "text/vtt; charset=utf-8"

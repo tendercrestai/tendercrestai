@@ -7,6 +7,7 @@
   <title>TenderCrest AI | Evidence-backed Proposals, Reviewed Together</title>
   <meta name="description" content="Review RFP requirements, match approved company evidence, assess bid fit, and collaborate on a saved proposal package with DOCX, PDF and compliance exports.">
   <link rel="canonical" href="https://www.tendercrestai.com/">
+  <link rel="stylesheet" href="/assets/product-film.css">
   <meta property="og:type" content="website">
   <meta property="og:title" content="TenderCrest AI | Evidence-backed Proposals, Reviewed Together">
   <meta property="og:description" content="From reviewed requirements and approved evidence to a team-reviewed proposal package.">
@@ -578,6 +579,7 @@
 
         <div class="hero-actions">
           <a class="btn btn-primary" href="/workspace.html">Open your proposal workspace</a>
+          <a class="btn btn-outline" href="#product-film" data-film-trigger>Watch the 30-second overview</a>
           <a class="btn btn-outline" href="/demo.html#interactive-demo">Try Interactive Demo — No Credit Card Required</a>
           <a class="btn btn-outline" href="#pricing"
              onclick="switchTab('pricing'); return false;">See pricing &amp; allowances</a>
@@ -588,6 +590,32 @@
           compliance decisions and final submission. No contract award is guaranteed.
         </p>
       </div>
+
+      <section id="product-film" class="film-showcase" data-product-film aria-labelledby="film-title">
+        <div class="film-copy">
+          <span class="film-eyebrow">A clearer response starts here</span>
+          <h2 id="film-title">See the response<br>take shape.</h2>
+          <p>A 30-second look at how requirements, company evidence and team review come together in TenderCrest AI.</p>
+          <ol class="film-route" aria-label="Proposal workflow"><li>Evidence</li><li>Draft</li><li>Review</li><li>Export</li></ol>
+          <a class="film-cta" href="/demo.html#interactive-demo">Then try the interactive demo &rarr;</a>
+        </div>
+        <figure class="film-figure">
+          <div class="film-player">
+            <video controls playsinline preload="none" poster="/assets/product-film/poster.webp" width="1280" height="720" tabindex="0" aria-label="30-second fictional TenderCrest product walkthrough" aria-describedby="film-caption">
+              <source src="/assets/product-film/overview.mp4" type="video/mp4">
+              <track kind="captions" src="/assets/product-film/overview.vtt" srclang="en" label="English" default>
+              Your browser cannot play this video. <a href="/assets/product-film/overview.mp4">Download the overview</a> or read the transcript below.
+            </video>
+            <button type="button" class="film-play" data-film-play aria-label="Play 30-second product overview" hidden><span aria-hidden="true">&#9654;</span></button>
+          </div>
+          <figcaption id="film-caption"><strong>30 seconds · silent, captioned overview.</strong> Fictional scenario with actual workspace captures.</figcaption>
+          <p class="film-error" data-film-status role="status"></p>
+          <details class="film-transcript"><summary>Read the walkthrough transcript</summary>
+            <ol><li><strong>00–06s · Start with the RFP.</strong> Bring requirements, company evidence, drafting and team sign-off into one workflow.</li><li><strong>06–12s · Connect evidence.</strong> Inspect approved answers and source quotations, then record a human decision.</li><li><strong>12–18s · Shape the draft.</strong> Edit sections, retain requirement links and review the saved revision.</li><li><strong>18–24s · Review.</strong> Check gaps and approvals. The actual fictional capture shows unresolved checks; readiness is not an award guarantee.</li><li><strong>24–30s · Export and explore.</strong> Inspect Word, PDF and matrix files from an earlier reviewed fictional package, then try the demo without an account or card.</li></ol>
+            <p>Screen captures show a review-needed state. The downloadable package is an earlier reviewed revision. No customer data, certification or measured customer result is represented.</p>
+          </details>
+        </figure>
+      </section>
 
       <h2 class="section-title">Built around your proposal workflow</h2>
 
@@ -1289,6 +1317,7 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
     }
   </script>
 
+  <script type="module" src="/assets/product-film.mjs"></script>
   <!-- SUPABASE CUSTOMER AUTHENTICATION -->
   <script type="module">
     import { createProposalStatusTracker } from "/assets/proposal-status.mjs";
