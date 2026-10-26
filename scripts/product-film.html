@@ -1,0 +1,43 @@
+<!doctype html><meta charset="utf-8"><title>Offline TenderCrest film renderer</title>
+<canvas id="film" width="1280" height="720"></canvas>
+<script>
+const canvas=document.querySelector('canvas'),c=canvas.getContext('2d');
+const ink='#101f35',blue='#2563eb',mint='#a8ead5',muted='#b9c7da';
+const images={};
+window.ready=Promise.all(['evidence','editor','review'].map(async name=>{const i=new Image();i.src='workspace-'+name+'.png';await i.decode();images[name]=i;}));
+function box(x,y,w,h,r,fill){c.beginPath();c.roundRect(x,y,w,h,r);c.fillStyle=fill;c.fill();}
+function text(value,x,y,size=22,color=ink,weight=400){c.fillStyle=color;c.font=weight+' '+size+'px Arial, sans-serif';c.fillText(value,x,y);}
+function lines(values,x,y,size=56,color='white',weight=700){values.forEach((v,i)=>text(v,x,y+i*size*1.12,size,color,weight));}
+function pill(label,x,y,width,fill='#20344d',color=mint){box(x,y,width,34,17,fill);text(label,x+15,y+23,15,color,700);}
+function windowFrame(label){box(516,150,700,456,20,'#24364e');box(520,154,692,448,17,'#f4f7fc');box(520,154,692,46,16,'#e5edf8');['#fb7185','#fbbf24','#34d399'].forEach((color,i)=>box(537+i*19,173,9,9,5,color));text(label,610,183,15,'#465873',600);}
+function shot(name,source,destination){const i=images[name];c.save();c.beginPath();c.roundRect(...destination.slice(0,4),10);c.clip();c.fillStyle='white';c.fillRect(...destination.slice(0,4));c.drawImage(i,...source,...destination.slice(0,4));c.restore();}
+function footer(scene){text('TenderCrest AI',64,655,21,'white',700);text('Fictional sample · no customer data',64,682,16,muted);const names=['RFP','Evidence','Draft','Review','Export'];names.forEach((name,i)=>{box(735+i*97,654,8,8,4,i===scene?mint:'#53647b');text(name,748+i*97,663,14,i===scene?'white':muted,600);});}
+window.renderAt=time=>{
+ const stage=Math.min(4,Math.floor(time/6)),local=time-stage*6;const ease=Math.min(1,local/.6);const lift=(1-ease)*(1-ease)*16;
+ c.fillStyle=ink;c.fillRect(0,0,1280,720);
+ c.strokeStyle='#24354b';c.lineWidth=1;for(let x=0;x<1280;x+=64){c.beginPath();c.moveTo(x,0);c.lineTo(x,720);c.stroke();}
+ c.fillStyle=ink;c.fillRect(0,0,490,720);pill('THE PROPOSAL WORKFLOW',64,61,258);text('30-second overview',1000,84,17,muted,600);
+ c.save();c.globalAlpha=Math.max(.15,ease);c.translate(0,lift);
+ if(stage===0){
+  text('01 / START WITH THE RFP',64,178,16,mint,700);lines(['From an RFP','to a response','you can review.'],64,260,54);lines(['Requirements, company evidence,','drafting and team sign-off—','in one connected workflow.'],64,484,23,muted,400);
+  windowFrame('Fictional RFP · workspace overview');box(550,227,632,342,12,'white');pill('SAMPLE REQUIREMENT',576,251,225,'#eaf1ff',blue);lines(['The security team must','review access every 30 days.'],576,330,30,ink,700);text('Source: fictional evaluation RFP',576,425,18,'#5d6e85');
+  ['Identify the requirement','Find supporting evidence','Review the response'].forEach((label,i)=>{box(576,456+i*29,6,6,3,blue);text(label,594,464+i*29,18,'#465873');});
+ }else if(stage===1){
+  text('02 / CONNECT THE EVIDENCE',64,178,16,mint,700);lines(['Give your','response','a source.'],64,260,57);lines(['Inspect approved answers.','Check the source quotation.','Record a human decision.'],64,484,23,muted,400);
+  windowFrame('Actual fictional workspace · evidence');shot('evidence',[0,150,1152,530],[542,216,648,299]);box(542,530,648,50,10,'#e5f3ed');text('Source → reviewed answer → requirement',566,562,22,'#145c48',700);
+ }else if(stage===2){
+  text('03 / SHAPE THE DRAFT',64,178,16,mint,700);lines(['Your knowledge.','Your draft.','Your final say.'],64,260,54);lines(['Edit sections with your team.','Keep links to requirements.','Review the saved revision.'],64,484,23,muted,400);
+  windowFrame('Actual fictional workspace · section editor');shot('editor',[0,0,1152,350],[542,220,648,260]);box(542,504,648,76,10,'#eaf1ff');text('A draft remains a draft until reviewed.',566,548,24,blue,700);
+ }else if(stage===3){
+  text('04 / REVIEW BEFORE SIGN-OFF',64,178,16,mint,700);lines(['See what still','needs your','attention.'],64,260,54);lines(['Review evidence gaps, approvals','and document-readiness checks.','Resolve findings before export.'],64,484,23,muted,400);
+  windowFrame('Actual fictional workspace · review blockers');shot('review',[0,0,1152,279],[542,230,648,157]);box(542,414,648,166,12,'#fff4df');text('Human review stays in the workflow.',566,460,26,'#775012',700);text('This capture has unresolved checks.',566,503,21,'#775012');text('Readiness is not an award guarantee.',566,540,20,'#775012');
+ }else{
+  text('05 / TAKE THE NEXT STEP',64,178,16,mint,700);lines(['Review.','Approve.','Export.'],64,260,59);lines(['Explore the interactive demo.','No account or card required','for the fictional sample.'],64,484,23,muted,400);
+  windowFrame('An earlier reviewed fictional sample package');
+  ['DOCX','PDF','MATRIX'].forEach((name,i)=>{const x=553+i*211;box(x,242,192,218,14,'white');box(x+23,269,53,58,8,i===0?'#e4ecff':i===1?'#fee9e8':'#e0f3ec');text(name,x+22,364,name==='MATRIX'?25:32,ink,700);text(['Editable draft','Saved package','Requirements'][i],x+22,406,17,'#5d6e85');});
+  box(553,490,614,77,12,blue);text('tendercrestai.com/demo.html',580,538,27,'white',700);
+ }
+ c.restore();footer(stage);
+};
+window.recordFilm=async()=>{await window.ready;renderAt(0);const stream=canvas.captureStream(24),type=MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm';const recorder=new MediaRecorder(stream,{mimeType:type,videoBitsPerSecond:2500000}),chunks=[];recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};const stopped=new Promise(resolve=>{recorder.onstop=resolve;});recorder.start();const start=performance.now();await new Promise(resolve=>{function tick(now){const t=(now-start)/1000;renderAt(Math.min(t,29.999));if(t<30)requestAnimationFrame(tick);else resolve();}requestAnimationFrame(tick);});recorder.stop();await stopped;stream.getTracks().forEach(t=>t.stop());return await new Promise(resolve=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.readAsDataURL(new Blob(chunks,{type:'video/webm'}));});};
+</script>

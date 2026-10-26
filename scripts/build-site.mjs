@@ -11,6 +11,7 @@ const pages = [
   "workspace.html", "knowledge.html", "security.html", "product.html", "samples.html", "demo.html", "googleb40d2fbef272897b.html", "robots.txt", "sitemap.xml"
 ];
 const assets = [
+  "product-film.css", "product-film.mjs",
   "local-ocr.mjs", "customer-hub.mjs", "customer-request.mjs", "auth-journey.mjs", "account-usage.mjs", "analytics.mjs", "customer-workspace.mjs", "interactive-demo.mjs", "demo-data.mjs", "workspace.mjs", "workspace.css", "private-rfp-upload.mjs", "rfp-upload.mjs", "rfp-document.mjs", "upload-attempt.mjs", "proposal-status.mjs",
   "docx-validation.mjs", "compliance.mjs", "compliance-model.mjs",
   "compliance-export.mjs", "compliance-handoff.mjs", "compliance.css", "knowledge.mjs", "knowledge.css", "public-pages.css"
@@ -31,6 +32,11 @@ for (const page of pages) {
 for (const asset of assets) {
   await cp(resolve(root, "assets", asset), resolve(destination, "assets", asset));
 }
+
+// Only reviewed, fictional public media; renderer sources and private recordings stay excluded.
+await mkdir(resolve(destination,"assets/product-film"),{recursive:true});
+for(const media of ["overview.mp4","poster.webp","overview.vtt"])
+  await cp(resolve(root,"assets/product-film",media),resolve(destination,"assets/product-film",media));
 
 // Explicit fictional examples only; never recursively copy arbitrary documents.
 const samples = [
