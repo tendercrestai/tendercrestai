@@ -12,6 +12,7 @@ function load(){
  if(!window.oaiq){const q=function(){q.q.push(arguments);};q.q=[];window.oaiq=q;
  const script=document.createElement('script');script.async=true;script.src='https://bzrcdn.openai.com/sdk/oaiq.min.js';document.head.append(script);}
  window.oaiq('init',{pixelId:'EXKpttMHWwqpN1QAmAU1eP',debug:false});
+ window.oaiq('measure','page_viewed',{type:'contents'});
 }
 function init(){
  if(!safeLocation())return;
