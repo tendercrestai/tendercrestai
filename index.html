@@ -1328,6 +1328,7 @@ SECURITY CREDENTIALS: HITRUST validated, SOC 2 Type II certified, BAA signed for
     import { createClient } from
       "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm";
 
+    import {identifyGooglePurchase} from "/assets/google-ads.mjs";
     import {loadAuthConfig,showAuthUnavailable} from "/assets/auth-journey.mjs";
 const authConfig=await loadAuthConfig().catch(error=>{showAuthUnavailable(error);return null;});
 if(!authConfig){const route=location.hash.slice(1);displayTab(['pricing','workspace-access'].includes(route)?'pricing':'overview',false);}
@@ -1361,6 +1362,7 @@ if(authConfig){
       const { data, error } = await supabase.auth.getUser();
 
       authenticatedUser = error ? null : data.user;
+      void supabase.auth.getSession().then(({data})=>identifyGooglePurchase(data.session?.access_token||null)).catch(()=>{});
 
       if (authenticatedUser) {
         authLink.textContent = '👤 My Account';
