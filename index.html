@@ -520,6 +520,19 @@
       .input-field { font-size: 1rem; }
       .counter-bar { flex-direction: column; }
     }
+
+    .ph-badge { display: inline-block; margin-top: 1.25rem; max-width: 100%; }
+    .ph-badge img { display: block; width: 250px; max-width: 100%; height: auto; }
+    .ph-launch { margin: 2rem 0; padding: clamp(1.25rem,4vw,2rem); border: 1px solid var(--slate-200); border-radius: var(--radius); background: #fff; }
+    .ph-launch > p { color: var(--slate-600); margin: .5rem 0 1.25rem; }
+    .ph-card { max-width: 500px; border: 1px solid #e0e0e0; border-radius: 12px; padding: 20px; background: #fff; box-shadow: 0 2px 8px #0000000d; }
+    .ph-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .ph-card-header img { width: 64px; height: 64px; flex-shrink: 0; border-radius: 8px; object-fit: cover; }
+    .ph-card-header div { min-width: 0; }
+    .ph-card h3 { margin: 0; font-size: 18px; color: #1a1a1a; line-height: 1.3; }
+    .ph-card p { margin: 4px 0 0; font-size: 14px; color: #666; line-height: 1.4; overflow-wrap: anywhere; }
+    .ph-card a { display: inline-flex; max-width: 100%; overflow-wrap: anywhere; margin-top: 12px; padding: 8px 16px; background: #a72e23; color: #fff; text-decoration: none; border-radius: 9999px; font-size: 16px; font-weight: 600; line-height: 1.5; }
+    .ph-card a:hover { background: #85251c; }
   </style>
 </head>
 
@@ -591,6 +604,10 @@
         </p>
       </div>
 
+      <a class="ph-badge" href="https://www.producthunt.com/products/tendercrest-ai?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-tendercrest-ai" target="_blank" rel="noopener noreferrer" aria-label="View TenderCrest AI on Product Hunt (opens in a new tab)">
+        <img alt="TenderCrest AI - Evidence-backed RFP responses, reviewed together | Product Hunt" width="250" height="54" loading="lazy" decoding="async" referrerpolicy="no-referrer" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1302089&amp;theme=light&amp;t=1793649933551">
+      </a>
+
       <section id="product-film" class="film-showcase" data-product-film aria-labelledby="film-title">
         <div class="film-copy">
           <span class="film-eyebrow">A clearer response starts here</span>
@@ -615,6 +632,18 @@
             <p>Screen captures show a review-needed state. The downloadable package is an earlier reviewed revision. No customer data, certification or measured customer result is represented.</p>
           </details>
         </figure>
+      </section>
+
+      <section class="ph-launch" aria-labelledby="ph-launch-title">
+        <h2 id="ph-launch-title">Explore our Product Hunt launch</h2>
+        <p>Visit our launch page, explore the product and share your feedback.</p>
+        <div class="ph-card">
+          <div class="ph-card-header">
+            <img alt="TenderCrest AI" width="64" height="64" loading="lazy" decoding="async" referrerpolicy="no-referrer" src="https://ph-files.imgix.net/ff7bc88a-1380-4fe3-9bd7-a51139a7c2bb.jpeg?auto=compress,format&amp;codec=mozjpeg&amp;cs=strip&amp;fit=crop&amp;h=80&amp;w=80">
+            <div><h3>TenderCrest AI</h3><p>Evidence-backed RFP responses, reviewed together</p></div>
+          </div>
+          <a href="https://www.producthunt.com/products/tendercrest-ai?embed=true&amp;utm_source=embed&amp;utm_medium=post_embed" target="_blank" rel="noopener noreferrer" aria-label="Check out TenderCrest AI on Product Hunt (opens in a new tab)">Check it out on Product Hunt &rarr;</a>
+        </div>
       </section>
 
       <h2 class="section-title">Built around your proposal workflow</h2>
