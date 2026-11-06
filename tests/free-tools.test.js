@@ -23,3 +23,17 @@ test('matrix mail persists acceptance, reuses idempotency keys, and limits previ
   global.fetch=async()=>new Response('{}',{status:503});assert.deepEqual(await F.mail(config,job,lead),{customer:'Pending',admin:'Pending'});
  }finally{global.fetch=saved.fetch;for(const [key,value]of [['RESEND_API_KEY',saved.key],['CUSTOMER_CARE_TEST_MODE',saved.mode]])if(value===undefined)delete process.env[key];else process.env[key]=value;}
 });
+test('worker retries rejected AI output once and never publishes unvalidated rows',async()=>{
+ const kb=require('../netlify/functions/lib/knowledge-base'),ai=require('../netlify/functions/lib/compliance-ai');
+ const saved={rpc:kb.rpc,analyze:ai.analyzeChunk,fetch:global.fetch};let calls=0,admissions=0,patches=[];
+ const id='11111111-1111-4111-8111-111111111111';
+ const job=()=>({id,ip_hash:'fixture-ip',chunks:[[]],documents:[],requirements:[],processed:0});
+ kb.rpc=async(c,name)=>{if(name==='ft_claim')return job();if(name==='ft_admit'){admissions++;return null;}throw Error('Unexpected RPC');};
+ global.fetch=async(url,options)=>{patches.push(JSON.parse(options.body));return new Response('[]',{status:200});};
+ try{
+  ai.analyzeChunk=async()=>{calls++;if(calls===1)throw Error('AI output failed source validation. Retry this chunk or review the source manually.');return {requirements:[{fingerprint:'fixture',requirement:'Validated fixture',sources:[]}]};};
+  await F.processJob({url:'https://database.invalid',serviceKey:'fixture'},id);assert.equal(calls,2);assert.equal(admissions,2);assert.equal(patches.at(-1).status,'Completed');assert.equal(patches[0].requirements.length,1);
+  calls=0;patches=[];ai.analyzeChunk=async()=>{calls++;throw Error('AI output failed source validation. Retry this chunk or review the source manually.');};
+  await F.processJob({url:'https://database.invalid',serviceKey:'fixture'},id);assert.equal(calls,2);assert.equal(patches.length,1);assert.equal(patches[0].status,'Failed');assert.ok(!patches[0].requirements);
+ }finally{kb.rpc=saved.rpc;ai.analyzeChunk=saved.analyze;global.fetch=saved.fetch;}
+});
