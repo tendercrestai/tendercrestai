@@ -11,14 +11,14 @@ test('matrix mail persists acceptance, reuses idempotency keys, and limits previ
  const config={url:'https://database.invalid',serviceKey:'fixture-only-service-key'};
  const job={id:'11111111-1111-4111-8111-111111111111',processed:1,chunks:[{}],warnings:[],requirements:[{requirement:'Fictional fixture requirement',category:'Technical',mandatory:'Yes',sources:[],recommendation:'Needs review'}]};
  const lead={email:'hello@tendercrestai.com',title:'Fictional fixture',source:'Test only',created_at:new Date().toISOString(),customer_state:'Pending',admin_state:'Pending'};
- global.fetch=async(url,options)=>{calls.push({url:String(url),...options});return String(url).startsWith('https://api.resend.com')?new Response(JSON.stringify({id:'fixture-receipt'}),{status:200}):new Response(null,{status:204});};
+ global.fetch=async(url,options)=>{calls.push({url:String(url),...options});return String(url).startsWith('https://api.resend.com')?new Response(JSON.stringify({id:'fixture-receipt'}),{status:200}):new Response('[]',{status:200});};
  try{
   assert.deepEqual(await F.mail(config,job,{...lead,email:'customer@example.invalid'}),{customer:'Pending',admin:'Pending'});assert.equal(calls.length,0);
   const result=await F.mail(config,job,lead);assert.deepEqual(result,{customer:'Accepted',admin:'Accepted'});
   const sends=calls.filter(x=>x.url.startsWith('https://api.resend.com'));assert.equal(sends.length,2);
   for(const send of sends){const payload=JSON.parse(send.body);assert.deepEqual(payload.to,['hello@tendercrestai.com']);assert.match(payload.subject,/FICTIONAL PREVIEW TEST/);assert.match(send.headers['Idempotency-Key'],/^free-matrix-(customer|admin)-11111111/);}
   assert.match(Buffer.from(JSON.parse(sends[0].body).attachments[0].content,'base64').toString(),/Fictional fixture requirement/);
-  assert.equal(calls.filter(x=>x.method==='PATCH').length,2);calls.length=0;
+  const patches=calls.filter(x=>x.method==='PATCH');assert.equal(patches.length,2);assert.ok(patches.every(x=>x.headers.Prefer==='return=representation'));calls.length=0;
   await F.mail(config,job,{...lead,customer_state:'Accepted',admin_state:'Accepted'});assert.equal(calls.length,0);
   global.fetch=async()=>new Response('{}',{status:503});assert.deepEqual(await F.mail(config,job,lead),{customer:'Pending',admin:'Pending'});
  }finally{global.fetch=saved.fetch;for(const [key,value]of [['RESEND_API_KEY',saved.key],['CUSTOMER_CARE_TEST_MODE',saved.mode]])if(value===undefined)delete process.env[key];else process.env[key]=value;}

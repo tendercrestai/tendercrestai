@@ -13,14 +13,14 @@ async function prepare(p){const id=crypto.randomUUID();let bytes,extension,name;
  }else{if(typeof p.text!=='string'||p.text.trim().length<40||p.text.length>100000)kb.fail(413,'Paste 40 to 100,000 characters. This tool reuses the existing parser limit.');bytes=Buffer.from(p.text);extension='txt';name=p.title||'Pasted solicitation';}
  if(!bytes.length)kb.fail(400,'The input is empty.');const document=await doc.extractDocument({bytes,extension,metadata:{id,file_name:name,sha256:crypto.createHash('sha256').update(bytes).digest('hex')}});return {documents:[document],chunks:doc.chunkDocuments([document]),warnings:document.warnings};
 }
-async function processJob(config,id){let j=await kb.rpc(config,'ft_claim',{p_id:kb.uuid(id)});if(!j)return;try{
+async function processJob(config,id){let j=await kb.rpc(config,'ft_claim',{p_id:kb.uuid(id)});if(!j)return;let providerStatus=null;try{
  for(let n=0;n<3&&j.processed<j.chunks.length;n++){
   await kb.rpc(config,'ft_admit',{p_ip:j.ip_hash,p_kind:'ai',p_limit:16,p_global:24});
-  const result=await ai.analyzeChunk(j.chunks[j.processed],j.documents);j.requirements=ai.deduplicate([...j.requirements,...result.requirements]);j.processed++;
+  const result=await ai.analyzeChunk(j.chunks[j.processed],j.documents,async(...args)=>{const response=await fetch(...args);providerStatus=response.status;return response;});j.requirements=ai.deduplicate([...j.requirements,...result.requirements]);j.processed++;
   await db(config,'ft_jobs?id=eq.'+id,{method:'PATCH',body:{requirements:j.requirements,processed:j.processed}});
  }
  const complete=j.processed===j.chunks.length;await db(config,'ft_jobs?id=eq.'+id,{method:'PATCH',body:{status:complete?'Completed':'Pending',lease_until:null}});if(!complete)await dispatch(id);
- }catch(e){await db(config,'ft_jobs?id=eq.'+id,{method:'PATCH',body:{status:'Failed',lease_until:null,error:'Analysis could not finish. No compliance result is implied. Try later or use the source manually.'}});}}
+ }catch(e){const reason=providerStatus&&providerStatus!==200?' AI provider HTTP '+providerStatus+'.':e.message==='AI output failed source validation. Retry this chunk or review the source manually.'?' Source validation did not pass.':e.name==='TimeoutError'?' The AI request timed out.':e.status===503?' AI or database configuration is unavailable.':'';await db(config,'ft_jobs?id=eq.'+id,{method:'PATCH',body:{status:'Failed',lease_until:null,error:'Analysis could not finish.'+reason+' No compliance result is implied. Try later or use the source manually.'}});}}
 async function mail(config,j,lead){if(!process.env.RESEND_API_KEY)return {customer:'Unavailable',admin:'Unavailable'};
  const {csv}=await import('../../../assets/compliance-export.mjs');const workspace={analysis:{id:j.id,status:'Completed',processed:j.processed,total_chunks:j.chunks.length,warnings:j.warnings,facts:[]},requirements:j.requirements.map((r,i)=>({...r,id:String(i+1),original_requirement:r.requirement,duplicate_count:r.duplicate_count||0}))};
  const attachment={filename:'compliance-matrix.csv',content:Buffer.from(csv(workspace)).toString('base64')};const results={customer:lead.customer_state,admin:lead.admin_state};
