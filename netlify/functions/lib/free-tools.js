@@ -1,6 +1,6 @@
 const crypto=require('node:crypto'),kb=require('./knowledge-base'),doc=require('./compliance-document'),ai=require('./compliance-ai');
 const enabled=()=>process.env.FREE_TOOLS_ENABLED==='true';
-const db=(c,p,o={})=>kb.database(c,p,{...o,service:true});
+const db=(c,p,o={})=>kb.database(c,p,{...o,service:true,fetcher:(url,options)=>fetch(url,{...options,headers:{...options.headers,Prefer:'return=representation'}})});
 function mac(value){const s=process.env.ANALYTICS_SIGNING_SECRET;if(!s||s.length<32)kb.fail(503,'Free tools are temporarily unavailable.');return crypto.createHmac('sha256',s).update('free-tools:'+value).digest('hex');}
 function ip(event){const v=event.headers?.['x-nf-client-connection-ip'];if(typeof v!=='string'||!/^[a-fA-F0-9:.]{1,100}$/.test(v))kb.fail(400,'Request could not be admitted.');return mac(new Date().toISOString().slice(0,10)+':'+v);}
 function sign(id){return id+'.'+mac('job:'+id);}

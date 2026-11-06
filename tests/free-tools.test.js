@@ -5,3 +5,21 @@ test('SAM URL validation blocks foreign URLs, credentials, and malformed notices
 test('existing source parser reused with section references and safe document rejection',async()=>{const p=await F.prepare({text:'SECTION C REQUIREMENTS\nThe contractor shall provide weekly reports.\nThe contractor must retain records.',title:'Fictional fixture'});assert.ok(p.documents[0].segments[0].section);assert.ok(p.chunks.length);await assert.rejects(F.prepare({text:'x'.repeat(100001)}),e=>e.status===413);await assert.rejects(F.prepare({file:{extension:'exe',name:'bad.exe',data:'AAAA'}}));});
 test('SAM notices are source data with canonical source links, never fabricated rows',()=>{assert.equal(S.normalize({noticeId:'bad'}),null);const n=S.normalize({noticeId:'a'.repeat(32),title:'Fictional fixture',active:'Yes'});assert.equal(n.url,'https://sam.gov/opp/'+'a'.repeat(32)+'/view');assert.equal(n.deadline,null);});
 test('disabled public handlers fail closed and never read/write or call providers',async()=>{delete process.env.FREE_TOOLS_ENABLED;const h=require('../netlify/functions/free-tools').handler;const r=await h({httpMethod:'POST',body:JSON.stringify({action:'start'})});assert.equal(r.statusCode,503);const o=await require('../netlify/functions/opportunities').handler({httpMethod:'POST',body:'{"action":"search"}'});assert.equal(o.statusCode,503);});
+test('matrix mail persists acceptance, reuses idempotency keys, and limits preview recipients',async()=>{
+ const saved={fetch:global.fetch,key:process.env.RESEND_API_KEY,mode:process.env.CUSTOMER_CARE_TEST_MODE};
+ const calls=[];process.env.RESEND_API_KEY='fixture-only-key';process.env.CUSTOMER_CARE_TEST_MODE='true';
+ const config={url:'https://database.invalid',serviceKey:'fixture-only-service-key'};
+ const job={id:'11111111-1111-4111-8111-111111111111',processed:1,chunks:[{}],warnings:[],requirements:[{requirement:'Fictional fixture requirement',category:'Technical',mandatory:'Yes',sources:[],recommendation:'Needs review'}]};
+ const lead={email:'hello@tendercrestai.com',title:'Fictional fixture',source:'Test only',created_at:new Date().toISOString(),customer_state:'Pending',admin_state:'Pending'};
+ global.fetch=async(url,options)=>{calls.push({url:String(url),...options});return String(url).startsWith('https://api.resend.com')?new Response(JSON.stringify({id:'fixture-receipt'}),{status:200}):new Response(null,{status:204});};
+ try{
+  assert.deepEqual(await F.mail(config,job,{...lead,email:'customer@example.invalid'}),{customer:'Pending',admin:'Pending'});assert.equal(calls.length,0);
+  const result=await F.mail(config,job,lead);assert.deepEqual(result,{customer:'Accepted',admin:'Accepted'});
+  const sends=calls.filter(x=>x.url.startsWith('https://api.resend.com'));assert.equal(sends.length,2);
+  for(const send of sends){const payload=JSON.parse(send.body);assert.deepEqual(payload.to,['hello@tendercrestai.com']);assert.match(payload.subject,/FICTIONAL PREVIEW TEST/);assert.match(send.headers['Idempotency-Key'],/^free-matrix-(customer|admin)-11111111/);}
+  assert.match(Buffer.from(JSON.parse(sends[0].body).attachments[0].content,'base64').toString(),/Fictional fixture requirement/);
+  assert.equal(calls.filter(x=>x.method==='PATCH').length,2);calls.length=0;
+  await F.mail(config,job,{...lead,customer_state:'Accepted',admin_state:'Accepted'});assert.equal(calls.length,0);
+  global.fetch=async()=>new Response('{}',{status:503});assert.deepEqual(await F.mail(config,job,lead),{customer:'Pending',admin:'Pending'});
+ }finally{global.fetch=saved.fetch;for(const [key,value]of [['RESEND_API_KEY',saved.key],['CUSTOMER_CARE_TEST_MODE',saved.mode]])if(value===undefined)delete process.env[key];else process.env[key]=value;}
+});
