@@ -57,3 +57,32 @@
   to = "/compare-loopio.html"
   status = 200
   force = true
+
+[functions."free-tools"]
+  external_node_modules = ["pdfjs-dist", "sax"]
+  included_files = ["assets/docx-validation.mjs", "assets/compliance-export.mjs", "assets/compliance-model.mjs"]
+
+[functions."free-tools-worker-background"]
+  external_node_modules = ["pdfjs-dist", "sax"]
+  included_files = ["assets/docx-validation.mjs", "assets/compliance-export.mjs", "assets/compliance-model.mjs"]
+
+[functions."free-tools-maintenance"]
+  external_node_modules = ["pdfjs-dist", "sax"]
+  included_files = ["assets/docx-validation.mjs", "assets/compliance-export.mjs", "assets/compliance-model.mjs"]
+
+[functions."free-tools-scheduled"]
+  external_node_modules = ["pdfjs-dist", "sax"]
+  schedule = "41 * * * *"
+  included_files = ["assets/docx-validation.mjs", "assets/compliance-export.mjs", "assets/compliance-model.mjs"]
+
+[[redirects]]
+  from = "/tools/shredder"
+  to = "/shredder.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/opportunities"
+  to = "/opportunities.html"
+  status = 200
+  force = true
