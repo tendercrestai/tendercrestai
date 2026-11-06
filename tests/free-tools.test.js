@@ -37,3 +37,8 @@ test('worker retries rejected AI output once and never publishes unvalidated row
   await F.processJob({url:'https://database.invalid',serviceKey:'fixture'},id);assert.equal(calls,2);assert.equal(patches.length,1);assert.equal(patches[0].status,'Failed');assert.ok(!patches[0].requirements);
  }finally{kb.rpc=saved.rpc;ai.analyzeChunk=saved.analyze;global.fetch=saved.fetch;}
 });
+test('SAM retries the documented production alias only for a missing route, never for quota denial',async()=>{
+ const kb=require('../netlify/functions/lib/knowledge-base'),saved={fetch:global.fetch,rpc:kb.rpc,key:process.env.SAM_GOV_API_KEY};process.env.SAM_GOV_API_KEY='fixture-only';let upstream=0,firstStatus=404;
+ kb.rpc=async()=>null;global.fetch=async(url)=>{const u=new URL(url);if(u.hostname==='database.invalid')return new Response('[]',{status:200});assert.equal(u.hostname,'api.sam.gov');upstream++;if(upstream===1)return new Response('{}',{status:firstStatus});assert.equal(u.pathname,'/prod/opportunities/v2/search');return new Response('{"opportunitiesData":[],"totalRecords":0}',{status:200});};
+ try{const c={url:'https://database.invalid',serviceKey:'fixture'},e={headers:{'x-nf-client-connection-ip':'192.0.2.1'}};assert.deepEqual((await S.search(c,e,{})).items,[]);assert.equal(upstream,2);upstream=0;firstStatus=429;await assert.rejects(S.search(c,e,{}),e=>e.status===429);assert.equal(upstream,1);}finally{global.fetch=saved.fetch;kb.rpc=saved.rpc;if(saved.key===undefined)delete process.env.SAM_GOV_API_KEY;else process.env.SAM_GOV_API_KEY=saved.key;}
+});
