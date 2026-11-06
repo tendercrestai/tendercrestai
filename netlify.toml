@@ -45,3 +45,15 @@
   for = "/assets/product-film/*.vtt"
   [headers.values]
     Content-Type = "text/vtt; charset=utf-8"
+
+[[redirects]]
+  from = "/compare/responsive"
+  to = "/compare-responsive.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/compare/loopio"
+  to = "/compare-loopio.html"
+  status = 200
+  force = true

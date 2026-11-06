@@ -7,7 +7,7 @@ const destination = resolve(root, "dist");
 // Explicit public files only. Never publish the repository root, server source,
 // internal runbooks, SQL fixtures, credentials, or future unreviewed files.
 const pages = [
-  "ocr.html", "index.html", "auth.html", "contact.html", "rfp-upload.html", "compliance.html",
+  "compare-responsive.html", "compare-loopio.html", "ocr.html", "index.html", "auth.html", "contact.html", "rfp-upload.html", "compliance.html",
   "workspace.html", "knowledge.html", "security.html", "product.html", "samples.html", "demo.html", "googleb40d2fbef272897b.html", "robots.txt", "sitemap.xml"
 ];
 const assets = [

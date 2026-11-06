@@ -1,0 +1,25 @@
+{
+  "checked": "2026-11-06",
+  "responsive": {
+    "url": "https://www.responsive.io/pricing",
+    "findings": [
+      "Emerging Edition from $10,000",
+      "Annual platform subscription; licenses and add-ons separate",
+      "Unlimited response projects, not unlimited licenses"
+    ]
+  },
+  "loopio": {
+    "url": "https://loopio.com/pricing/",
+    "findings": [
+      "No starting dollar amount published in retrieved page",
+      "Foundations includes 10 seats",
+      "Multi-step reviews Enhanced and above"
+    ],
+    "removedUnverifiedPrice": "$20,000/year"
+  },
+  "scopeCorrections": [
+    "Demo is fictional",
+    "Trial automatic billing unless canceled",
+    "Emailed-draft allowance separate from workspace access"
+  ]
+}
