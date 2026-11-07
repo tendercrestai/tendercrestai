@@ -42,3 +42,8 @@ test('SAM retries the documented production alias only for a missing route, neve
  kb.rpc=async()=>null;global.fetch=async(url)=>{const u=new URL(url);if(u.hostname==='database.invalid')return new Response('[]',{status:200});assert.equal(u.hostname,'api.sam.gov');upstream++;if(upstream===1)return new Response('{}',{status:firstStatus});assert.equal(u.pathname,'/prod/opportunities/v2/search');return new Response('{"opportunitiesData":[],"totalRecords":0}',{status:200});};
  try{const c={url:'https://database.invalid',serviceKey:'fixture'},e={headers:{'x-nf-client-connection-ip':'192.0.2.1'}};assert.deepEqual((await S.search(c,e,{})).items,[]);assert.equal(upstream,2);upstream=0;firstStatus=429;await assert.rejects(S.search(c,e,{}),e=>e.status===429);assert.equal(upstream,1);}finally{global.fetch=saved.fetch;kb.rpc=saved.rpc;if(saved.key===undefined)delete process.env.SAM_GOV_API_KEY;else process.env.SAM_GOV_API_KEY=saved.key;}
 });
+test('SAM rejects masked secret values before making upstream or database calls',async()=>{
+ const saved={fetch:global.fetch,key:process.env.SAM_GOV_API_KEY};let calls=0;global.fetch=async()=>{calls++;throw Error('Unexpected request');};
+ try{for(const key of ['', '****************abcd', '••••abcd']){process.env.SAM_GOV_API_KEY=key;await assert.rejects(S.search({}, {}, {}),e=>e.status===503&&!e.message.includes(key||'SAM_GOV_API_KEY')&&e.message.includes('free shredder'));}assert.equal(calls,0);process.env.SAM_GOV_API_KEY=' fixture-key ';assert.equal(S.apiKey(),'fixture-key');}
+ finally{global.fetch=saved.fetch;if(saved.key===undefined)delete process.env.SAM_GOV_API_KEY;else process.env.SAM_GOV_API_KEY=saved.key;}
+});
