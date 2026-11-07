@@ -86,3 +86,33 @@
   to = "/opportunities.html"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/tools/bid-check"
+  to = "/bid-check.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/teardowns"
+  to = "/teardowns/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/teardowns/federal-it-services-47-requirements"
+  to = "/teardowns/federal-it-services-47-requirements.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/teardowns/state-facilities-maintenance-28-requirements"
+  to = "/teardowns/state-facilities-maintenance-28-requirements.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/teardowns/local-professional-services-19-requirements"
+  to = "/teardowns/local-professional-services-19-requirements.html"
+  status = 200
+  force = true

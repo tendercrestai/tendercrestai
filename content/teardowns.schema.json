@@ -1,0 +1,251 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "slug",
+    "title",
+    "agencyType",
+    "valueBand",
+    "naicsArea",
+    "responseWindowDays",
+    "requirementCount",
+    "mandatoryCount",
+    "gapCount",
+    "categorySplit",
+    "description",
+    "gapPreview",
+    "dealBreakers",
+    "lesson",
+    "illustrative",
+    "basis",
+    "faq",
+    "metaDescription",
+    "atAGlance"
+  ],
+  "properties": {
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "maxLength": 100
+    },
+    "title": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 180
+    },
+    "metaDescription": {
+      "type": "string",
+      "minLength": 30,
+      "maxLength": 240
+    },
+    "agencyType": {
+      "enum": [
+        "Federal",
+        "State",
+        "Local"
+      ]
+    },
+    "valueBand": {
+      "enum": [
+        "Under $500K",
+        "$500K to $5M",
+        "Over $5M"
+      ]
+    },
+    "naicsArea": {
+      "type": "string",
+      "pattern": "^[0-9]{2}$"
+    },
+    "responseWindowDays": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 365
+    },
+    "requirementCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10000
+    },
+    "mandatoryCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "gapCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "categorySplit": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "Technical": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "Legal": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "Financial": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "Administrative": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "Eligibility": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "Submission": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "Attachment": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "Evaluation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "Service Level": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "Other": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "description": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 3,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1500
+      }
+    },
+    "gapPreview": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "requirement",
+          "flag"
+        ],
+        "properties": {
+          "requirement": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1500
+          },
+          "flag": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1500
+          }
+        }
+      }
+    },
+    "dealBreakers": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1500
+      }
+    },
+    "lesson": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1500
+    },
+    "illustrative": {
+      "const": true
+    },
+    "basis": {
+      "const": "authored-fictional-example"
+    },
+    "faq": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "question",
+          "answer"
+        ],
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1500
+          },
+          "answer": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1500
+          }
+        }
+      }
+    },
+    "atAGlance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agencyType",
+        "valueBand",
+        "naicsArea",
+        "responseWindowDays",
+        "requirementsFound",
+        "mandatoryRequirements",
+        "gapsFlagged",
+        "dealBreakers"
+      ],
+      "properties": {
+        "agencyType": {
+          "type": "string"
+        },
+        "valueBand": {
+          "type": "string"
+        },
+        "naicsArea": {
+          "type": "string"
+        },
+        "responseWindowDays": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "requirementsFound": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mandatoryRequirements": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gapsFlagged": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "dealBreakers": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

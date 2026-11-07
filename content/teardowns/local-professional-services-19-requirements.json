@@ -1,0 +1,68 @@
+{
+  "slug": "local-professional-services-19-requirements",
+  "title": "A small local services bid with 19 requirements and no room for error",
+  "agencyType": "Local",
+  "valueBand": "Under $500K",
+  "naicsArea": "54",
+  "responseWindowDays": 14,
+  "requirementCount": 19,
+  "mandatoryCount": 12,
+  "gapCount": 5,
+  "categorySplit": {
+    "Technical": 5,
+    "Administrative": 3,
+    "Eligibility": 2,
+    "Submission": 4,
+    "Financial": 3,
+    "Evaluation": 2
+  },
+  "description": [
+    "This fictional local professional-services scenario has a narrow scope and a short response window. The effort is concentrated in showing relevant experience and following a strict submission format.",
+    "The example assumes 14 days and a value under $500K. The authored counts are illustrative; no specific live bid, agency, company, or actual extraction result is represented."
+  ],
+  "gapPreview": [
+    {
+      "requirement": "Keep technical and price material in the required separate envelopes.",
+      "flag": "Provide source-backed company evidence and have a reviewer assess this requirement."
+    },
+    {
+      "requirement": "Verify the labeling and placement of each submission component.",
+      "flag": "Verify the required attachment is present and current."
+    },
+    {
+      "requirement": "Check that the experience evidence supports the proposed professional services.",
+      "flag": "Provide source-backed company evidence and have a reviewer assess this requirement."
+    }
+  ],
+  "dealBreakers": [
+    "The fictional instructions use a two-envelope rule: technical and price material must stay separate. Placing price information in the wrong envelope leads to rejection under the example’s stated rule."
+  ],
+  "lesson": "Short deadlines plus strict submission rules punish copy-paste bids. Build the submission checklist first, then have a second reviewer check packaging and separation before delivery.",
+  "illustrative": true,
+  "basis": "authored-fictional-example",
+  "faq": [
+    {
+      "question": "Where do teardowns come from?",
+      "answer": "These launch teardowns are authored fictional examples based on common solicitation shapes. Their counts are illustrative, not measured results from real bids or visitor submissions."
+    },
+    {
+      "question": "Can I get my solicitation torn down?",
+      "answer": "Use the free shredder or bid checker privately. A public teardown requires separate human review, anonymization, and your explicit confirmation. Publication is never automatic."
+    },
+    {
+      "question": "Does a teardown guarantee anything?",
+      "answer": "No. A teardown does not certify compliance or predict an award. Verify the original solicitation, attachments, and amendments before making a bid decision."
+    }
+  ],
+  "metaDescription": "An illustrative local services scenario: 19 requirements, 5 gaps, and a two-envelope submission rule to check before drafting.",
+  "atAGlance": {
+    "agencyType": "Local",
+    "valueBand": "Under $500K",
+    "naicsArea": "54",
+    "responseWindowDays": 14,
+    "requirementsFound": 19,
+    "mandatoryRequirements": 12,
+    "gapsFlagged": 5,
+    "dealBreakers": 1
+  }
+}

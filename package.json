@@ -9,6 +9,7 @@
     "test": "bash scripts/test.sh"
   },
   "dependencies": {
+    "ajv": "8.17.1",
     "docx": "9.5.1",
     "fflate": "0.8.3",
     "pdfjs-dist": "6.4.299",
