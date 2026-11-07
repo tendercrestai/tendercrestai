@@ -1,0 +1,69 @@
+{
+  "slug": "state-facilities-maintenance-28-requirements",
+  "title": "A state facilities contract asked for 28 things and meant all of them",
+  "agencyType": "State",
+  "valueBand": "Under $500K",
+  "naicsArea": "56",
+  "responseWindowDays": 21,
+  "requirementCount": 28,
+  "mandatoryCount": 19,
+  "gapCount": 6,
+  "categorySplit": {
+    "Technical": 10,
+    "Legal": 3,
+    "Financial": 4,
+    "Administrative": 3,
+    "Eligibility": 3,
+    "Submission": 3,
+    "Attachment": 2
+  },
+  "description": [
+    "This fictional state facilities-maintenance scenario combines recurring service work with qualification and submission instructions. The main scope is straightforward, but qualification documents still determine whether the response is usable.",
+    "The example assumes a 21-day response window and a value under $500K. Its authored counts illustrate how a short scope can coexist with a demanding response checklist; they are not measured extraction results."
+  ],
+  "gapPreview": [
+    {
+      "requirement": "Confirm whether the local-preference certification applies.",
+      "flag": "Provide source-backed company evidence and have a reviewer assess this requirement."
+    },
+    {
+      "requirement": "Check the certification submission deadline separately from the response deadline.",
+      "flag": "Verify the required attachment is present and current."
+    },
+    {
+      "requirement": "Collect the written facilities-maintenance qualifications needed for review.",
+      "flag": "Provide source-backed company evidence and have a reviewer assess this requirement."
+    }
+  ],
+  "dealBreakers": [
+    "A local-preference certification has a separate submission deadline in this fictional scenario. Missing that earlier step could remove the preference or affect eligibility under the stated rules, so the bidder must verify the consequence before relying on it."
+  ],
+  "lesson": "State bids can hide eligibility in the fine print rather than the scope. Review certifications and every separate submission milestone before deciding the bid is routine.",
+  "illustrative": true,
+  "basis": "authored-fictional-example",
+  "faq": [
+    {
+      "question": "Where do teardowns come from?",
+      "answer": "These launch teardowns are authored fictional examples based on common solicitation shapes. Their counts are illustrative, not measured results from real bids or visitor submissions."
+    },
+    {
+      "question": "Can I get my solicitation torn down?",
+      "answer": "Use the free shredder or bid checker privately. A public teardown requires separate human review, anonymization, and your explicit confirmation. Publication is never automatic."
+    },
+    {
+      "question": "Does a teardown guarantee anything?",
+      "answer": "No. A teardown does not certify compliance or predict an award. Verify the original solicitation, attachments, and amendments before making a bid decision."
+    }
+  ],
+  "metaDescription": "An illustrative state facilities scenario: 28 requirements, 6 gaps, and a separate certification deadline to check before drafting.",
+  "atAGlance": {
+    "agencyType": "State",
+    "valueBand": "Under $500K",
+    "naicsArea": "56",
+    "responseWindowDays": 21,
+    "requirementsFound": 28,
+    "mandatoryRequirements": 19,
+    "gapsFlagged": 6,
+    "dealBreakers": 1
+  }
+}

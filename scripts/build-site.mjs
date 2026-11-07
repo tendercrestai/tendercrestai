@@ -1,36 +1,43 @@
 import { cp, mkdir, rm, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
+import {generateTeardowns,addSitemapRoutes} from "./lib/teardowns.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const destination = resolve(root, "dist");
 // Explicit public files only. Never publish the repository root, server source,
 // internal runbooks, SQL fixtures, credentials, or future unreviewed files.
 const pages = [
-  "shredder.html", "opportunities.html", "compare-responsive.html", "compare-loopio.html", "ocr.html", "index.html", "auth.html", "contact.html", "rfp-upload.html", "compliance.html",
+  "bid-check.html", "shredder.html", "opportunities.html", "compare-responsive.html", "compare-loopio.html", "ocr.html", "index.html", "auth.html", "contact.html", "rfp-upload.html", "compliance.html",
   "workspace.html", "knowledge.html", "security.html", "product.html", "samples.html", "demo.html", "googleb40d2fbef272897b.html", "robots.txt", "sitemap.xml"
 ];
 const assets = [
-  "free-tools.css", "free-tools.mjs", "product-film.css", "product-film.mjs", "openai-pixel.mjs", "google-ads.mjs", "reditus.mjs",
+  "bid-check.mjs", "teardowns.mjs", "free-tools.css", "free-tools.mjs", "product-film.css", "product-film.mjs", "openai-pixel.mjs", "google-ads.mjs", "reditus.mjs",
   "local-ocr.mjs", "customer-hub.mjs", "customer-request.mjs", "auth-journey.mjs", "account-usage.mjs", "analytics.mjs", "customer-workspace.mjs", "interactive-demo.mjs", "demo-data.mjs", "workspace.mjs", "workspace.css", "private-rfp-upload.mjs", "rfp-upload.mjs", "rfp-document.mjs", "upload-attempt.mjs", "proposal-status.mjs",
   "docx-validation.mjs", "compliance.mjs", "compliance-model.mjs",
   "compliance-export.mjs", "compliance-handoff.mjs", "compliance.css", "knowledge.mjs", "knowledge.css", "public-pages.css"
 ];
 await rm(destination, { recursive: true, force: true });
 await mkdir(resolve(destination, "assets"), { recursive: true });
+function decorateHTML(html, page) {
+  if (/<body\b/i.test(html)) {
+    html = html.replace(/<\/head>/i, '<script type="module" src="/assets/reditus.mjs"></script></head>');
+    if (['index.html','demo.html'].includes(page)) html = html.replace(/<\/body>/i, '<script type="module" src="/assets/openai-pixel.mjs"></script><script type="module" src="/assets/google-ads.mjs"></script></body>');
+    if (process.env.ANALYTICS_ENABLED === 'true') html = html.replace(/<html\b/i, '<html data-usage-analytics="enabled"');
+    html = html.replace(/<\/body>/i, '<script type="module" src="/assets/analytics.mjs"></script></body>');
+  }
+  return html;
+}
 for (const page of pages) {
   await cp(resolve(root, page), resolve(destination, page));
   if (page.endsWith('.html')) {
-    let html = await readFile(resolve(destination, page), 'utf8');
-    if (/<body\b/i.test(html)) {
-      html = html.replace(/<\/head>/i, '<script type="module" src="/assets/reditus.mjs"></script></head>');
-      if (['index.html','demo.html'].includes(page)) html = html.replace(/<\/body>/i, '<script type="module" src="/assets/openai-pixel.mjs"></script><script type="module" src="/assets/google-ads.mjs"></script></body>');
-      if (process.env.ANALYTICS_ENABLED === 'true') html = html.replace(/<html\b/i, '<html data-usage-analytics="enabled"');
-      html = html.replace(/<\/body>/i, '<script type="module" src="/assets/analytics.mjs"></script></body>');
-      await writeFile(resolve(destination, page), html);
-    }
+    const html = await readFile(resolve(destination, page), 'utf8');
+    await writeFile(resolve(destination, page), decorateHTML(html, page));
   }
 }
+const generatedRoutes = await generateTeardowns(root, destination, decorateHTML);
+const sitemap = await readFile(resolve(destination, 'sitemap.xml'), 'utf8');
+await writeFile(resolve(destination, 'sitemap.xml'), addSitemapRoutes(sitemap, generatedRoutes));
 for (const asset of assets) {
   await cp(resolve(root, "assets", asset), resolve(destination, "assets", asset));
 }

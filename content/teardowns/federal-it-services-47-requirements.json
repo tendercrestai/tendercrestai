@@ -1,0 +1,70 @@
+{
+  "slug": "federal-it-services-47-requirements",
+  "title": "A federal IT services RFP with 47 illustrative requirements",
+  "agencyType": "Federal",
+  "valueBand": "$500K to $5M",
+  "naicsArea": "54",
+  "responseWindowDays": 30,
+  "requirementCount": 47,
+  "mandatoryCount": 31,
+  "gapCount": 9,
+  "categorySplit": {
+    "Technical": 16,
+    "Administrative": 8,
+    "Eligibility": 5,
+    "Submission": 7,
+    "Financial": 6,
+    "Attachment": 3,
+    "Evaluation": 2
+  },
+  "description": [
+    "This fictional federal IT services scenario combines service delivery, staffing, past performance, and a structured price submission. The illustrative workload spans both scope and response instructions.",
+    "The example assumes a 30-day response window and an estimated value in the $500K to $5M band. Its counts are authored to demonstrate a review approach; they are not results from a real solicitation or an actual shredder run."
+  ],
+  "gapPreview": [
+    {
+      "requirement": "Check the requested past-performance format.",
+      "flag": "Provide source-backed company evidence and have a reviewer assess this requirement."
+    },
+    {
+      "requirement": "Check the pricing-table rule referenced by the attachment instructions.",
+      "flag": "Verify the required attachment is present and current."
+    },
+    {
+      "requirement": "Confirm proposed staffing evidence covers the core service obligations.",
+      "flag": "Provide source-backed company evidence and have a reviewer assess this requirement."
+    }
+  ],
+  "dealBreakers": [
+    "A required past-performance format can make an otherwise relevant example unusable. In this fictional scenario, the bidder must verify the requested fields and structure before drafting.",
+    "A pricing-table rule appears in an attachment reference. The bidder must obtain and review that attachment rather than assume the main narrative is the complete instruction set."
+  ],
+  "lesson": "The mandatory count, not the page count, sets the workload. Count obligations across scope, submission instructions, and referenced attachments before allocating bid hours.",
+  "illustrative": true,
+  "basis": "authored-fictional-example",
+  "faq": [
+    {
+      "question": "Where do teardowns come from?",
+      "answer": "These launch teardowns are authored fictional examples based on common solicitation shapes. Their counts are illustrative, not measured results from real bids or visitor submissions."
+    },
+    {
+      "question": "Can I get my solicitation torn down?",
+      "answer": "Use the free shredder or bid checker privately. A public teardown requires separate human review, anonymization, and your explicit confirmation. Publication is never automatic."
+    },
+    {
+      "question": "Does a teardown guarantee anything?",
+      "answer": "No. A teardown does not certify compliance or predict an award. Verify the original solicitation, attachments, and amendments before making a bid decision."
+    }
+  ],
+  "metaDescription": "An illustrative federal IT services scenario: 47 requirements, 9 gaps, and a required past-performance format to check before drafting.",
+  "atAGlance": {
+    "agencyType": "Federal",
+    "valueBand": "$500K to $5M",
+    "naicsArea": "54",
+    "responseWindowDays": 30,
+    "requirementsFound": 47,
+    "mandatoryRequirements": 31,
+    "gapsFlagged": 9,
+    "dealBreakers": 2
+  }
+}
