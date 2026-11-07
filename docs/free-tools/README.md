@@ -29,3 +29,9 @@ As of Nov 6 2026: test database access restored and additive migration applied t
 Live hosted SAM search returns real federal notices; keyword, NAICS, PSC and set-aside filter requests pass, and real notice details return description text and attachment disclaimer. Earlier local 404 responses do not reproduce on hosted Netlify. Client page-local sorting and missing-attachment fallback are tested with explicit fictional browser fixtures; full-package extraction from SAM attachments is not claimed. A public RFQ excerpt independently produced 13 sourced rows, stored lead, accepted emails. Fictional provider-mail fixture also passed. Actual inbox delivery is unconfirmed.
 
 Mobile screenshots reviewed at 390px, with automated checks at 390/768/1280. Existing customer-journey browser suite passes 16 checks. No existing auth, billing, demo or tracker implementation modified. Production must not be merged/deployed before owner preview review.
+
+## SAM credential deployment
+
+Netlify secret values for deployed contexts are redacted in API responses. Never copy a masked API value between sites or treat matching masked values as proof of matching real keys. The original key must be entered securely on the production project, with the Production context and Functions scope. Keep it marked secret. Netlify documents that production secrets are readable only by code running on its systems; a masked API response cannot be used as a credential.
+
+The SAM fetcher rejects masking characters before any upstream request. A live production search, not a comparison of API-visible masked values, verifies the credential. The Nov 7 incident was caused by copying the preview key’s redacted value into production; replacing the original credential is required to restore search.
