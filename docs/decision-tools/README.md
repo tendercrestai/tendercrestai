@@ -35,3 +35,13 @@ The deliberately malformed JSON fixture test must fail, then remove the fixture.
 Migration `20261107090000_bid_checks.sql` belongs on the isolated test project for preview first. It creates the detail table/RPC, extends the event-name constraint, and adds the owner-approved lead-interest column/overload. Production application is a separate reviewed release step. No environment-value change is needed.
 
 Rollback: revert the PR. Keep additive schema inert rather than drop retained lead metadata. After new bid jobs expire, the detail table/start RPC can be removed if desired; the existing event constraint and default-false column/compatible overload may remain. Before reverting shared mail routing, finish or explicitly suspend pending notifications for new bid-check leads so legacy maintenance does not send them a matrix. No existing customer/job rows need modification as part of applying the migration.
+
+## Recorded isolated verification, November 7, 2026
+
+- `npm ci` (task-local cache), build and full npm regression suite pass.
+- Bid API tests exercise all bands through the existing document/analyzer pipeline with mocked provider responses, shared admission, consent, email gate and independent teardown interest. PostgreSQL tests exercise real atomic admission, private permissions, original/extended RPC compatibility and cascade expiry.
+- 16 new browser checks pass across 390/768/1280, including invalid inputs, each verdict band, download gate, consented metrics, no-request library filtering, all detail links/FAQ/injection and the shredder opt-in payload. Existing free-tools 10, comparisons 6 and customer journey 16 browser checks also pass. Mobile screenshots reviewed.
+- A deliberately broken content file made the schema test fail; it was removed and the tests passed again. A fourth fictional JSON file generated its page, route and sitemap in a temporary copy without template/code changes.
+- Hosted isolated execution used only `samples/fictional-rfp.txt`. Three actual AI extraction jobs each returned three sourced mandatory requirements; answers produced Strong fit 10, Worth a closer look 6, Likely pass 2. The first report gate persisted a lead and Resend accepted customer/admin test email to hello@tendercrestai.com. Inbox delivery is not claimed.
+- A separate actual hosted shred of the prepared fictional sample stored teardown interest true and marketing false, returned its matrix, and Resend accepted both test notifications. No visitor content was published. All sending ran with existing CUSTOMER_CARE_TEST_MODE=true and labeled preview subjects.
+- All five new routes return 200 on the isolated deployment. Production remains commit e810356 and has no new migration, credentials or environment-value changes.

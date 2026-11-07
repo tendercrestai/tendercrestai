@@ -31,6 +31,8 @@ try:
      body=r.request.post_data_json;calls.append(body)
      if body['action']=='bid-start':answers.clear();answers.update(body['answers']);r.fulfill(status=202,json={'token':'fixture-token','status':'Pending'})
      elif body['action']=='bid-status':r.fulfill(json={'token':'fixture-token','status':'Completed','processed':1,'total':1,'title':'Fictional example','source':'Fictional source','warnings':[],'requirements':[],'bidcheck':verdict(answers)})
+     elif body['action']=='start':r.fulfill(status=202,json={'token':'shred-fixture-token','status':'Pending'})
+     elif body['action']=='status':r.fulfill(json={'token':'shred-fixture-token','status':'Completed','processed':1,'total':1,'requirements':[{'requirement':'Fictional test obligation','category':'Technical','mandatory':'Yes','sources':[]}],'warnings':[],'gapPreview':[{'requirement':'Fictional test obligation','flag':'Provide evidence','status':'Needs human review'}],'gapCount':1})
      elif body['action']=='bid-report':report_calls.append(body);r.fulfill(json={'leadStored':True,'document':'Fictional written report','notice':'Email accepted for sending; this is not delivery confirmation.','adminNotice':'Owner notification accepted.'})
      elif body['action']=='matrix':report_calls.append(body);r.fulfill(json={'matrix':'Fictional fixture matrix','notice':'Email pending.','adminNotice':'Owner notification pending.'})
      else:r.fulfill(json={'saved':True})
@@ -63,6 +65,6 @@ try:
       with urllib.request.urlopen(base+href.split('#')[0],timeout=10)as r:assert r.status==200,href
    checks.append('Three teardown pages: schema, links, tracker injection and mobile '+str(width));context.close()
   # Existing matrix form sends the independent publication-interest choice.
-  c=b.new_context();page=c.new_page();page.route('**/*',route);page.goto(base+'/tools/shredder');page.evaluate("document.querySelector('#shred-result').hidden=false");assert not page.locator('#teardown-interest').is_checked();checks.append('Shredder opt-in is optional and defaults off');c.close();b.close()
+  c=b.new_context();page=c.new_page();page.route('**/*',route);page.goto(base+'/tools/shredder');page.locator('#solicitation-text').fill(source);page.locator('#processing-consent').check();page.get_by_role('button',name='Shred this solicitation',exact=True).click();page.locator('#shred-result').wait_for(state='visible');assert not page.locator('#teardown-interest').is_checked();page.locator('#teardown-interest').check();page.locator('#matrix-email').fill('hello@tendercrestai.com');page.get_by_role('button',name='Get the full compliance matrix',exact=True).click();page.locator('#matrix-download').wait_for(state='visible');assert report_calls[-1]['teardown']is True and report_calls[-1]['marketing']is False;checks.append('Shredder optional teardown choice sent independently of marketing');c.close();b.close()
  print(json.dumps({'passed':len(checks),'checks':checks,'realProviderCalls':0}))
 finally:server.shutdown()
