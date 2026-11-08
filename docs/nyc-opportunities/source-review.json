@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-11-08T10:09:47.217Z",
+  "sourceUpdatedAt": "2026-11-07T13:30:25.000Z",
+  "notices": 25,
+  "hasMore": true,
+  "firstNoticeSource": "https://a856-cityrecord.nyc.gov/RequestDetail/20261102020",
+  "firstNoticeDeadline": "2026-12-16T11:00:00.000",
+  "descriptionCharacters": 1775,
+  "attachmentDisclaimer": "City Record descriptions are not complete solicitation packages. Attachments are not imported. Paste or upload the full solicitation and verify the deadline, eligibility and all amendments.",
+  "dataset": "dg92-zbpx",
+  "license": "PUBLIC_DOMAIN",
+  "publisher": "Department of Citywide Administrative Services (DCAS)",
+  "publicationField": "start_date",
+  "requestIdType": "number",
+  "anonymousAccessVerified": true,
+  "originalNoticeVerified": true
+}

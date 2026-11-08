@@ -1,0 +1,21 @@
+select public.ft_admit('nyc-fixture-ip','nyc',10,50);
+select public.ft_test((select n=1 from public.ft_rates where kind='nyc'and key='nyc-fixture-ip'),'NYC gets its own upstream counter');
+select public.ft_test(not exists(select from public.ft_rates where kind in('sam','shred','ai')and key='nyc-fixture-ip'),'NYC source loading consumes no federal or shred quota');
+do $$begin for i in 2..10 loop perform public.ft_admit('nyc-fixture-ip','nyc',10,50);end loop;end$$;
+do $$begin begin perform public.ft_admit('nyc-fixture-ip','nyc',10,50);raise exception 'NYC limit was not enforced';exception when raise_exception then if SQLERRM not like 'Free tool limit%'then raise;end if;end;end$$;
+select public.ft_test((select n=10 from public.ft_rates where kind='nyc'and key='nyc-fixture-ip'),'Rejected NYC request does not increment quota');
+select public.ft_test(not has_function_privilege('anon','public.ft_admit(text,text,integer,integer)','EXECUTE'),'No new browser admission permission');
+select public.ft_admit('nyc-fixture-ip','sam',10,50);
+select public.ft_test((select n=1 from public.ft_rates where kind='sam'and key='nyc-fixture-ip'),'Federal budget remains independent');
+select 'NYC admission checks passed' as result;
+
+select public.ft_test(public.ft_nyc_claim(),'First caller gets refresh lease');
+select public.ft_test(not public.ft_nyc_claim(),'Concurrent caller cannot refresh again');
+select public.ft_nyc_store('{"records":[],"checkedAt":"2026-11-08T00:00:00Z"}');
+select public.ft_test((select expires_at>now()+interval '23 hours' from public.ft_cache where key='nyc:snapshot:v1'),'Snapshot survives short source outages');
+select public.ft_test(not public.ft_nyc_claim(),'Successful refresh defers next attempt an hour');
+select public.ft_test(not has_function_privilege('anon','public.ft_nyc_store(jsonb)','EXECUTE'),'Anonymous cannot overwrite snapshot');
+select public.ft_test(not has_function_privilege('authenticated','public.ft_nyc_claim()','EXECUTE'),'Browser cannot acquire refresh lease');
+select public.ft_test(has_function_privilege('service_role','public.ft_nyc_claim()','EXECUTE'),'Service can acquire refresh lease');
+update public.ft_cache set expires_at=now()-interval '1 second' where key='nyc:snapshot:lease:v1';
+select public.ft_test(public.ft_nyc_claim(),'Expired refresh lease can be reclaimed');

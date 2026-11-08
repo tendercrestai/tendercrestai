@@ -116,3 +116,18 @@
   to = "/teardowns/local-professional-services-19-requirements.html"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/opportunities/nyc"
+  to = "/nyc-opportunities.html"
+  status = 200
+  force = true
+
+[functions."nyc-opportunities"]
+  external_node_modules = ["pdfjs-dist", "sax"]
+  included_files = ["assets/docx-validation.mjs", "assets/compliance-export.mjs", "assets/compliance-model.mjs"]
+
+[functions."nyc-opportunities-scheduled"]
+  schedule = "17 * * * *"
+  external_node_modules = ["pdfjs-dist", "sax"]
+  included_files = ["assets/docx-validation.mjs", "assets/compliance-export.mjs", "assets/compliance-model.mjs"]

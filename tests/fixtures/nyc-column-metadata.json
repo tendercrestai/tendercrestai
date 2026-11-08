@@ -1,0 +1,104 @@
+{
+  "id": "dg92-zbpx",
+  "licenseId": "PUBLIC_DOMAIN",
+  "attribution": "Department of Citywide Administrative Services (DCAS)",
+  "rowsUpdatedAt": 1794058225,
+  "columns": [
+    {
+      "name": "RequestID",
+      "fieldName": "request_id",
+      "dataTypeName": "number",
+      "description": "Unique identifier for the City Record notice\n"
+    },
+    {
+      "name": "StartDate",
+      "fieldName": "start_date",
+      "dataTypeName": "calendar_date",
+      "description": "The first date on which the notice appears in the paper publication\n"
+    },
+    {
+      "name": "EndDate",
+      "fieldName": "end_date",
+      "dataTypeName": "calendar_date",
+      "description": "The last date on which the notice appears in the paper publication\n"
+    },
+    {
+      "name": "AgencyName",
+      "fieldName": "agency_name",
+      "dataTypeName": "text",
+      "description": "The agency which has submitted the notice\n"
+    },
+    {
+      "name": "TypeOfNoticeDescription",
+      "fieldName": "type_of_notice_description",
+      "dataTypeName": "text",
+      "description": "A description of the published notice\n"
+    },
+    {
+      "name": "CategoryDescription",
+      "fieldName": "category_description",
+      "dataTypeName": "text",
+      "description": "The category of the published notice\n"
+    },
+    {
+      "name": "ShortTitle",
+      "fieldName": "short_title",
+      "dataTypeName": "text",
+      "description": "Short Title\n"
+    },
+    {
+      "name": "SectionName",
+      "fieldName": "section_name",
+      "dataTypeName": "text",
+      "description": "The section of the City Record in which the notice appears\n"
+    },
+    {
+      "name": "DueDate",
+      "fieldName": "due_date",
+      "dataTypeName": "calendar_date",
+      "description": "For procurement notices: The date when the bid or other response is due\n"
+    },
+    {
+      "name": "AdditionalDescription1",
+      "fieldName": "additional_description_1",
+      "dataTypeName": "text",
+      "description": "Additional information regarding the notice not included in other fields\n"
+    },
+    {
+      "name": "AdditionalDesctription2",
+      "fieldName": "additional_description_2",
+      "dataTypeName": "text",
+      "description": "Additional information regarding the notice not included in other fields(2)\n"
+    },
+    {
+      "name": "AdditionalDescription3",
+      "fieldName": "additional_description_3",
+      "dataTypeName": "text",
+      "description": "Additional information regarding the notice not included in other fields(3)\n"
+    },
+    {
+      "name": "OtherInfo1",
+      "fieldName": "other_info_1",
+      "dataTypeName": "text",
+      "description": "Further information regarding the notice\n"
+    },
+    {
+      "name": "OtherInfo2",
+      "fieldName": "other_info_2",
+      "dataTypeName": "text",
+      "description": "Further information regarding the notice(2)\n"
+    },
+    {
+      "name": "OtherInfo3",
+      "fieldName": "other_info_3",
+      "dataTypeName": "text",
+      "description": "Further information regarding the notice(3)\n"
+    },
+    {
+      "name": "EventDate",
+      "fieldName": "event_date",
+      "dataTypeName": "calendar_date",
+      "description": "For public hearings and meetings notices: Date and time of event\n"
+    }
+  ]
+}
