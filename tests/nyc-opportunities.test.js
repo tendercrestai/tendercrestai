@@ -71,3 +71,9 @@ test('network and transient retries are bounded; quota, access denials and long 
   s.networkFailure=false;s.status=200;s.claimed=false;s.calls=[];await assert.rejects(NYC.search(h.c,h.e,{}),e=>/refreshing/.test(e.message));assert.equal(s.calls.length,0);
  }finally{h.restore();}
 });
+test('hourly warm-up honors feature flags and uses the same snapshot service',async()=>{
+ const F=require('../netlify/functions/lib/free-tools'),kb=require('../netlify/functions/lib/knowledge-base'),scheduled=require('../netlify/functions/nyc-opportunities-scheduled');
+ const saved={enabled:F.enabled,config:kb.configuration,search:NYC.search,flag:process.env.NYC_OPPORTUNITIES_ENABLED};let calls=0;
+ F.enabled=()=>true;kb.configuration=()=>({fixture:true});NYC.search=async(c,e,p)=>{calls++;assert.equal(c.fixture,true);assert.equal(e.headers['x-nf-client-connection-ip'],'nyc-scheduled-refresh');assert.equal(p.page,0);return {stale:false,checkedAt:'fictional fixture'};};
+ try{delete process.env.NYC_OPPORTUNITIES_ENABLED;assert.equal((await scheduled.handler()).statusCode,200);assert.equal(calls,0);process.env.NYC_OPPORTUNITIES_ENABLED='true';assert.equal((await scheduled.handler()).statusCode,200);assert.equal(calls,1);}finally{F.enabled=saved.enabled;kb.configuration=saved.config;NYC.search=saved.search;if(saved.flag===undefined)delete process.env.NYC_OPPORTUNITIES_ENABLED;else process.env.NYC_OPPORTUNITIES_ENABLED=saved.flag;}
+});
