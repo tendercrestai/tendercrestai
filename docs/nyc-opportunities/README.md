@@ -29,3 +29,9 @@ Build, full npm regression suite, seven adapter tests, fifteen browser checks at
 Apply the migration and enable the flag only on the isolated preview first. Review the working preview before any production migration, flag change or merge. No production credential or environment value has changed.
 
 See `source-review.json` for the live check summary and `source-investigation.md` for other sources. Public browsing, document access, machine feeds and reuse rights are separate checks.
+
+## Isolated preview outcome
+
+Commit `172025d` deployed successfully to the isolated Netlify site. Hosted search returned live notices and cache hits. The hosted detail endpoint supplied 1,775 description characters and the browser handoff populated the shredder without submitting AI processing. A 390px local rendering against the hosted endpoint had no horizontal overflow. Direct hosted Chromium navigation failed local certificate trust, so the browser check used local built HTML and a fixed test-only forwarder with verified Python TLS to the isolated endpoint.
+
+Uncached hosted detail and keyword queries also encountered intermittent publisher HTTP 503 or connection timeouts. Cached detail succeeded on retry; hosted keyword and second-page live verification remain incomplete. Mocked keyword/pagination tests pass, but these do not establish upstream reliability. Keep the PR in draft until that remaining source reliability check is reviewed. Production remains unchanged.
