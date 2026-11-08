@@ -1,17 +1,19 @@
-# Source investigation
+# State and local source investigation
 
-As of November 8, 2026, direct source checks are blocked by the managed research environment. Targeted domain additions have been saved for review but are not applied/published. The list below is an investigation queue, not an integration-approved feed list.
+Verified November 8, 2026. Other-source findings are research, not deployed integrations.
 
-| Priority | Source | Official entry point | Checks remaining |
+| Priority | Official source | Verified access | Remaining checks |
 | --- | --- | --- | --- |
-| 1 | NYC City Record Online | https://data.cityofnewyork.us/d/dg92-zbpx | Live metadata and records, freshness, notice-type/date semantics, original-notice URL, anonymous access, reuse/attribution terms |
-| 2 | Virginia eVA | https://eva.virginia.gov/ | Current public opportunities, free access scope, documented RSS/API/download, redistribution terms |
-| 3 | Texas ESBD | https://www.txsmartbuy.gov/esbd | Current public solicitations, free access scope, documented API/download, coverage and redistribution terms |
-| 4 | California Cal eProcure / CSCR | https://caleprocure.ca.gov/ | Current notices, anonymous listing/document access, supported feed/export and terms |
-| 5 | Massachusetts COMMBUYS | https://www.commbuys.com/bso/ | Public bid list versus account-only alerts, documented feed/API and reuse terms |
-| 6 | New York State Contract Reporter | https://www.nyscr.ny.gov/ | Free basic-access scope, current opportunity dates, supported feeds and terms |
-| 7 | Austin Finance Online | https://financeonline.austintexas.gov/afo/finance/ | Current solicitation source, open-data dataset and supported feed/export |
+| Implemented for preview | [NYC City Record](https://data.cityofnewyork.us/d/dg92-zbpx) | Anonymous Socrata API; PUBLIC_DOMAIN metadata; current notices and original detail verified | Preview review before production |
+| Next | [Texas ESBD](https://www.txsmartbuy.gov/esbd) | Official page says sign-in not required; current notices; CSV export control with 20,000-result limit | Test export download, supported automation and reuse rights; filter deadlines as well as status |
+| Second | [Massachusetts COMMBUYS](https://www.commbuys.com/bso/) | Anonymous open-bid list with current notices and CSV/Excel/PDF controls | Export download and reuse rights; JSF session-dependent exports are not a documented stable API |
+| Candidate | [Austin Finance Online](https://financeonline.austintexas.gov/afo/account_services/solicitation/solicitations.cfm) | Anonymous active solicitation list with November 2026 deadlines | Supported feed/export, automation and reuse terms not established |
+| Discovery only | [NY State Contract Reporter](https://www.nyscr.ny.gov/) | Current search results; free account offered; full details require login | Bulk feed and reuse not established; distinguish contractor ads from agency notices |
+| Needs clarification | [Virginia eVA](https://eva.virginia.gov/eva-open-data.html) | Official open-data page describes historical procurement data | Current VBO endpoint returns HTTP 403 from this environment; historical data is not a live opportunity feed |
+| Unverified | [California Cal eProcure](https://caleprocure.ca.gov/) | Portal returns HTTP 403 from this environment | Access, supported feed and terms need publisher clarification; this does not prove the source is paid |
 
-Evidence already available: Austin's official homepage links to Finance Online as “City contracts” and to its Open Data portal. A public catalog mirror identifies NYC dataset dg92-zbpx and the Current Solicitations view 3khw-qi8f, but that is not primary evidence of current freshness/API availability. Live publisher checks are required before claiming any source integration-ready. Search results that did not match the research queries were discarded.
+Texas is the strongest next candidate, followed by Massachusetts. Export controls alone do not establish a supported free API or redistribution permission. No export downloads were verified for those two portals, and no new accounts, subscriptions or integrations were created.
 
-Data source, API fees, vendor registration, document access and redistribution permission are separate checks. Contract award/payment datasets are not upcoming bidding opportunities. No new paid subscription, account registration or website integration has been made for the other states.
+Official Socrata application-token documentation allows simple anonymous queries with lower shared IP throttling limits. NYC dataset licensing is separately established by its PUBLIC_DOMAIN metadata; general NYC website content rights are not a license for copying portal HTML or logos. The implementation consumes selected dataset records and links to original notices.
+
+Catalog searches for Austin, Connecticut, Chicago, New York State and Texas did not establish another comprehensive current bid API. Historical awards, charitable solicitation registrations and federated NYC datasets were excluded. Catalog search absence does not prove a feed does not exist.
