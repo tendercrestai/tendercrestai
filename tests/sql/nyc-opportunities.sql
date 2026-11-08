@@ -1,0 +1,10 @@
+select public.ft_admit('nyc-fixture-ip','nyc',10,50);
+select public.ft_test((select n=1 from public.ft_rates where kind='nyc'and key='nyc-fixture-ip'),'NYC gets its own upstream counter');
+select public.ft_test(not exists(select from public.ft_rates where kind in('sam','shred','ai')and key='nyc-fixture-ip'),'NYC source loading consumes no federal or shred quota');
+do $$begin for i in 2..10 loop perform public.ft_admit('nyc-fixture-ip','nyc',10,50);end loop;end$$;
+do $$begin begin perform public.ft_admit('nyc-fixture-ip','nyc',10,50);raise exception 'NYC limit was not enforced';exception when raise_exception then if SQLERRM not like 'Free tool limit%'then raise;end if;end;end$$;
+select public.ft_test((select n=10 from public.ft_rates where kind='nyc'and key='nyc-fixture-ip'),'Rejected NYC request does not increment quota');
+select public.ft_test(not has_function_privilege('anon','public.ft_admit(text,text,integer,integer)','EXECUTE'),'No new browser admission permission');
+select public.ft_admit('nyc-fixture-ip','sam',10,50);
+select public.ft_test((select n=1 from public.ft_rates where kind='sam'and key='nyc-fixture-ip'),'Federal budget remains independent');
+select 'NYC admission checks passed' as result;
