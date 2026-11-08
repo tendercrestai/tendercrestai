@@ -8,6 +8,9 @@ const ID = /^[A-Za-z0-9_-]{1,64}$/;
 const FIELD = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
 const DAYS = 86400000;
 const MAX_RESPONSE = 2 * 1024 * 1024;
+const SNAPSHOT_KEY = 'nyc:snapshot:v1';
+const HOUR = 3600000;
+function transient(message, status=503) {const error=new Error(message);error.status=status;error.transient=true;throw error;}
 const ALIASES = {
  id: ['requestid'], title: ['shorttitle'], agency: ['agencyname'], posted: ['startdate'],
  deadline: ['duedate'], section: ['sectionname'], noticeType: ['typeofnoticedescription'],
@@ -54,11 +57,12 @@ async function upstream(config, event, path, params) {
  const url = new URL(path, API);if (params) url.search = params.toString();
  let response;
  for(let attempt=0;attempt<2;attempt++){
-  await kb.rpc(config, 'ft_admit', {p_ip: F.ip(event), p_kind: 'nyc', p_limit: 10, p_global: 50});
+  try {await kb.rpc(config, 'ft_admit', {p_ip: F.ip(event), p_kind: 'nyc', p_limit: 100, p_global: 200});}
+  catch(error){if(error.status===429)error.transient=true;throw error;}
   const remaining=(event.nycRequestDeadline||Date.now()+8000)-Date.now();
-  if(remaining<=0)kb.fail(503,'NYC Open Data could not finish this request in time. Please retry later.');
+  if(remaining<=0)transient('NYC Open Data could not finish this request in time. Please retry later.');
   try {response=await fetch(url,{headers:{Accept:'application/json'},redirect:'error',signal:AbortSignal.timeout(Math.min(8000,remaining))});}
-  catch{kb.fail(503,'NYC Open Data could not be reached. Please retry later or visit City Record Online.');}
+  catch{if(attempt===0&&Date.now()+1000<(event.nycRequestDeadline||Infinity)){await new Promise(resolve=>setTimeout(resolve,300));continue;}transient('NYC Open Data could not be reached. Please retry later or visit City Record Online.');}
   const retryAfter=response.headers.get('retry-after');
   const wait=retryAfter===null?300:/^\d+$/.test(retryAfter)?Number(retryAfter)*1000:Math.max(0,Date.parse(retryAfter)-Date.now());
   if(attempt===0&&[502,503,504].includes(response.status)&&Number.isFinite(wait)&&wait<=1000&&Date.now()+wait+1000<(event.nycRequestDeadline||Infinity)){
@@ -66,17 +70,11 @@ async function upstream(config, event, path, params) {
   }
   break;
  }
- if (!response.ok) kb.fail(response.status === 429 ? 429 : 503, 'NYC Open Data could not return notices right now (HTTP ' + response.status + '). Please retry later or visit City Record Online.');
+ if (!response.ok) {const message='NYC Open Data could not return notices right now (HTTP '+response.status+'). Please retry later or visit City Record Online.';if([429,500,502,503,504].includes(response.status))transient(message,response.status===429?429:503);kb.fail(503,message);}
  if (Number(response.headers.get('content-length')) > MAX_RESPONSE) kb.fail(503, 'The NYC response exceeded the supported size. Visit the original source.');
- const text = await response.text();if (Buffer.byteLength(text) > MAX_RESPONSE) kb.fail(503, 'The NYC response exceeded the supported size. Visit the original source.');
+ let text;try{text=await response.text();}catch{transient('NYC Open Data response was interrupted. Please retry later.');}if (Buffer.byteLength(text) > MAX_RESPONSE) kb.fail(503, 'The NYC response exceeded the supported size. Visit the original source.');
  try {return JSON.parse(text);} catch {kb.fail(503, 'NYC Open Data returned an unsupported response. No notices are implied.');}
 }
-async function cached(config, name, loader) {
- const key = F.mac('nyc:v3:' + name), rows = await F.db(config, 'ft_cache?key=eq.' + key + '&expires_at=gt.' + encodeURIComponent(new Date().toISOString()));
- if (rows[0]) return {...rows[0].body, cached: true};
- const body = await loader();await kb.rpc(config, 'ft_cache_put', {p_key: key, p_body: body});return {...body, cached: false};
-}
-async function metadata(config, event) {return cached(config, 'schema', async () => schema(await upstream(config, event, '/api/views/' + DATASET + '.json')));}
 function dateValue(value) {
  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?)?$/.test(value) || !Number.isFinite(Date.parse(value))) return null;
  if(new Date(value.slice(0,10)+'T00:00:00Z').toISOString().slice(0,10)!==value.slice(0,10))return null;
@@ -94,21 +92,36 @@ function select(columns, detail = false) {
  return keys.filter(k => columns[k]).map(k => columns[k] + ' AS ' + (k==='noticeType'?'notice_type':k)).join(',');
 }
 function solicitationWhere(c) {return c.section+" = 'Procurement' AND "+c.noticeType+" = 'Solicitation'";}
+async function snapshot(config,event) {
+ const rows=await F.db(config,'ft_cache?key=eq.'+encodeURIComponent(SNAPSHOT_KEY)+'&expires_at=gt.'+encodeURIComponent(new Date().toISOString()));
+ const saved=rows[0]?.body;
+ const age=saved?Date.now()-Date.parse(saved.checkedAt):Infinity;
+ const usable=!!saved&&Array.isArray(saved.records)&&age>=0&&age<24*HOUR;
+ if(usable&&age<HOUR)return {...saved,cached:true,stale:false};
+ const claimed=await kb.rpc(config,'ft_nyc_claim',{});
+ if(!claimed){if(usable)return {...saved,cached:true,stale:true};transient('NYC notices are refreshing. Please retry in a few minutes or visit City Record Online.');}
+ try {
+  const m=schema(await upstream(config,event,'/api/views/'+DATASET+'.json')),c=m.columns;
+  // Sorting the historical source triggers slow upstream scans. Fetch a bounded
+  // current snapshot once, then sort/search/page locally without upstream calls.
+  const params=new URLSearchParams({'$select':select(c,true),'$where':solicitationWhere(c)+' AND '+c.deadline+" >= '"+nycDay()+"T00:00:00.000'",'$limit':'1001'});
+  const records=await upstream(config,event,'/resource/'+DATASET+'.json',params);
+  if(!Array.isArray(records)||records.length>1000)kb.fail(503,'NYC notice coverage needs review before this snapshot can be displayed. Visit City Record Online.');
+  if(records.length&&records.every(row=>!normalize(row)))kb.fail(503,'NYC notice fields or types need review. No notices are implied.');
+  const body={records,checkedAt:new Date().toISOString(),sourceUpdatedAt:m.sourceUpdatedAt,license:m.license,publisher:m.publisher,dataset:SOURCE};
+  await kb.rpc(config,'ft_nyc_store',{p_body:body});
+  return {...body,cached:false,stale:false};
+ }catch(error){if(usable&&error.transient)return {...saved,cached:true,stale:true};if(usable&&!error.transient)await F.db(config,'ft_cache?key=eq.'+encodeURIComponent(SNAPSHOT_KEY),{method:'DELETE'});throw error;}
+}
+function snapshotNotice(data){return data.stale?' NYC is temporarily unavailable or refreshing. Showing the last successful snapshot from '+data.checkedAt+'. Verify every notice on the original source.':'';}
 async function search(config, event, input) {
- available();event={...event,nycRequestDeadline:Date.now()+20000};const keyword = input.keyword ?? '', page = input.page ?? 0;
- if (typeof keyword !== 'string' || keyword.length > 100 || /[\x00-\x1f]/.test(keyword) || !Number.isInteger(page) || page < 0 || page > 9) kb.fail(400, 'Use a title keyword up to 100 characters and a supported results page.');
- const day = nycDay();
- return cached(config, JSON.stringify(['search', keyword.trim(), page, day]), async () => {
-  const m = await metadata(config, event), c = m.columns;
-  let where = solicitationWhere(c) + ' AND ' + c.deadline + " >= '" + day + "T00:00:00.000'";
-  const params = new URLSearchParams({'$select': select(c), '$where': where, '$order': c.posted + ' DESC, ' + c.id + ' DESC', '$limit': '26', '$offset': String(page * 25)});
-  if(keyword.trim())params.set('$q',keyword.trim());
-  const rows = await upstream(config, event, '/resource/' + DATASET + '.json', params);
-  if (!Array.isArray(rows) || rows.length > 26) kb.fail(503, 'NYC Open Data returned an unsupported notice list. No notices are implied.');
-  const normalized = rows.map(normalize);if (rows.length && normalized.every(x => !x)) kb.fail(503, 'NYC notice fields or types need review. No notices are implied.');
-  const items = normalized.slice(0, 25).filter(Boolean).filter(x => x.deadline.slice(0, 10) >= day);
-  return {items, page,omittedCount:normalized.slice(0,25).filter(x=>!x).length,license:m.license,publisher:m.publisher, hasMore: rows.length > 25, checkedAt: new Date().toISOString(), sourceUpdatedAt: m.sourceUpdatedAt, dataset: SOURCE, notice: 'NYC procurement solicitation notices with listed deadlines today or later in New York time. This does not confirm that a bid remains open. Verify exact closing times, amendments and documents on the original notice. Sort applies to this results page.'};
- });
+ available();event={...event,nycRequestDeadline:Date.now()+20000};const keyword=input.keyword??'',page=input.page??0;
+ if(typeof keyword!=='string'||keyword.length>100||/[\x00-\x1f]/.test(keyword)||!Number.isInteger(page)||page<0||page>39)kb.fail(400,'Use a keyword up to 100 characters and a supported results page.');
+ const data=await snapshot(config,event),day=nycDay(),needle=keyword.trim().toLocaleLowerCase('en-US');
+ const valid=data.records.map(normalize).filter(Boolean).filter(item=>item.deadline.slice(0,10)>=day);
+ const matched=valid.filter(item=>!needle||[item.title,item.agency,item.category||''].join(' ').toLocaleLowerCase('en-US').includes(needle));
+ matched.sort((a,b)=>b.posted.localeCompare(a.posted)||b.id.localeCompare(a.id));
+ return {items:matched.slice(page*25,page*25+25),page,hasMore:matched.length>(page+1)*25,total:matched.length,omittedCount:data.records.length-data.records.map(normalize).filter(Boolean).length,license:data.license,publisher:data.publisher,cached:data.cached,stale:data.stale,checkedAt:data.checkedAt,sourceUpdatedAt:data.sourceUpdatedAt,dataset:SOURCE,notice:'NYC procurement solicitation notices with listed deadlines today or later in New York time. This does not confirm that a bid remains open. Verify exact closing times, amendments and documents on the original notice. Keyword matches title, agency and category. Sort applies to this results page.'+snapshotNotice(data)};
 }
 function plain(value) {
  if (typeof value !== 'string') return '';
@@ -116,19 +129,12 @@ function plain(value) {
 }
 async function detail(config, event, value) {
  available();event={...event,nycRequestDeadline:Date.now()+20000};const id = noticeId(value);
- return cached(config, JSON.stringify(['detail', id]), async () => {
-  const m = await metadata(config, event), c = m.columns;
-  if(m.idType==='number'&&!/^\d{1,20}$/.test(id))kb.fail(400,'Enter a numeric NYC request ID.');
-  const literal=m.idType==='number'?id:"'"+id+"'";
-  const params = new URLSearchParams({'$select': select(c, true), '$where': solicitationWhere(c) + ' AND ' + c.id + ' = ' + literal, '$limit': '1'});
-  const rows = await upstream(config, event, '/resource/' + DATASET + '.json', params);
-  if (!Array.isArray(rows)) kb.fail(503, 'NYC Open Data returned unsupported notice details.');
-  const row = rows.find(x => String(x.id) === id), item = row && normalize(row);
-  if (!item) kb.fail(404, 'This NYC solicitation notice was not returned. Paste or upload the original solicitation instead.');
+ const data=await snapshot(config,event);
+ const row=data.records.find(x=>String(x.id)===id),item=row&&normalize(row);
+ if(!item||item.deadline.slice(0,10)<nycDay())kb.fail(404,'This NYC solicitation is not in the current snapshot. It may have closed or changed. Paste or upload the original solicitation instead.');
   let text = ['description1', 'description2', 'description3', 'other1', 'other2', 'other3'].map(k => plain(row[k])).filter(Boolean).join('\n\n');
   let notice = 'City Record descriptions are not complete solicitation packages. Attachments are not imported. Paste or upload the full solicitation and verify the deadline, eligibility and all amendments.';
   if (text.length > 100000) {text = '';notice += ' The source description exceeds the tool input limit.';}
-  return {item, text, notice, checkedAt: new Date().toISOString()};
- });
+  return {item,text,notice:notice+snapshotNotice(data),checkedAt:data.checkedAt,cached:data.cached,stale:data.stale};
 }
 module.exports = {enabled, available, noticeId, nycDay, schema, normalize, search, detail, plain, SOURCE};

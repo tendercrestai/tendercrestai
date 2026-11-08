@@ -9,6 +9,6 @@ for attempt in {1..30};do if "${local_docker[@]}" exec "$container" pg_isready -
 "${local_docker[@]}" exec -i "$container" psql -q -U postgres -v ON_ERROR_STOP=1 <<'SQL'
 create role anon;create role authenticated;create role service_role bypassrls;
 SQL
-for sql in supabase/migrations/20261106090000_free_rfp_tools.sql supabase/migrations/20261108090000_nyc_feed_admission.sql tests/sql/free-tools.sql tests/sql/nyc-opportunities.sql;do
+for sql in supabase/migrations/20261106090000_free_rfp_tools.sql supabase/migrations/20261108090000_nyc_feed_admission.sql supabase/migrations/20261108110000_nyc_feed_snapshot.sql tests/sql/free-tools.sql tests/sql/nyc-opportunities.sql;do
  "${local_docker[@]}" exec -i "$container" psql -q -U postgres -v ON_ERROR_STOP=1 < "$sql"
 done

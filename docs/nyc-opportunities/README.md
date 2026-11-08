@@ -1,37 +1,29 @@
-# NYC opportunity feed: implementation and verification gate
+# NYC opportunity feed
 
-Branch: `feature/nyc-opportunities`. NYC source route: `/opportunities/nyc`; the existing federal source remains `/opportunities`. The source tabs link between them. No SAM backend, billing/auth/trial, bid checker scoring, demo/sample, tracking or consent implementation changes.
+Route `/opportunities/nyc`, alongside the existing federal `/opportunities` feed. NYC search, details and all pagination share one server-side snapshot. Existing federal API, billing/auth/trial, demo, bid checker scoring, consent and tracker implementations are unchanged.
 
-## Current status
+## Source verified November 8, 2026
 
-Live publisher checks passed November 8, 2026. NYC Open Data metadata identifies the dataset as PUBLIC_DOMAIN, attributed to Department of Citywide Administrative Services (DCAS), with rows updated November 7 at 13:30:25 UTC. Anonymous metadata and record queries succeeded without a key. A real list returned 25 upcoming solicitation notices, and the first original City Record page matched its title and deadline. A readable description was retrieved, with attachments explicitly excluded.
+NYC Open Data City Record Online dataset [dg92-zbpx](https://data.cityofnewyork.us/d/dg92-zbpx) identifies its license as PUBLIC_DOMAIN and its publisher as Department of Citywide Administrative Services (DCAS). Metadata reports rows updated November 7 at 13:30:25 UTC. Anonymous source reads require no API key. The original City Record notice title and deadline were verified against a returned notice.
 
-`NYC_OPPORTUNITIES_ENABLED` defaults false. Enable only after the admission migration is applied. Unavailable sources produce honest errors, never invented rows. No API key is needed for verified anonymous access. Do not copy masked Netlify secrets.
+`StartDate` is publication date; `EventDate` is for hearings/meetings. Request IDs are numeric. Supported column types/identifiers and PUBLIC_DOMAIN license are validated on each refresh. Unexpected metadata, invalid responses or over-1,000-record coverage fail closed. Awards are excluded. Individual invalid rows are omitted and counted.
 
-## Source and behavior
+## Reliability
 
-Verified publisher dataset: NYC Open Data City Record Online `dg92-zbpx`, https://data.cityofnewyork.us/d/dg92-zbpx. Metadata is read from the fixed `/api/views/dg92-zbpx.json` endpoint, and selected records from fixed `/resource/dg92-zbpx.json`. Metadata resolves known publisher column names to safe field identifiers instead of guessing transport keys. Unexpected schemas/types fail closed.
+The original server-side sort and individual keyword/detail queries caused intermittent upstream timeouts/503s. A single unsorted query returned 198 upcoming notices with descriptions in about three seconds. The adapter now sorts by publication date/ID and searches title/agency/category locally. It serves 25 rows per page, at most 40 pages, and uses the same snapshot for detail and shredder handoff. No keyword is interpolated into an upstream query.
 
-List queries require Procurement section and Solicitation/Solicitations notice type, and a listed deadline dated today or later in America/New_York. Same-day results are not presented as confirmed open bids: exact time, amendments and submission status require the original source. Award notices and other sections are excluded. Calendar/floating dates are preserved as NYC source wall-clock values, without treating them as the visitor's timezone. Fixed/offset timestamp schemas need explicit review before support. Dataset row-update metadata and fetch/check time are distinct, with missing update time labeled unknown.
+A service-only refresh lease prevents simultaneous visitors from duplicating source calls. Successful snapshots refresh after one hour; failed refreshes back off five minutes. Network failures and brief HTTP 502/503/504 responses get at most one retry within the request time budget. Retry-After is respected; access/quota denials are not retried. Each upstream attempt uses a separate NYC budget of 100/IP and 200 shared/day. The larger NYC-only budget accommodates hourly shared refreshes plus bounded retries without changing federal/shred limits.
 
-Keyword uses Socrata's separate `$q` parameter, not concatenated user text in SoQL. Identifiers/order/selected fields are server-owned. Only listed source metadata is returned; supplier/vendor names, contact lists and award amounts are not selected. No attachment URLs are fetched. The City Record `/RequestDetail/<id>` source-link contract was verified against a real notice. `StartDate` is publication date; `EventDate` is a hearing/meeting date and is not used. Request IDs are numeric. The metadata license must remain PUBLIC_DOMAIN or the adapter fails closed.
+The last successful snapshot remains in private `ft_cache` for at most 24 hours. If NYC is temporarily unavailable or refreshing, that snapshot is served with its original timestamp and an explicit warning. Dates earlier than the current New York calendar day are filtered at read time, including in fallback mode. Same-day closing times still require verification on the original source. An invalid schema/license/access response invalidates the old snapshot rather than continuing to display it. No snapshot older than 24 hours is served. A prolonged outage can still make the feed unavailable; no external API availability guarantee is implied.
 
-Twenty-five records per page, up to ten pages, with a 26th record used only to signal another page. Sorting is explicitly within the displayed page. A one-hour private cache uses the existing `ft_cache`/`ft_cache_put` path, with day-aware search keys and distinct NYC namespaces. Each upstream request, including metadata, is admitted under the new independent `nyc` budget: 10/IP and 50 shared per UTC day. `20261108090000_nyc_feed_admission.sql` changes only the allowed admission-kind list; all prior limits/logic and browser permissions are unchanged. NYC browsing does not spend anonymous shreds or federal API admission.
+`20261108090000_nyc_feed_admission.sql` adds only the NYC admission kind. `20261108110000_nyc_feed_snapshot.sql` adds service-only claim/store functions using new `nyc:snapshot:*` cache keys. No existing cache/jobs/leads are overwritten. Existing cache maintenance removes expired snapshots. No new table or credential is required. Rollback disables the flag/reverts the PR; the unused new functions/keys can remain or be removed separately.
 
-## Shredder handoff
+## Shredder and consent
 
-NYC cards link to `/tools/shredder?provider=nyc&notice=<id>`. The source selector dispatches to `nyc-opportunities`; legacy links/default selection still use the existing federal endpoint. Available source descriptions prefill the text area, but are not called a full solicitation package. Empty or oversized descriptions use the existing paste/upload fallback. No AI request occurs until the visitor supplies processing consent and submits the shred form. Source text uses the existing extraction pipeline unchanged.
+Cards link to `/tools/shredder?provider=nyc&notice=<id>`. Source descriptions prefill title/source/text; attachments are not imported and the warning requires checking originals and amendments. Empty/oversized descriptions use paste/upload fallback. Processing requires the existing consent and an explicit submit. No AI calls are made by browsing or handoff. No new tracker, analytics event or consent flow is added.
 
-## Verification and deployment
+## Release checks
 
-Build, full npm regression suite, seven adapter tests, fifteen browser checks at 390/768/1280 and independent PostgreSQL admission checks pass. Browser fixture tests remain fictional and separate from live-source checks. Live adapter checks verified search, pagination, detail, cache and attachment caveat. Occasional publisher HTTP 503 responses were observed; bounded retries admit each upstream attempt separately and never retry access/quota denials. Cache namespaces are versioned to avoid stale schema entries.
+Build/full npm suite, nine adapter tests, fifteen browser checks at 390/768/1280 and real PostgreSQL admission/refresh-lease tests pass. Tests cover shared snapshot keyword/pagination/detail, bounded retry, no retry on denial, refresh contention, 24-hour expiry, expired deadlines and invalid-license fallback rejection. Browser fixtures are explicitly fictional and distinct from real publisher verification.
 
-Apply the migration and enable the flag only on the isolated preview first. Review the working preview before any production migration, flag change or merge. No production credential or environment value has changed.
-
-See `source-review.json` for the live check summary and `source-investigation.md` for other sources. Public browsing, document access, machine feeds and reuse rights are separate checks.
-
-## Isolated preview outcome
-
-Commit `172025d` deployed successfully to the isolated Netlify site. Hosted search returned live notices and cache hits. The hosted detail endpoint supplied 1,775 description characters and the browser handoff populated the shredder without submitting AI processing. A 390px local rendering against the hosted endpoint had no horizontal overflow. Direct hosted Chromium navigation failed local certificate trust, so the browser check used local built HTML and a fixed test-only forwarder with verified Python TLS to the isolated endpoint.
-
-Uncached hosted detail and keyword queries also encountered intermittent publisher HTTP 503 or connection timeouts. Cached detail succeeded on retry; hosted keyword and second-page live verification remain incomplete. Mocked keyword/pagination tests pass, but these do not establish upstream reliability. Keep the PR in draft until that remaining source reliability check is reviewed. Production remains unchanged.
+Live preview and production verification outcomes are recorded in the PR/release record. The source feed uses a feature flag `NYC_OPPORTUNITIES_ENABLED=true` and requires both migrations before activation. Do not copy masked Netlify secrets. Other-source research is in `source-investigation.md`; no other state/local feed is implemented.
