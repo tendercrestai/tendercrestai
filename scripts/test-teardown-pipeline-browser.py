@@ -1,4 +1,4 @@
-import pathlib,http.server,threading,functools,json,urllib.request
+import pathlib,http.server,threading,functools,json,urllib.request,os
 from playwright.sync_api import sync_playwright
 root=pathlib.Path(__file__).resolve().parents[1];slug='federal-emergency-generator-replacement-23-requirements'
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -15,11 +15,11 @@ try:
   browser=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
   for width in [390,768,1280]:
    page=browser.new_page(viewport={'width':width,'height':950});page.route('**/*',lambda r:r.continue_()if r.request.url.startswith(base)else r.abort());page.goto(base+'/teardowns');page.wait_for_load_state('networkidle')
-   assert page.locator('.notice-card').count()==4;assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');assert page.locator('meta[name=robots]').get_attribute('content')=='noindex,nofollow';requests=[];page.on('request',lambda r:requests.append(r.url))
+   assert page.locator('.notice-card').count()==4;assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');assert (page.locator('meta[name=robots]').get_attribute('content')=='noindex,nofollow')if os.environ.get('TEARDOWN_REVIEW_PREVIEW')=='true'else page.locator('meta[name=robots]').count()==0;requests=[];page.on('request',lambda r:requests.append(r.url))
    for band in ['Under $500K','$500K to $5M','Over $5M']:
     page.locator('#value-filter').select_option(band);assert not page.locator('a[href="/teardowns/'+slug+'"]').is_visible()
    page.locator('#value-filter').select_option('');assert page.locator('a[href="/teardowns/'+slug+'"]').is_visible();assert not requests;checks.append('Index, unknown-value filters, no requests and width '+str(width))
-   page.goto(base+'/teardowns/'+slug);assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');text=page.locator('main').inner_text();assert 'Draft for human review'in text and '23 extracted requirements'in text and '10 marked mandatory'in text and 'Strong fit'in text
+   page.goto(base+'/teardowns/'+slug);assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');text=page.locator('main').inner_text();assert 'Draft for human review'not in text and '23 extracted requirements'in text and '10 marked mandatory'in text and 'Strong fit'in text
    for term in ['Example bidder profile','Available team hours: 200','Eligibility: Yes','Similar past performance: Related','Written evidence: Most','Not stated in supplied source']:assert term in text
    assert 'TODO'not in text;assert page.locator('script[src="/assets/reditus.mjs"]').count()==1;assert page.locator('script[src="/assets/analytics.mjs"]').count()==1
    faq=json.loads(page.locator('script[type="application/ld+json"]').inner_text())

@@ -52,7 +52,7 @@
   "lesson": "Check the evidence required at quote submission before drafting the technical response. A plan to deliver the equipment is incomplete if the qualification and warranty-service evidence is missing. Obtain the formal solicitation and every referenced attachment before treating this notice-level review as a complete requirement list.",
   "illustrative": true,
   "basis": "anonymized-shredder-output",
-  "publicationStatus": "draft",
+  "publicationStatus": "reviewed",
   "bidRead": "Strong fit",
   "exampleBidderProfile": {
     "hours": 200,
@@ -60,7 +60,11 @@
     "performance": "related",
     "evidence": "most"
   },
-  "humanReview": null,
+  "humanReview": {
+    "reviewer": "Owner authorized release in chat; checklist checks performed by assistant",
+    "reviewedOn": "2026-11-09",
+    "checklistComplete": true
+  },
   "faq": [
     {
       "question": "Where do teardowns come from?",
