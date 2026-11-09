@@ -1,0 +1,31 @@
+{
+  "scope": "One normal visitor UI shred of an official notice description; no attachments imported.",
+  "requirements": 23,
+  "mandatory": 10,
+  "gaps": 23,
+  "categorySplit": {
+    "Technical": 4,
+    "Legal": 4,
+    "Service Level": 3,
+    "Eligibility": 5,
+    "Financial": 1,
+    "Submission": 2,
+    "Evaluation": 1,
+    "Administrative": 3
+  },
+  "sourceCoverage": "Description only; source points to a formal solicitation and attachments.",
+  "dealBreakerRows": [
+    9,
+    16
+  ],
+  "exampleBidderProfile": {
+    "hours": 200,
+    "eligibility": "yes",
+    "performance": "related",
+    "evidence": "most"
+  },
+  "band": "Strong fit",
+  "humanReview": "Pending; no assistant signature substituted for a human.",
+  "countsVerifiedAgainstPrivateOutput": true,
+  "rawOutputCommitted": false
+}

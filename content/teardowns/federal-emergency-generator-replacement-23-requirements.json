@@ -1,0 +1,89 @@
+{
+  "slug": "federal-emergency-generator-replacement-23-requirements",
+  "title": "Federal emergency generator replacement: 23 requirements, value not stated",
+  "metaDescription": "An anonymized notice review: 23 extracted requirements, 23 review gaps, and certification and local warranty-service evidence that must accompany the quote.",
+  "agencyType": "Federal",
+  "valueBand": "Not stated in supplied source",
+  "naicsArea": "33",
+  "responseWindowDays": 15,
+  "requirementCount": 23,
+  "mandatoryCount": 10,
+  "gapCount": 23,
+  "categorySplit": {
+    "Technical": 4,
+    "Legal": 4,
+    "Service Level": 3,
+    "Eligibility": 5,
+    "Financial": 1,
+    "Submission": 2,
+    "Evaluation": 1,
+    "Administrative": 3
+  },
+  "description": [
+    "The supplied notice describes replacing an emergency power generator: disconnect and dispose of the old unit, install a replacement, integrate it with existing switching equipment, test it, commission it, and train the operator. Scope extends beyond supplying a piece of equipment.",
+    "The notice also calls for qualified personnel, certification evidence and on-site warranty support. This review covers the notice description processed by the shredder, not the formal solicitation or referenced attachments. The source does not state a contract value, and the extraction includes informational and optional administrative rows as well as mandatory requirements."
+  ],
+  "gapPreview": [
+    {
+      "requirement": "Provide the labor, management, equipment, transport and materials for generator replacement and disposal.",
+      "flag": "Provide source-backed company evidence and have a reviewer assess this requirement."
+    },
+    {
+      "requirement": "Safely disconnect and dispose of the old generator and install a new unit meeting the stated specification.",
+      "flag": "Provide source-backed company evidence and have a reviewer assess this requirement."
+    },
+    {
+      "requirement": "Integrate the replacement with the existing automatic transfer equipment.",
+      "flag": "Provide source-backed company evidence and have a reviewer assess this requirement."
+    },
+    {
+      "requirement": "Complete testing, commissioning and operator training.",
+      "flag": "Provide source-backed company evidence and have a reviewer assess this requirement."
+    },
+    {
+      "requirement": "Dispose of equipment and hazardous materials under the applicable local environmental rules.",
+      "flag": "Provide source-backed company evidence and have a reviewer assess this requirement."
+    }
+  ],
+  "dealBreakers": [
+    "Submit verifiable evidence of the required professional qualifications and certifications with the quote. The notice says missing evidence may make the offer technically unacceptable.",
+    "Demonstrate the required local on-site warranty-service capability with the quote. The notice says failure to provide verifiable evidence makes the offer technically unacceptable and excludes it from award consideration."
+  ],
+  "lesson": "Check the evidence required at quote submission before drafting the technical response. A plan to deliver the equipment is incomplete if the qualification and warranty-service evidence is missing. Obtain the formal solicitation and every referenced attachment before treating this notice-level review as a complete requirement list.",
+  "illustrative": true,
+  "basis": "anonymized-shredder-output",
+  "publicationStatus": "draft",
+  "bidRead": "Strong fit",
+  "exampleBidderProfile": {
+    "hours": 200,
+    "eligibility": "yes",
+    "performance": "related",
+    "evidence": "most"
+  },
+  "humanReview": null,
+  "faq": [
+    {
+      "question": "Where do teardowns come from?",
+      "answer": "This anonymized teardown starts with a public solicitation processed through the free shredder. A human must verify the counts, source coverage and identifying details before publication."
+    },
+    {
+      "question": "Can I get my solicitation torn down?",
+      "answer": "Use the free shredder or bid checker privately. A public teardown requires separate human review, anonymization, and your explicit confirmation. Publication is never automatic."
+    },
+    {
+      "question": "Does a teardown guarantee anything?",
+      "answer": "No. A teardown does not certify compliance or predict an award. Verify the original solicitation, attachments, and amendments before making a bid decision."
+    }
+  ],
+  "atAGlance": {
+    "agencyType": "Federal",
+    "valueBand": "Not stated in supplied source",
+    "naicsArea": "33",
+    "responseWindowDays": 15,
+    "requirementsFound": 23,
+    "mandatoryRequirements": 10,
+    "gapsFlagged": 23,
+    "dealBreakers": 2
+  },
+  "source_fingerprint": "f1386033ae31f59080adc2bec7ae73e6fea6c32e9b09351af5505618e40b37df"
+}
