@@ -74,6 +74,30 @@ test('network and transient retries are bounded; quota, access denials and long 
 test('hourly warm-up honors feature flags and uses the same snapshot service',async()=>{
  const F=require('../netlify/functions/lib/free-tools'),kb=require('../netlify/functions/lib/knowledge-base'),scheduled=require('../netlify/functions/nyc-opportunities-scheduled');
  const saved={enabled:F.enabled,config:kb.configuration,search:NYC.search,flag:process.env.NYC_OPPORTUNITIES_ENABLED};let calls=0;
- F.enabled=()=>true;kb.configuration=()=>({fixture:true});NYC.search=async(c,e,p)=>{calls++;assert.equal(c.fixture,true);assert.equal(e.headers['x-nf-client-connection-ip'],'nyc-scheduled-refresh');assert.equal(p.page,0);return {stale:false,checkedAt:'fictional fixture'};};
+ F.enabled=()=>true;kb.configuration=()=>({fixture:true});NYC.search=async(c,e,p)=>{calls++;assert.equal(c.fixture,true);assert.equal(e.nycScheduled,true);assert.equal(p.page,0);return {stale:false,checkedAt:'fictional fixture'};};
  try{delete process.env.NYC_OPPORTUNITIES_ENABLED;assert.equal((await scheduled.handler()).statusCode,200);assert.equal(calls,0);process.env.NYC_OPPORTUNITIES_ENABLED='true';assert.equal((await scheduled.handler()).statusCode,200);assert.equal(calls,1);}finally{F.enabled=saved.enabled;kb.configuration=saved.config;NYC.search=saved.search;if(saved.flag===undefined)delete process.env.NYC_OPPORTUNITIES_ENABLED;else process.env.NYC_OPPORTUNITIES_ENABLED=saved.flag;}
+});
+test('native hourly refresh renews an aged snapshot using real admission validation',async()=>{
+ const h=fixtureHarness(),s=h.state,F=require('../netlify/functions/lib/free-tools'),kb=require('../netlify/functions/lib/knowledge-base'),scheduled=require('../netlify/functions/nyc-opportunities-scheduled');
+ const original={enabled:F.enabled,configuration:kb.configuration};F.enabled=()=>true;kb.configuration=()=>h.c;
+ try{
+  await NYC.search(h.c,h.e,{});s.body.checkedAt=new Date(Date.now()-2*3600000).toISOString();s.calls=[];s.admissions=[];
+  const response=await scheduled.handler();assert.equal(response.statusCode,200);assert.equal(s.calls.length,2);assert.ok(s.body,'A scheduler error must never delete the good snapshot');assert.equal(JSON.parse(response.body).stale,false);assert.ok(s.admissions.every(p=>/^[a-f0-9]{64}$/.test(p.p_ip)));assert.ok(s.admissions.every(p=>p.p_kind==='nyc'&&p.p_limit===100&&p.p_global===200));
+ }finally{F.enabled=original.enabled;kb.configuration=original.configuration;h.restore();}
+});
+test('invalid visitor admission never erases a valid snapshot, and HTTP cannot opt into scheduler identity',async()=>{
+ const h=fixtureHarness(),s=h.state,F=require('../netlify/functions/lib/free-tools'),handler=require('../netlify/functions/nyc-opportunities').handler,originalEnabled=F.enabled;F.enabled=()=>true;
+ try{
+  await NYC.search(h.c,h.e,{});s.body.checkedAt=new Date(Date.now()-2*3600000).toISOString();s.calls=[];
+  await assert.rejects(NYC.search(h.c,{headers:{'x-nf-client-connection-ip':'invalid','x-nyc-scheduled':'true'}},{}),e=>e.status===400);assert.ok(s.body);assert.equal(s.calls.length,0);
+  const response=await handler({httpMethod:'POST',headers:{},body:JSON.stringify({action:'search',nycScheduled:true})});assert.equal(response.statusCode,400);assert.ok(s.body);
+ }finally{F.enabled=originalEnabled;h.restore();}
+});
+test('internal refresh service failures retain and serve the bounded good snapshot',async()=>{
+ const h=fixtureHarness(),s=h.state,kb=require('../netlify/functions/lib/knowledge-base'),rpc=kb.rpc;
+ try{
+  await NYC.search(h.c,h.e,{});const checkedAt=new Date(Date.now()-2*3600000).toISOString();s.body.checkedAt=checkedAt;s.calls=[];
+  kb.rpc=async(c,name,p)=>{if(name==='ft_admit'){const error=new Error('Fictional internal service failure');error.status=503;throw error;}return rpc(c,name,p);};
+  const result=await NYC.search(h.c,h.e,{});assert.equal(result.stale,true);assert.equal(result.checkedAt,checkedAt);assert.equal(s.body.checkedAt,checkedAt);assert.equal(s.calls.length,0);
+ }finally{kb.rpc=rpc;h.restore();}
 });

@@ -24,6 +24,14 @@ Cards link to `/tools/shredder?provider=nyc&notice=<id>`. Source descriptions pr
 
 ## Release checks
 
-Build/full npm suite, ten adapter/scheduler tests, fifteen browser checks at 390/768/1280 and real PostgreSQL admission/refresh-lease tests pass. Tests cover shared snapshot keyword/pagination/detail, bounded retry, no retry on denial, refresh contention, 24-hour expiry, expired deadlines and invalid-license fallback rejection. Browser fixtures are explicitly fictional and distinct from real publisher verification.
+Build/full npm suite, thirteen adapter/scheduler tests, fifteen browser checks at 390/768/1280 and real PostgreSQL admission/refresh-lease tests pass. Tests cover shared snapshot keyword/pagination/detail, bounded retry, no retry on denial, refresh contention, 24-hour expiry, expired deadlines and invalid-license fallback rejection. Browser fixtures are explicitly fictional and distinct from real publisher verification.
 
 Live preview and production verification outcomes are recorded in the PR/release record. The source feed uses a feature flag `NYC_OPPORTUNITIES_ENABLED=true` and requires both migrations before activation. Do not copy masked Netlify secrets. Other-source research is in `source-investigation.md`; no other state/local feed is implemented.
+
+## November 9 refresh incident fix
+
+The initial native scheduler passed the literal string `nyc-scheduled-refresh` as a client IP. The shared admission validator correctly rejected it with HTTP 400, and a broad snapshot error handler then treated that application error as invalid source data and could delete the good snapshot. The old scheduler test mocked the search service and missed admission validation. A new regression invokes the real scheduler/search/admission-validation path with only database/upstream fixtures; it failed before the fix and passes afterward.
+
+The native entry point now marks its trusted server-side context directly. Upstream admission hashes a separate daily scheduled-caller identity while keeping the same NYC limits. HTTP JSON/headers cannot select this context; visitor IP validation is unchanged. Good cache is invalidated only by explicit source schema/license/access/coverage validation failures. Caller errors never erase it, and transient/internal service errors can use the existing bounded stale fallback. No secret, environment value, migration, SAM or shred quota is changed.
+
+Live checks during investigation returned 198 notices and verified mobile rendering and the shredder handoff. No manually reseeded snapshot was used to conceal the scheduler failure. The repair changes the failing path so the next native hourly run can refresh normally.
