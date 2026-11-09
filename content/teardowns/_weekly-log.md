@@ -1,0 +1,14 @@
+## Week of 2026-11-09
+- Picked: federal-emergency-generator-replacement-23-requirements (23 reqs, 23 gaps, deadline in 15 days)
+- Skipped: campground upgrades — the available description was a short attachment pointer, insufficient for a meaningful shred.
+- Skipped: emergency response services — the available description was a short attachment pointer, insufficient for a meaningful shred.
+- Skipped: parking maintenance — the available description did not establish the full requirement-rich scope.
+- Skipped: electrical distribution work — the API supplied no readable description; attachments were not imported.
+- Skipped: housing renovation — the normal SAM feed admission limit was reached; no quota bypass or invented result.
+- Published: None — the proof teardown remains a draft pending human review and preview approval.
+- Promoted: None — no post before the reviewed page is live.
+- Notes: The source did not state a value; the owner approved “Not stated in supplied source.” Source coverage is the notice description only. Extraction found 23 rows, including optional/informational administrative items; 10 were marked mandatory. The 23 gaps are generic evidence-review flags, not 23 verified compliance failures.
+- Notes: Example bidder profile authorized by the owner: 200 hours, eligibility yes, related past performance, most evidence. The unchanged checker returns Strong fit. This describes an example, not a real bidder.
+- Notes: Teardown-specific page views, teardown-to-shredder clicks and post-teardown email attribution are not available in current analytics. Existing page_view events omit paths and do not measure that click transition. No metrics, events or tracker were added; no values are claimed.
+- Notes: Draft preview verified at https://tendercrestai-pr6-isolated-20261021.netlify.app/teardowns/federal-emergency-generator-replacement-23-requirements in PR #41. Human checklist approval is pending. This is a noindex review preview, not a publication.
+- Notes: Owner authorized production publication in chat after passing tests. The assistant verified the checklist against the saved extraction and preview; no claim is made that the owner personally inspected every source row. The proof is marked reviewed for the normal PR release flow. Deployment verification follows the merge.

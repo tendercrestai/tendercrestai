@@ -1,0 +1,36 @@
+{
+  "scope": "One normal visitor UI shred of an official notice description; no attachments imported.",
+  "requirements": 23,
+  "mandatory": 10,
+  "gaps": 23,
+  "categorySplit": {
+    "Technical": 4,
+    "Legal": 4,
+    "Service Level": 3,
+    "Eligibility": 5,
+    "Financial": 1,
+    "Submission": 2,
+    "Evaluation": 1,
+    "Administrative": 3
+  },
+  "sourceCoverage": "Description only; source points to a formal solicitation and attachments.",
+  "dealBreakerRows": [
+    9,
+    16
+  ],
+  "exampleBidderProfile": {
+    "hours": 200,
+    "eligibility": "yes",
+    "performance": "related",
+    "evidence": "most"
+  },
+  "band": "Strong fit",
+  "humanReview": "Owner authorized publication in chat conditional on passing tests; checklist checks performed by assistant.",
+  "countsVerifiedAgainstPrivateOutput": true,
+  "rawOutputCommitted": false,
+  "preview": "https://tendercrestai-pr6-isolated-20261021.netlify.app/teardowns/federal-emergency-generator-replacement-23-requirements",
+  "hostedPreviewVerified": true,
+  "privateSourceIdLeakCheck": "Passed for staged files and dist",
+  "normalBuildDraftExclusion": "Unit tests confirm unapproved drafts remain excluded; this approved proof is included.",
+  "schemaBrokenFileRejection": "Passed; temporary invalid file removed"
+}

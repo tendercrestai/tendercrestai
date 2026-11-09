@@ -35,7 +35,7 @@ for (const page of pages) {
     await writeFile(resolve(destination, page), decorateHTML(html, page));
   }
 }
-const generatedRoutes = await generateTeardowns(root, destination, decorateHTML);
+const generatedRoutes = await generateTeardowns(root, destination, decorateHTML,{includeDrafts:process.env.TEARDOWN_REVIEW_PREVIEW==='true'});
 const sitemap = await readFile(resolve(destination, 'sitemap.xml'), 'utf8');
 await writeFile(resolve(destination, 'sitemap.xml'), addSitemapRoutes(sitemap, generatedRoutes));
 for (const asset of assets) {

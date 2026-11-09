@@ -5,3 +5,6 @@ node_modules/
 __pycache__/
 dist/
 work/
+
+# Private teardown traceability and raw inputs never enter the public repository.
+/.private/

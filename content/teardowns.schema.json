@@ -50,7 +50,8 @@
       "enum": [
         "Under $500K",
         "$500K to $5M",
-        "Over $5M"
+        "Over $5M",
+        "Not stated in supplied source"
       ]
     },
     "naicsArea": {
@@ -175,7 +176,10 @@
       "const": true
     },
     "basis": {
-      "const": "authored-fictional-example"
+      "enum": [
+        "authored-fictional-example",
+        "anonymized-shredder-output"
+      ]
     },
     "faq": {
       "type": "array",
@@ -246,6 +250,164 @@
           "minimum": 0
         }
       }
+    },
+    "publicationStatus": {
+      "enum": [
+        "draft",
+        "reviewed"
+      ]
+    },
+    "bidRead": {
+      "enum": [
+        "Strong fit",
+        "Worth a closer look",
+        "Likely pass",
+        "Pending bidder facts"
+      ]
+    },
+    "humanReview": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "reviewer",
+        "reviewedOn",
+        "checklistComplete"
+      ],
+      "properties": {
+        "reviewer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "reviewedOn": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "checklistComplete": {
+          "const": true
+        }
+      }
+    },
+    "exampleBidderProfile": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "hours",
+        "eligibility",
+        "performance",
+        "evidence"
+      ],
+      "properties": {
+        "hours": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "eligibility": {
+          "enum": [
+            "yes",
+            "no",
+            "unsure"
+          ]
+        },
+        "performance": {
+          "enum": [
+            "similar",
+            "related",
+            "none"
+          ]
+        },
+        "evidence": {
+          "enum": [
+            "most",
+            "some",
+            "little"
+          ]
+        }
+      }
+    },
+    "source_fingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "slug": {
+            "enum": [
+              "federal-it-services-47-requirements",
+              "state-facilities-maintenance-28-requirements",
+              "local-professional-services-19-requirements"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "basis": {
+            "const": "authored-fictional-example"
+          }
+        },
+        "not": {
+          "required": [
+            "source_fingerprint"
+          ]
+        }
+      },
+      "else": {
+        "required": [
+          "publicationStatus",
+          "bidRead",
+          "humanReview",
+          "exampleBidderProfile",
+          "source_fingerprint"
+        ],
+        "properties": {
+          "basis": {
+            "const": "anonymized-shredder-output"
+          },
+          "requirementCount": {
+            "minimum": 15,
+            "type": "integer"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "publicationStatus": {
+                  "const": "reviewed"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "humanReview": {
+                  "type": "object"
+                },
+                "bidRead": {
+                  "enum": [
+                    "Strong fit",
+                    "Worth a closer look",
+                    "Likely pass"
+                  ]
+                },
+                "exampleBidderProfile": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
 }
