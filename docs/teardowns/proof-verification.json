@@ -27,5 +27,10 @@
   "band": "Strong fit",
   "humanReview": "Pending; no assistant signature substituted for a human.",
   "countsVerifiedAgainstPrivateOutput": true,
-  "rawOutputCommitted": false
+  "rawOutputCommitted": false,
+  "preview": "https://tendercrestai-pr6-isolated-20261021.netlify.app/teardowns/federal-emergency-generator-replacement-23-requirements",
+  "hostedPreviewVerified": true,
+  "privateSourceIdLeakCheck": "Passed for staged files and dist",
+  "normalBuildDraftExclusion": "Passed",
+  "schemaBrokenFileRejection": "Passed; temporary invalid file removed"
 }

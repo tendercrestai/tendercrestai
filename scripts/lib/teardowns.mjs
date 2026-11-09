@@ -21,11 +21,11 @@ export async function readTeardowns(root,{includeDrafts=false}={}){
   const {source_fingerprint,humanReview,...publicData}=d;
   const publicText=JSON.stringify(publicData);
   if(d.publicationStatus==='reviewed'&&/\bTODO\b/.test(publicText))throw Error('Human-reviewed teardowns cannot contain TODO prose: '+file);
-  if(d.publicationStatus==='draft'&&!includeDrafts)continue;
   if(source_fingerprint&&publicText.includes(source_fingerprint))throw Error('Private source fingerprint appears in public content: '+file);
   const text=JSON.stringify({...publicData,valueBand:undefined,atAGlance:undefined}).replaceAll('$500K to $5M','').replaceAll('Under $500K','').replaceAll('under $500K','').replaceAll('Over $5M','');
   if(/\$|\b[0-9a-f]{32}\b|\b[0-9a-f]{8}-[0-9a-f-]{27}\b|\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}\/\d{1,2}\/\d{2,4}\b|https?:\/\/|[\w.+-]+@[\w.-]+\.[a-z]+|\b(?:Inc\.?|LLC|Ltd\.?|Corporation|NASA|GSA|FEMA|USACE|Pentagon)\b|\b(?:Department|City|County|Agency) of [A-Z]|\b(?:January|February|March|April|May|June|July|August|September|October|November|December) \d{1,2}\b/.test(text))throw Error('Identifying, priced or live-bid detail is not allowed: '+file);
   if(/\b(?:notice|solicitation)\s*(?:id|number|#)\s*[:#]?\s*[A-Za-z0-9]+/i.test(text))throw Error('Solicitation identifiers are not allowed: '+file);
+  if(d.publicationStatus==='draft'&&!includeDrafts)continue;
   items.push(d);
  }
  return items;

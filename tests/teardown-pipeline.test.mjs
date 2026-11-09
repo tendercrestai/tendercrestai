@@ -42,3 +42,11 @@ test('drafts do not publish; preview carries no private trace; reviewed JSON add
   d.lesson='TODO: human has not reviewed this';await writeFile(file,JSON.stringify(d));await assert.rejects(readTeardowns(temp),/TODO/);
  }finally{await rm(temp,{recursive:true,force:true});}
 });
+test('new records require fingerprint provenance and reject raw trace fields in public JSON',async()=>{
+ const temp=await temporary();try{
+  const d=scaffold(shred,facts),file=resolve(temp,'content/teardowns',d.slug+'.json');const noTrace={...d};delete noTrace.source_fingerprint;await writeFile(file,JSON.stringify(noTrace));await assert.rejects(readTeardowns(temp),/source_fingerprint/);
+  await writeFile(file,JSON.stringify({...d,source_notice_id:id}));await assert.rejects(readTeardowns(temp),/additional properties/);
+  await writeFile(file,JSON.stringify({...d,description:['Notice ID: '+id,'An otherwise generic test.']}));await assert.rejects(readTeardowns(temp),/Identifying/);
+  await writeFile(file,JSON.stringify({...d,humanReview:null,publicationStatus:'reviewed'}));await assert.rejects(readTeardowns(temp),/object/);
+ }finally{await rm(temp,{recursive:true,force:true});}
+});
