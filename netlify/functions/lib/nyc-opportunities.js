@@ -11,6 +11,7 @@ const MAX_RESPONSE = 2 * 1024 * 1024;
 const SNAPSHOT_KEY = 'nyc:snapshot:v1';
 const HOUR = 3600000;
 function transient(message, status=503) {const error=new Error(message);error.status=status;error.transient=true;throw error;}
+function invalidSource(message) {const error=new Error(message);error.status=503;error.invalidSource=true;throw error;}
 const ALIASES = {
  id: ['requestid'], title: ['shorttitle'], agency: ['agencyname'], posted: ['startdate'],
  deadline: ['duedate'], section: ['sectionname'], noticeType: ['typeofnoticedescription'],
@@ -37,27 +38,29 @@ function updatedAt(value) {
  return new Date(time).toISOString();
 }
 function schema(metadata) {
- if(metadata?.licenseId!=='PUBLIC_DOMAIN')kb.fail(503,'NYC dataset reuse terms need review before notices can be displayed.');
- if (metadata?.id !== DATASET || !Array.isArray(metadata.columns)) kb.fail(503, 'NYC Open Data returned an unsupported dataset description. No notices are implied.');
+ if(metadata?.licenseId!=='PUBLIC_DOMAIN')invalidSource('NYC dataset reuse terms need review before notices can be displayed.');
+ if (metadata?.id !== DATASET || !Array.isArray(metadata.columns)) invalidSource('NYC Open Data returned an unsupported dataset description. No notices are implied.');
  const columns = {};
  for (const [key, aliases] of Object.entries(ALIASES)) {
   const column = metadata.columns.find(c => aliases.includes(String(c.name || '').replace(/[^a-z0-9]/gi, '').toLowerCase()) || aliases.includes(String(c.fieldName || '').replace(/[^a-z0-9]/gi, '').toLowerCase()));
   if (column && FIELD.test(column.fieldName || '')) columns[key] = column.fieldName;
  }
- if (REQUIRED.some(k => !columns[k])) kb.fail(503, 'NYC Open Data fields have changed. No notices are implied.');
+ if (REQUIRED.some(k => !columns[k])) invalidSource('NYC Open Data fields have changed. No notices are implied.');
  for (const key of ['posted', 'deadline']) {
   const column = metadata.columns.find(c => c.fieldName === columns[key]);
-  if (!['calendar_date', 'floating_timestamp', 'date'].includes(column.dataTypeName)) kb.fail(503, 'NYC notice date fields need review before they can be displayed.');
+  if (!['calendar_date', 'floating_timestamp', 'date'].includes(column.dataTypeName)) invalidSource('NYC notice date fields need review before they can be displayed.');
  }
  const idType=metadata.columns.find(c=>c.fieldName===columns.id).dataTypeName;
- if(!['text','number'].includes(idType))kb.fail(503,'NYC request IDs need review before they can be displayed.');
+ if(!['text','number'].includes(idType))invalidSource('NYC request IDs need review before they can be displayed.');
  return {columns,idType,license:'PUBLIC_DOMAIN',publisher:typeof metadata.attribution==='string'?metadata.attribution.slice(0,300):'NYC Open Data', sourceUpdatedAt: updatedAt(metadata.rowsUpdatedAt), dataset: SOURCE};
 }
 async function upstream(config, event, path, params) {
  const url = new URL(path, API);if (params) url.search = params.toString();
  let response;
  for(let attempt=0;attempt<2;attempt++){
-  try {await kb.rpc(config, 'ft_admit', {p_ip: F.ip(event), p_kind: 'nyc', p_limit: 100, p_global: 200});}
+  // nycScheduled is set only by the native scheduled entry point, never from HTTP input.
+  const caller=event.nycScheduled===true?F.mac(new Date().toISOString().slice(0,10)+':nyc-scheduled-refresh'):F.ip(event);
+  try {await kb.rpc(config, 'ft_admit', {p_ip: caller, p_kind: 'nyc', p_limit: 100, p_global: 200});}
   catch(error){if(error.status===429)error.transient=true;throw error;}
   const remaining=(event.nycRequestDeadline||Date.now()+8000)-Date.now();
   if(remaining<=0)transient('NYC Open Data could not finish this request in time. Please retry later.');
@@ -70,7 +73,7 @@ async function upstream(config, event, path, params) {
   }
   break;
  }
- if (!response.ok) {const message='NYC Open Data could not return notices right now (HTTP '+response.status+'). Please retry later or visit City Record Online.';if([429,500,502,503,504].includes(response.status))transient(message,response.status===429?429:503);kb.fail(503,message);}
+ if (!response.ok) {const message='NYC Open Data could not return notices right now (HTTP '+response.status+'). Please retry later or visit City Record Online.';if([401,403,404].includes(response.status))invalidSource(message);if([429,500,502,503,504].includes(response.status))transient(message,response.status===429?429:503);kb.fail(503,message);}
  if (Number(response.headers.get('content-length')) > MAX_RESPONSE) kb.fail(503, 'The NYC response exceeded the supported size. Visit the original source.');
  let text;try{text=await response.text();}catch{transient('NYC Open Data response was interrupted. Please retry later.');}if (Buffer.byteLength(text) > MAX_RESPONSE) kb.fail(503, 'The NYC response exceeded the supported size. Visit the original source.');
  try {return JSON.parse(text);} catch {kb.fail(503, 'NYC Open Data returned an unsupported response. No notices are implied.');}
@@ -106,12 +109,18 @@ async function snapshot(config,event) {
   // current snapshot once, then sort/search/page locally without upstream calls.
   const params=new URLSearchParams({'$select':select(c,true),'$where':solicitationWhere(c)+' AND '+c.deadline+" >= '"+nycDay()+"T00:00:00.000'",'$limit':'1001'});
   const records=await upstream(config,event,'/resource/'+DATASET+'.json',params);
-  if(!Array.isArray(records)||records.length>1000)kb.fail(503,'NYC notice coverage needs review before this snapshot can be displayed. Visit City Record Online.');
-  if(records.length&&records.every(row=>!normalize(row)))kb.fail(503,'NYC notice fields or types need review. No notices are implied.');
+  if(!Array.isArray(records)||records.length>1000)invalidSource('NYC notice coverage needs review before this snapshot can be displayed. Visit City Record Online.');
+  if(records.length&&records.every(row=>!normalize(row)))invalidSource('NYC notice fields or types need review. No notices are implied.');
   const body={records,checkedAt:new Date().toISOString(),sourceUpdatedAt:m.sourceUpdatedAt,license:m.license,publisher:m.publisher,dataset:SOURCE};
   await kb.rpc(config,'ft_nyc_store',{p_body:body});
   return {...body,cached:false,stale:false};
- }catch(error){if(usable&&error.transient)return {...saved,cached:true,stale:true};if(usable&&!error.transient)await F.db(config,'ft_cache?key=eq.'+encodeURIComponent(SNAPSHOT_KEY),{method:'DELETE'});throw error;}
+ }catch(error){
+  // Only evidence that the source is no longer valid may invalidate good data.
+  // Caller validation, quota and internal/database failures must not erase it.
+  if(error.invalidSource){if(saved)await F.db(config,'ft_cache?key=eq.'+encodeURIComponent(SNAPSHOT_KEY),{method:'DELETE'});throw error;}
+  if(usable&&(error.transient||error.status>=500))return {...saved,cached:true,stale:true};
+  throw error;
+ }
 }
 function snapshotNotice(data){return data.stale?' NYC is temporarily unavailable or refreshing. Showing the last successful snapshot from '+data.checkedAt+'. Verify every notice on the original source.':'';}
 async function search(config, event, input) {
