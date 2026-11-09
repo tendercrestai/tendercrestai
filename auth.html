@@ -172,6 +172,9 @@ if(authConfig){
     const customerHub=createCustomerHub($("customerHub"),()=>supabase.auth.getSession());
     const accountUsage=createAccountUsage($("accountUsage"),()=>supabase.auth.getSession());
 
+    let rewardfulEpoch=0;
+    // Optional attribution must not block or alter account access/navigation.
+    function notifyRewardful(token){const run=++rewardfulEpoch;void import('/assets/rewardful.mjs').then(m=>{if(run===rewardfulEpoch)void m.identifyRewardfulCustomer(token);}).catch(()=>{});}
     const views = ["login", "signup", "forgot", "reset", "account"];
     const redirectBase = location.origin + "/auth.html";
     let recoveryMode = false;
@@ -264,8 +267,9 @@ if(authConfig){
     });
 
     async function showAccount(user) {
-      if (!user) {accountUsage.clear();customerHub.clear();void identifyUsage(null);return;}
-      supabase.auth.getSession().then(({data})=>identifyUsage(data.session?.access_token||null)).catch(()=>{});
+      if (!user) {accountUsage.clear();customerHub.clear();void identifyUsage(null);notifyRewardful(null);return;}
+      const rewardfulRun=++rewardfulEpoch;
+      supabase.auth.getSession().then(({data})=>{identifyUsage(data.session?.access_token||null);if(rewardfulRun===rewardfulEpoch)notifyRewardful(data.session?.access_token||null);}).catch(()=>{});
       const destination=authDestination(location.search);
       if(destination){location.replace(destination);return;}
       $("accountEmail").textContent = "Signed in as: " + user.email;
@@ -283,7 +287,7 @@ if(authConfig){
 
     $("logoutBtn").addEventListener("click", async () => {
       accountUsage.clear();customerHub.clear();
-      void identifyUsage(null);
+      void identifyUsage(null);notifyRewardful(null);
       const { error } = await supabase.auth.signOut();
       if (error) return notify(error.message, true);
       show("login");
@@ -292,7 +296,7 @@ if(authConfig){
     supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
         accountUsage.clear();customerHub.clear();
-        void identifyUsage(null);
+        void identifyUsage(null);notifyRewardful(null);
         $("accountEmail").textContent = "";
         if (!recoveryMode) show("login");
       }
