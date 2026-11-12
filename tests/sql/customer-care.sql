@@ -38,11 +38,10 @@ select public.cc_finish_source_deletion('11111111-1111-4111-8111-111111111111','
 select pg_temp.ok((public.cc_claim_source_deletion('11111111-1111-4111-8111-111111111111','55555555-5555-4555-8555-555555555555')->>'completed')::boolean,'completed source removal is idempotent');
 select pg_temp.ok((public.cc_begin_checkout('11111111-1111-4111-8111-111111111111','66666666-6666-4666-8666-666666666666','pro')->>'request_key')='66666666-6666-4666-8666-666666666666','first checkout reserves a stable user-bound request');
 select pg_temp.ok((public.cc_begin_checkout('11111111-1111-4111-8111-111111111111','77777777-7777-4777-8777-777777777777','pro')->>'request_key')='66666666-6666-4666-8666-666666666666','repeated clicks reuse the protected checkout request');
-do $$begin
- begin perform public.cc_begin_checkout('11111111-1111-4111-8111-111111111111',gen_random_uuid(),'growth');raise exception 'FAIL second checkout plan';exception when sqlstate 'PT409' then raise notice 'PASS concurrent different-plan checkout is rejected';end;
-end$$;
-select public.cc_finish_checkout('11111111-1111-4111-8111-111111111111','66666666-6666-4666-8666-666666666666','Created','https://checkout.stripe.com/c/test_fictional');
-select pg_temp.ok((public.cc_begin_checkout('11111111-1111-4111-8111-111111111111',gen_random_uuid(),'pro')->>'url')='https://checkout.stripe.com/c/test_fictional','completed checkout URL is reused without creating another session');
+select pg_temp.ok((public.cc_begin_checkout('11111111-1111-4111-8111-111111111111','88888888-8888-4888-8888-888888888888','growth')->>'plan')='growth','switching plans supersedes the unfinished checkout instead of blocking it');
+select pg_temp.ok((public.cc_begin_checkout('11111111-1111-4111-8111-111111111111','88888888-8888-4888-8888-888888888888','growth')->>'request_key')='88888888-8888-4888-8888-888888888888','repeated clicks on the new plan reuse the switched checkout request');
+select public.cc_finish_checkout('11111111-1111-4111-8111-111111111111','88888888-8888-4888-8888-888888888888','Created','https://checkout.stripe.com/c/test_fictional');
+select pg_temp.ok((public.cc_begin_checkout('11111111-1111-4111-8111-111111111111',gen_random_uuid(),'growth')->>'url')='https://checkout.stripe.com/c/test_fictional','completed checkout URL is reused without creating another session');
 select public.cc_claim_delivery('relay:event-race','11111111-1111-4111-8111-111111111111','Fictional subject','Fictional draft',null);
 select public.cc_record_delivery_event('fictional-race-provider','Delivered','fictional-signed-event',now());
 select public.cc_finish_delivery(id,'Accepted','fictional-race-provider') from public.cc_deliveries where delivery_key='relay:event-race';
