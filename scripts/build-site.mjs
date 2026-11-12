@@ -9,7 +9,7 @@ const destination = resolve(root, "dist");
 // internal runbooks, SQL fixtures, credentials, or future unreviewed files.
 const pages = [
   "nyc-opportunities.html", "bid-check.html", "shredder.html", "opportunities.html", "compare-responsive.html", "compare-loopio.html", "ocr.html", "index.html", "auth.html", "contact.html", "rfp-upload.html", "compliance.html",
-  "workspace.html", "knowledge.html", "security.html", "product.html", "samples.html", "demo.html", "pricing.html", "googleb40d2fbef272897b.html", "robots.txt", "sitemap.xml"
+  "workspace.html", "knowledge.html", "security.html", "privacy.html", "product.html", "samples.html", "demo.html", "pricing.html", "googleb40d2fbef272897b.html", "robots.txt", "sitemap.xml"
 ];
 const assets = [
   "nyc-opportunities.mjs", "bid-check.mjs", "teardowns.mjs", "free-tools.css", "free-tools.mjs", "product-film.css", "product-film.mjs", "openai-pixel.mjs", "google-ads.mjs", "reditus.mjs", "rewardful.mjs",
@@ -57,3 +57,7 @@ const samples = [
 ];
 await mkdir(resolve(destination, "samples"), { recursive: true });
 for (const sample of samples) await cp(resolve(root, "samples", sample), resolve(destination, "samples", sample));
+
+// Vulnerability disclosure file; copied explicitly like the other public files above.
+await mkdir(resolve(destination, ".well-known"), { recursive: true });
+await cp(resolve(root, ".well-known", "security.txt"), resolve(destination, ".well-known", "security.txt"));

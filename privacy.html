@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy Policy | TenderCrest AI</title>
+<link rel="canonical" href="https://www.tendercrestai.com/privacy.html">
+  <meta name="description" content="How TenderCrest AI collects, uses, stores, and deletes your information, and which services process it.">
+  <style>
+    :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#17243b;background:#f5f8ff}
+    *{box-sizing:border-box}body{margin:0}header,footer{background:white;padding:24px max(24px,calc((100vw - 960px)/2));border-bottom:1px solid #e3eaf4}
+    a{color:#1d4ed8;text-underline-offset:3px}a:focus-visible{outline:3px solid #2563eb;outline-offset:4px}
+    header a{font-weight:750}main{max-width:960px;margin:auto;padding:56px 24px}
+    h1{font-size:clamp(2.1rem,6vw,3.6rem);line-height:1.1;letter-spacing:-.04em;margin:12px 0 24px}
+    h2{font-size:1.3rem;margin-top:0}p,li{line-height:1.75}p{color:#475569}
+    .eyebrow{color:#1d4ed8;font-weight:700}.intro{max-width:720px;font-size:1.15rem}
+    section{background:white;border:1px solid #dce5f2;border-radius:16px;padding:28px;margin-top:22px}
+    .notice{border-left:4px solid #2563eb;background:#edf3ff}li+li{margin-top:12px}
+    footer{font-size:.9rem}footer a{margin-left:20px}
+  </style>
+</head>
+<body>
+  <header><a href="/">TenderCrest AI</a> · <a href="/product.html">How it works</a> · <a href="/samples.html">Sample deliverables</a></header>
+  <main>
+    <div class="eyebrow">PRIVACY POLICY</div>
+    <h1>How we handle your<br>information.</h1>
+    <p class="intro">This policy explains what TenderCrest AI collects, how it is used and stored, which services process it, and how to ask for deletion. TenderCrest AI is based in Seattle, WA. Contact us at <a href="mailto:hello@tendercrestai.com">hello@tendercrestai.com</a> with questions about this policy.</p>
+    <section>
+      <h2>What we collect</h2>
+      <ol>
+        <li><strong>Account information.</strong> Your email address. Signing in requires a verified email address.</li>
+        <li><strong>Proposal content.</strong> RFP source documents you upload, reviewed text, and proposal details you submit.</li>
+        <li><strong>Knowledge Base content.</strong> Original documents, extracted source text, citation references, reusable answers, and search embeddings.</li>
+        <li><strong>Free tools.</strong> Text you paste or a PDF or DOCX file you upload for anonymous requirement analysis. If you request the full compliance matrix, we store your email, the title or source, the request timestamp, and your optional marketing choice, and we send a lead notification to hello@tendercrestai.com.</li>
+        <li><strong>Usage analytics, only after you opt in.</strong> A signed random browser identifier that lasts up to 30 days, and consent preferences that last 30 days. Analytics does not collect proposal text, document names, form content, passwords, full URLs, referrers, or email addresses as event attributes. Daily keyed IP hashes are used for admission limits and removed after two days.</li>
+        <li><strong>Advertising and affiliate tracking, only after a separate opt-in.</strong> The OpenAI advertising pixel on the public homepage and demo only, Google Ads measurement on public homepage and demo pages, and Reditus and Rewardful affiliate attribution. These are separate choices from usage analytics.</li>
+      </ol>
+    </section>
+    <section>
+      <h2>How we use and store your information</h2>
+      <p>Uploaded sources are stored in private Supabase Storage buckets. Reviewed text, proposal details, and Knowledge Base content are stored in Supabase PostgreSQL. Access is checked against account ownership, and Knowledge Base access is scoped to active organization membership and role permissions.</p>
+      <p>Submitted proposal text is sent to Airtable for the proposal workflow. Airtable AI processes submitted text to create and revise drafts. Completed drafts are sent by email through Resend.</p>
+      <p>Knowledge Base indexing and compliance analysis send bounded source excerpts to the OpenAI API to create embeddings or identify requirements and facts. Optional AI writing in the proposal workspace sends saved section text, linked requirements, company name, and accepted evidence excerpts to the configured OpenAI chat API only when you explicitly choose it and confirm processing consent. Those writing requests use store:false. Free-tool analysis sends extracted source text to the configured OpenAI service with store:false.</p>
+      <p>Standard provider retention may still apply. We do not promise zero provider retention, and this is not a verified Zero Data Retention arrangement.</p>
+      <p>Generated submission packages expire after seven days. This is not a seven-day deletion promise for all project or provider data. Retained emailed-draft copies expire after 90 days. Free-tool temporary source, job, and requirement records expire after 24 hours. Lead records are retained for 90 days. Usage analytics reports cover the last 90 days, and daily keyed IP hashes are removed after two days. On the Team plan, Airtable AI providers may retain inputs and outputs for up to 30 days for safety and compliance moderation.</p>
+    </section>
+    <section>
+      <h2>Services that process your information</h2>
+      <p>We use the following services to operate TenderCrest AI. Each provider processes data under its own terms.</p>
+      <ol>
+        <li><strong>Supabase:</strong> account data, document storage, and database.</li>
+        <li><strong>Airtable:</strong> proposal workflow and AI drafting. Airtable's published AI terms prohibit using customer inputs and outputs to train generative AI models.</li>
+        <li><strong>OpenAI:</strong> embeddings, compliance analysis, and optional AI writing. OpenAI's applicable account agreement and API data controls govern those requests.</li>
+        <li><strong>Resend:</strong> email delivery of completed drafts.</li>
+        <li><strong>Stripe:</strong> payments.</li>
+        <li><strong>Netlify:</strong> hosting.</li>
+        <li><strong>Rewardful and Reditus:</strong> affiliate attribution, only with your consent.</li>
+        <li><strong>Google Ads and the OpenAI advertising pixel:</strong> advertising measurement, only with your consent.</li>
+      </ol>
+      <p>See our <a href="/security.html">security and data handling page</a> for more detail on how proposal documents move through these services.</p>
+    </section>
+    <section>
+      <h2>Your choices and deletion requests</h2>
+      <p>Usage analytics, advertising tracking, and affiliate attribution are optional and start only after you opt in. You can decline or withdraw using the settings in the footer. Withdrawing stops collection. It does not erase data a provider already collected or remove provider cookies.</p>
+      <p>The document upload page does not currently provide self-service deletion. To request deletion, email <a href="mailto:hello@tendercrestai.com">hello@tendercrestai.com</a> and include your account email. Do not attach the confidential document.</p>
+      <p>A deletion request is not completion. Its status appears in My Account. Deletion has limits: shared project copies, provider retention, financial and audit records, received emails, and separately held backup copies are separate. Archiving a Knowledge Base source removes it from future retrieval but does not delete its original file, extracted text, embeddings, or audit history, and does not request deletion from downstream providers. Revoking access stops future requests but cannot recall copies someone already downloaded.</p>
+    </section>
+    <section>
+      <h2>Children</h2>
+      <p>TenderCrest AI is a business service for proposal teams. It is not directed at children.</p>
+    </section>
+    <section>
+      <h2>What we do not claim</h2>
+      <p>This site does not claim SOC 2 certification, SSO, a contractual uptime SLA, or verified Zero Data Retention. Ask for evidence of any certification or contractual assurance you require before sending regulated or confidential bid material.</p>
+    </section>
+    <section>
+      <h2>Contact</h2>
+      <p>Questions about this policy, or a deletion request: email <a href="mailto:hello@tendercrestai.com">hello@tendercrestai.com</a>. TenderCrest AI, Seattle, WA.</p>
+    </section>
+    <p>Last updated: November 12, 2026.</p>
+  </main>
+  <footer>© 2026 TenderCrest AI <a href="/">Home</a><a href="/security.html">Security</a><a href="/contact.html">Contact</a></footer>
+</body>
+</html>
