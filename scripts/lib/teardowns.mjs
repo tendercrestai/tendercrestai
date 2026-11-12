@@ -50,11 +50,17 @@ export async function generateTeardowns(root,destination,decorate,{includeDrafts
  const page=(title,description,path,body,schema='')=>decorate((includeDrafts?template.replace('</head>','<meta name="robots" content="noindex,nofollow"></head>'):template).replaceAll('{{TITLE}}',e(title)).replaceAll('{{DESCRIPTION}}',e(description)).replaceAll('{{CANONICAL}}','https://www.tendercrestai.com'+path).replace('{{SCHEMA}}',schema).replace('{{BODY}}',body),'teardowns');
  await mkdir(resolve(destination,'teardowns'),{recursive:true});
  const measured=items.some(d=>d.basis==='anonymized-shredder-output');
- await writeFile(resolve(destination,'teardowns/index.html'),page(measured?'RFP Teardowns: Solicitation Reviews and Illustrative Examples | TenderCrest AI':'RFP Teardowns: Illustrative Solicitation Examples | TenderCrest AI',measured?'Explore anonymized solicitation reviews and fictional examples: requirement counts, evidence gaps, deal-breakers, and lessons.':'Illustrative RFP teardowns with authored requirement counts, review gaps, deal-breakers, and lessons. Free to read, no signup.','/teardowns',indexBody(items)));
- for(const d of items)await writeFile(resolve(destination,'teardowns',d.slug+'.html'),page(d.title+' | RFP Teardown | TenderCrest AI',d.metaDescription,'/teardowns/'+d.slug,teardownBody(d),faqSchema(d.faq)));
+ await writeFile(resolve(destination,'teardowns/index.html'),page('RFP Teardowns | TenderCrest AI',measured?'Explore anonymized solicitation reviews and fictional examples: requirement counts, evidence gaps, deal-breakers, and lessons.':'Illustrative RFP teardowns with authored requirement counts, review gaps, deal-breakers, and lessons. Free to read, no signup.','/teardowns',indexBody(items)));
+ for(const d of items)await writeFile(resolve(destination,'teardowns',d.slug+'.html'),page(d.seoTitle||d.title+' | RFP Teardown | TenderCrest AI',d.metaDescription,'/teardowns/'+d.slug,teardownBody(d),faqSchema(d.faq)));
  // Explicit generated rewrites make future JSON-only additions work on Netlify.
  await writeFile(resolve(destination,'_redirects'),'/teardowns /teardowns/index.html 200!\n'+items.map(d=>'/teardowns/'+d.slug+' /teardowns/'+d.slug+'.html 200!').join('\n')+'\n');
- return ['/teardowns',...items.map(d=>'/teardowns/'+d.slug)];
+ const routes=['/teardowns',...items.map(d=>'/teardowns/'+d.slug)];
+ // lastmod per route, carried on the returned array so callers that only
+ // need route strings (and existing tests) keep working unchanged.
+ // Reviewed teardowns use their human-review date; the fictional launch
+ // examples fall back to their last content change, 2026-11-09.
+ routes.lastmods={'/teardowns':'2026-11-12',...Object.fromEntries(items.map(d=>['/teardowns/'+d.slug,d.humanReview?.reviewedOn ?? '2026-11-09']))};
+ return routes;
 }
 
-export function addSitemapRoutes(sitemap,routes){for(const route of routes){const location='https://www.tendercrestai.com'+route;if(!sitemap.includes('<loc>'+location+'</loc>'))sitemap=sitemap.replace('</urlset>','  <url><loc>'+location+'</loc></url>\n</urlset>');}return sitemap;}
+export function addSitemapRoutes(sitemap,routes){for(const route of routes){const location='https://www.tendercrestai.com'+route;const lastmod=routes.lastmods?.[route];if(!sitemap.includes('<loc>'+location+'</loc>'))sitemap=sitemap.replace('</urlset>','  <url><loc>'+location+'</loc>'+(lastmod?'<lastmod>'+lastmod+'</lastmod>':'')+'</url>\n</urlset>');}return sitemap;}

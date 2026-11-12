@@ -94,6 +94,12 @@
   force = true
 
 [[redirects]]
+  from = "/pricing"
+  to = "/pricing.html"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/teardowns"
   to = "/teardowns/index.html"
   status = 200

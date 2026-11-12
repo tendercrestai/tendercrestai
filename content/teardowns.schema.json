@@ -34,6 +34,11 @@
       "minLength": 10,
       "maxLength": 180
     },
+    "seoTitle": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 60
+    },
     "metaDescription": {
       "type": "string",
       "minLength": 30,
