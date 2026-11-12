@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://www.tendercrestai.com/</loc></url>
-  <url><loc>https://www.tendercrestai.com/product.html</loc></url>
-  <url><loc>https://www.tendercrestai.com/demo.html</loc></url>
-  <url><loc>https://www.tendercrestai.com/samples.html</loc></url>
-  <url><loc>https://www.tendercrestai.com/security.html</loc></url>
-  <url><loc>https://www.tendercrestai.com/contact.html</loc></url>
-  <url><loc>https://www.tendercrestai.com/compare/responsive</loc></url>
-  <url><loc>https://www.tendercrestai.com/compare/loopio</loc></url>
-  <url><loc>https://www.tendercrestai.com/tools/shredder</loc></url>
-  <url><loc>https://www.tendercrestai.com/opportunities</loc></url>
-  <url><loc>https://www.tendercrestai.com/tools/bid-check</loc></url>
-  <url><loc>https://www.tendercrestai.com/teardowns</loc></url>
-  <url><loc>https://www.tendercrestai.com/opportunities/nyc</loc></url>
+  <url><loc>https://www.tendercrestai.com/</loc><lastmod>2026-11-12</lastmod></url>
+  <url><loc>https://www.tendercrestai.com/product.html</loc><lastmod>2026-11-12</lastmod></url>
+  <url><loc>https://www.tendercrestai.com/demo.html</loc><lastmod>2026-11-12</lastmod></url>
+  <url><loc>https://www.tendercrestai.com/samples.html</loc><lastmod>2026-11-12</lastmod></url>
+  <url><loc>https://www.tendercrestai.com/security.html</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://www.tendercrestai.com/contact.html</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://www.tendercrestai.com/compare/responsive</loc><lastmod>2026-11-12</lastmod></url>
+  <url><loc>https://www.tendercrestai.com/compare/loopio</loc><lastmod>2026-11-12</lastmod></url>
+  <url><loc>https://www.tendercrestai.com/tools/shredder</loc><lastmod>2026-11-12</lastmod></url>
+  <url><loc>https://www.tendercrestai.com/opportunities</loc><lastmod>2026-11-12</lastmod></url>
+  <url><loc>https://www.tendercrestai.com/tools/bid-check</loc><lastmod>2026-11-12</lastmod></url>
+  <url><loc>https://www.tendercrestai.com/pricing</loc><lastmod>2026-11-12</lastmod></url>
+  <url><loc>https://www.tendercrestai.com/teardowns</loc><lastmod>2026-11-12</lastmod></url>
+  <url><loc>https://www.tendercrestai.com/opportunities/nyc</loc><lastmod>2026-11-12</lastmod></url>
 </urlset>
