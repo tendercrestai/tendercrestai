@@ -10,7 +10,7 @@ test("public build excludes internal source and preserves public module dependen
     assert.ok(!/(^|\/)(netlify|supabase|docs|tests|scripts|work|\.git)(\/|$)/.test(file), file);
     assert.ok(!/\.(sql|md|json|toml)$/.test(file), file);
   }
-  for (const page of ["index.html", "rfp-upload.html", "auth.html", "contact.html", "security.html", "privacy.html", "compliance.html"]) {
+  for (const page of ["index.html", "rfp-upload.html", "auth.html", "contact.html", "security.html", "privacy.html", "terms.html", "compliance.html"]) {
     assert.ok(files.includes(page), page);
   }
   for (const asset of ["assets/docx-validation.mjs", "assets/compliance.mjs", "assets/compliance.css",
