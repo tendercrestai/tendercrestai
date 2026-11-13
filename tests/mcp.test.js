@@ -79,6 +79,24 @@ test('tools/list exposes the free and account tools with honest limits', async (
   assert.match(body.result.tools.find((t) => t.name === 'check_bid_fit').description, /never a win prediction/);
 });
 
+test('every tool carries a title and the read-only hint in tools/list', async () => {
+  // Anthropic directory requirement: title plus readOnlyHint on every tool.
+  // All 14 tools are read-only; none modifies or deletes data.
+  const { body } = await rpc(mcp.handler, { jsonrpc: '2.0', id: 3, method: 'tools/list' });
+  assert.equal(body.result.tools.length, 14);
+  for (const tool of body.result.tools) {
+    assert.equal(typeof tool.title, 'string', tool.name + ' needs a title');
+    assert.ok(tool.title.length > 0, tool.name + ' title must not be empty');
+    assert.ok(tool.name.length <= 64, tool.name + ' must be 64 characters or fewer');
+    assert.equal(tool.annotations.readOnlyHint, true, tool.name + ' must be read-only');
+    assert.equal(tool.annotations.destructiveHint, undefined, tool.name + ' must not claim destructiveHint');
+  }
+  for (const tool of TOOL_DEFINITIONS) {
+    assert.equal(typeof tool.title, 'string', tool.name);
+    assert.equal(tool.annotations.readOnlyHint, true, tool.name);
+  }
+});
+
 test('free tool call searches SAM.gov through the real handler and counts against the same admission limit', async () => {
   const saved = { fetch: global.fetch, rpc: kb.rpc };
   const admissions = [];
