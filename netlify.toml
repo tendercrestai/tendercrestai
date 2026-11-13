@@ -138,3 +138,23 @@
   schedule = "17 * * * *"
   external_node_modules = ["pdfjs-dist", "sax"]
   included_files = ["assets/docx-validation.mjs", "assets/compliance-export.mjs", "assets/compliance-model.mjs"]
+
+# MCP server (Streamable HTTP) and its OAuth endpoints. Status 200 rewrites
+# keep the clean URLs: /mcp, /.well-known/oauth-authorization-server, /oauth/*.
+[[redirects]]
+  from = "/mcp"
+  to = "/.netlify/functions/mcp"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/.well-known/oauth-authorization-server"
+  to = "/.netlify/functions/mcp-auth"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/oauth/*"
+  to = "/.netlify/functions/mcp-auth"
+  status = 200
+  force = true
