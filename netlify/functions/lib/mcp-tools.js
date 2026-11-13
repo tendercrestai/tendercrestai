@@ -33,6 +33,8 @@ const ANSWERS_SCHEMA = {
 const TOOL_DEFINITIONS = [
   {
     name: 'shred_rfp',
+    title: 'Shred an RFP',
+    annotations: { readOnlyHint: true },
     description: 'Shred an RFP or solicitation into a numbered requirement list with a gap preview. Paste text or upload a PDF or DOCX. AI extraction can miss requirements and every requirement needs human review. This starts an analysis job and returns a result token; call get_shred_result with the token to read the requirements. Free, no sign-in. Limited to 3 shreds per day, shared with the web shredder.',
     requiresAuth: false,
     inputSchema: {
@@ -50,6 +52,8 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: 'get_shred_result',
+    title: 'Read a shred result',
+    annotations: { readOnlyHint: true },
     description: 'Read the result of a shred_rfp job using its result token. Returns the status and, when complete, the numbered requirements, the gap preview, and any warnings. Free, no sign-in.',
     requiresAuth: false,
     inputSchema: {
@@ -64,6 +68,8 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: 'check_bid_fit',
+    title: 'Check bid fit',
+    annotations: { readOnlyHint: true },
     description: 'Run a bid/no-bid fit check on a solicitation: five questions scored 0 to 2, for a fit read of Strong fit, Worth a closer look, or Likely pass. This is a fit score, never a win prediction. Needs the solicitation text or file plus a short title, source, and the five answers. Starts an analysis job and returns a result token; call get_bid_check_result with the token to read the verdict. Free, no sign-in.',
     requiresAuth: false,
     inputSchema: {
@@ -82,6 +88,8 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: 'get_bid_check_result',
+    title: 'Read a bid check result',
+    annotations: { readOnlyHint: true },
     description: 'Read the result of a check_bid_fit job using its result token. Returns the status and, when complete, the fit verdict, the score out of 10, the factor breakdown, the top reasons, and the top gaps. Free, no sign-in.',
     requiresAuth: false,
     inputSchema: {
@@ -96,6 +104,8 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: 'search_opportunities',
+    title: 'Search SAM.gov opportunities',
+    annotations: { readOnlyHint: true },
     description: 'Search live SAM.gov federal opportunities from the past 364 days. Returns up to 25 notices per page with title, agency, deadline, NAICS, PSC, set-aside, and the canonical SAM.gov link. Federal notices only; no contract value bands are published. Free, no sign-in. Limited to 10 searches per day, shared with the web feed.',
     requiresAuth: false,
     inputSchema: {
@@ -112,6 +122,8 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: 'get_opportunity',
+    title: 'Read a SAM.gov opportunity',
+    annotations: { readOnlyHint: true },
     description: 'Read one SAM.gov opportunity by its notice URL or 32-character notice ID, including the notice description text when SAM.gov returns it. Descriptions are not complete solicitation packages; attachments are not imported. Free, no sign-in.',
     requiresAuth: false,
     inputSchema: {
@@ -125,12 +137,16 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: 'list_organizations',
+    title: 'List organizations',
+    annotations: { readOnlyHint: true },
     description: 'List the knowledge organizations (company evidence libraries) the signed-in TenderCrest user belongs to. Needs a TenderCrest account.',
     requiresAuth: true,
     inputSchema: { type: 'object', properties: {}, additionalProperties: false }
   },
   {
     name: 'list_evidence',
+    title: 'List evidence',
+    annotations: { readOnlyHint: true },
     description: 'List the signed-in user\'s own company evidence for one organization: uploaded source documents and saved answers with their approval state. Only returns evidence the user\'s organization owns. Needs a TenderCrest account.',
     requiresAuth: true,
     inputSchema: {
@@ -142,6 +158,8 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: 'read_evidence_source',
+    title: 'Read an evidence source',
+    annotations: { readOnlyHint: true },
     description: 'Read one evidence source document and its extracted text chunks, for the signed-in user\'s own organization. Needs a TenderCrest account.',
     requiresAuth: true,
     inputSchema: {
@@ -156,6 +174,8 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: 'search_evidence',
+    title: 'Search evidence',
+    annotations: { readOnlyHint: true },
     description: 'Search the signed-in user\'s own company evidence for one organization by meaning, using the same semantic search as the web app. Returns matching evidence with citations. Needs a TenderCrest account.',
     requiresAuth: true,
     inputSchema: {
@@ -170,6 +190,8 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: 'list_proposals',
+    title: 'List proposals',
+    annotations: { readOnlyHint: true },
     description: 'List the signed-in TenderCrest user\'s own proposals (projects), newest first. Needs a TenderCrest account.',
     requiresAuth: true,
     inputSchema: {
@@ -183,6 +205,8 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: 'read_proposal',
+    title: 'Read a proposal',
+    annotations: { readOnlyHint: true },
     description: 'Read one of the signed-in user\'s own proposals in full: project state, sections, requirements, evidence decisions, jobs, files, activity, approvals, and readiness. Read-only. Needs a TenderCrest account.',
     requiresAuth: true,
     inputSchema: {
@@ -194,6 +218,8 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: 'list_proposal_records',
+    title: 'List proposal records',
+    annotations: { readOnlyHint: true },
     description: 'List saved records for one of the signed-in user\'s own proposals: jobs, files, activity, notifications, assessments, or approvals. Read-only. Needs a TenderCrest account.',
     requiresAuth: true,
     inputSchema: {
@@ -209,6 +235,8 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: 'get_proposal_revision',
+    title: 'Read a proposal revision',
+    annotations: { readOnlyHint: true },
     description: 'Read one saved revision of the signed-in user\'s own proposal. Read-only. Needs a TenderCrest account.',
     requiresAuth: true,
     inputSchema: {
