@@ -38,6 +38,34 @@ function parseBody(event, max = 20000) {
     return body;
   } catch (e) { if (e.status) throw e; kb.fail(400, 'Invalid JSON.'); }
 }
+// Token endpoint body parsing: RFC 6749 requires token requests to be sent
+// as application/x-www-form-urlencoded, while this server's other POST routes
+// use JSON. Accept both here so spec-compliant OAuth clients can exchange
+// codes: a form body is parsed into the same flat string-valued object the
+// route already expects. A body that is neither valid JSON nor valid form
+// data still fails 400; the size cap and downstream checks are unchanged.
+function parseTokenBody(event) {
+  if (event.httpMethod !== 'POST') kb.fail(405, 'Method Not Allowed');
+  if (event.isBase64Encoded || typeof event.body !== 'string' || Buffer.byteLength(event.body) > 20000) kb.fail(413, 'Request exceeds the supported size.');
+  const contentType = String(((event.headers || {})['content-type'] || (event.headers || {})['Content-Type'] || '')).split(';')[0].trim().toLowerCase();
+  if (contentType === 'application/x-www-form-urlencoded') return parseFormBody(event.body);
+  try {
+    const body = JSON.parse(event.body);
+    if (!body || typeof body !== 'object' || Array.isArray(body)) kb.fail(400, 'Invalid request.');
+    return body;
+  } catch (e) {
+    if (e.status) throw e;
+    // A client may send a form body without the form content type; accept
+    // it when it parses as form data, otherwise keep the JSON error.
+    if (event.body.includes('=')) return parseFormBody(event.body);
+    kb.fail(400, 'Invalid JSON.');
+  }
+}
+function parseFormBody(raw) {
+  const body = {};
+  for (const [key, value] of new URLSearchParams(raw)) body[key] = value;
+  return body;
+}
 function checkAuthorizeParams(params) {
   if (params.response_type !== 'code') kb.fail(400, 'Only response_type=code is supported.');
   if (!auth.validClientId(params.client_id)) kb.fail(400, 'A valid client_id is required.');
@@ -119,7 +147,7 @@ function createHandler(adapters = {}) {
         return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ redirect }) };
       }
       if (which === 'token') {
-        const body = parseBody(event);
+        const body = parseTokenBody(event);
         auth.oauthSecret();
         const config = configOf();
         let session;
