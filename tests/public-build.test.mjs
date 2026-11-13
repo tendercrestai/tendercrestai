@@ -30,4 +30,14 @@ test("public build excludes internal source and preserves public module dependen
   assert.match(config, /included_files\s*=\s*\["assets\/docx-validation\.mjs"\]/);
   assert.match(config, /publish\s*=\s*"dist"/);
   assert.match(config, /command\s*=\s*"node scripts\/build-site.mjs"/);
+  const csp = config.match(/Content-Security-Policy\s*=\s*"([^"]+)"/);
+  assert.ok(csp, "netlify.toml must set a Content-Security-Policy header");
+  const policy = csp[1];
+  for (const directive of ["default-src 'self'", "script-src", "style-src", "font-src", "img-src",
+    "connect-src", "frame-src", "worker-src", "frame-ancestors 'none'", "form-action 'self'",
+    "object-src 'none'", "base-uri 'self'"]) {
+    assert.ok(policy.includes(directive), `CSP must include ${directive}`);
+  }
+  assert.ok(!/(^|[\s;])(\*|https:|data:|blob:)([\s;]|$)/.test(policy),
+    "CSP must not use a bare wildcard or scheme wildcard");
 });
