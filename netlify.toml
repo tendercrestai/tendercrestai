@@ -47,6 +47,16 @@
   [headers.values]
     Content-Type = "text/vtt; charset=utf-8"
 
+# Search Console change of address (Nov 13, 2026): the old Netlify subdomain must
+# 301-redirect to the custom domain, or Google refuses the move. Placed first so it
+# wins over the path-only rewrites below. Deploy previews use a different host
+# (deploy-preview-NN--tendercrestai.netlify.app) and are not affected.
+[[redirects]]
+  from = "https://tendercrestai.netlify.app/*"
+  to = "https://www.tendercrestai.com/:splat"
+  status = 301
+  force = true
+
 [[redirects]]
   from = "/compare/responsive"
   to = "/compare-responsive.html"
@@ -138,3 +148,23 @@
   schedule = "17 * * * *"
   external_node_modules = ["pdfjs-dist", "sax"]
   included_files = ["assets/docx-validation.mjs", "assets/compliance-export.mjs", "assets/compliance-model.mjs"]
+
+# MCP server (Streamable HTTP) and its OAuth endpoints. Status 200 rewrites
+# keep the clean URLs: /mcp, /.well-known/oauth-authorization-server, /oauth/*.
+[[redirects]]
+  from = "/mcp"
+  to = "/.netlify/functions/mcp"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/.well-known/oauth-authorization-server"
+  to = "/.netlify/functions/mcp-auth"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/oauth/*"
+  to = "/.netlify/functions/mcp-auth"
+  status = 200
+  force = true
