@@ -21,7 +21,7 @@ try:
    page.locator('#value-filter').select_option('');assert page.locator('a[href="/teardowns/'+slug+'"]').is_visible();assert not requests;checks.append('Index, unknown-value filters, no requests and width '+str(width))
    page.goto(base+'/teardowns/'+slug);assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');text=page.locator('main').inner_text();assert 'Draft for human review'not in text and '23 extracted requirements'in text and '10 marked mandatory'in text and 'Strong fit'in text
    for term in ['Example bidder profile','Available team hours: 200','Eligibility: Yes','Similar past performance: Related','Written evidence: Most','Not stated in supplied source']:assert term in text
-   assert 'TODO'not in text;assert page.locator('script[src="/assets/reditus.mjs"]').count()==1;assert page.locator('script[src="/assets/analytics.mjs"]').count()==1
+   assert 'TODO'not in text;assert page.locator('script[src="/assets/analytics.mjs"]').count()==1
    faq=json.loads(page.locator('script[type="application/ld+json"]').inner_text())
    for item in faq['mainEntity']:assert item['name']in text and item['acceptedAnswer']['text']in text
    for href in page.locator('a[href]').evaluate_all('(els)=>els.map(x=>x.getAttribute("href"))'):

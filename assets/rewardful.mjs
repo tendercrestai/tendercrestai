@@ -1,4 +1,4 @@
-// Independent provider-specific opt-in. Existing Reditus consent never enables Rewardful.
+// Independent provider-specific opt-in for Rewardful affiliate attribution.
 const KEY='tendercrest.rewardful-consent.v1',DAYS=30*86400000;
 let loaded=false,ready=false,token=null,busy=false,panel,status;const queued=new Set();
 const privacy=()=>navigator.globalPrivacyControl===true||navigator.doNotTrack==='1';
@@ -28,7 +28,7 @@ export async function identifyRewardfulCustomer(value){token=value||null;if(!tok
 function init(){
  const element=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e;};
  panel=element('section');panel.id='rewardful-choice';panel.setAttribute('aria-label','Optional Rewardful affiliate attribution');panel.style.cssText='padding:16px;margin:16px 0;border:1px solid #94a3b8;border-radius:8px;background:#fff;color:#17243b';
- panel.append(element('h2','Optional Rewardful affiliate attribution'),element('p','Allow Rewardful affiliate attribution? Rewardful may use page visits, including signed-in pages, browser information and affiliate cookies to credit the partner who referred you. After Stripe creates your billing customer, we share that customer’s billing email with Rewardful to associate the referral. This is optional and separate from Reditus, usage analytics, Google and OpenAI tracking.'));
+ panel.append(element('h2','Optional Rewardful affiliate attribution'),element('p','Allow Rewardful affiliate attribution? Rewardful may use page visits, including signed-in pages, browser information and affiliate cookies to credit the partner who referred you. After Stripe creates your billing customer, we share that customer’s billing email with Rewardful to associate the referral. This is optional and separate from usage analytics, Google and OpenAI tracking.'));
  const link=element('a','Rewardful attribution privacy details');link.href='/security.html#rewardful-attribution';panel.append(link);status=element('p');status.setAttribute('role','status');panel.append(status);
  if(privacy())status.textContent='Your browser privacy signal prevents Rewardful tracking from loading.';else if(!safeURL())status.textContent='Rewardful tracking is unavailable on this credential or callback URL. Open the standard homepage to manage your choice.';
  const actions=element('div');actions.style.cssText='display:flex;gap:12px;flex-wrap:wrap';
