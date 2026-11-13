@@ -111,6 +111,12 @@
   force = true
 
 [[redirects]]
+  from = "/terms"
+  to = "/terms.html"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/teardowns"
   to = "/teardowns/index.html"
   status = 200
