@@ -46,6 +46,25 @@ for (const asset of assets) {
 await mkdir(resolve(destination,"assets/social"),{recursive:true});
 await cp(resolve(root,"assets/social/og-default.png"),resolve(destination,"assets/social/og-default.png"));
 
+// Vendored Tesseract worker script (same-origin worker; the site CSP forbids
+// blob: workers, and tesseract.js defaults to a blob worker, which left the
+// OCR page stuck on "Loading local English OCR engine…"). The worker file is
+// a verbatim copy of tesseract.js@6.0.1/dist/worker.min.js; see
+// assets/vendor/tesseract/README.md. Only the worker script is vendored;
+// the core and language data still load from the version-pinned CDN.
+await mkdir(resolve(destination, "assets/vendor/tesseract"), { recursive: true });
+await cp(resolve(root, "assets/vendor/tesseract/worker.min.js"), resolve(destination, "assets/vendor/tesseract/worker.min.js"));
+
+// Vendored pdf.js worker script (same-origin module worker; pdf.js wraps a
+// cross-origin workerSrc in a blob: URL, which the site CSP forbids, so the
+// CDN workerSrc fell back to the main-thread fake worker on every OCR run).
+// The worker file is a verbatim copy of
+// pdfjs-dist@4.10.38/build/pdf.worker.min.mjs; see assets/vendor/pdfjs/README.md.
+// Only the worker script is vendored; the main pdf.min.mjs module still
+// loads from the version-pinned CDN.
+await mkdir(resolve(destination, "assets/vendor/pdfjs"), { recursive: true });
+await cp(resolve(root, "assets/vendor/pdfjs/pdf.worker.min.mjs"), resolve(destination, "assets/vendor/pdfjs/pdf.worker.min.mjs"));
+
 // Only reviewed, fictional public media; renderer sources and private recordings stay excluded.
 await mkdir(resolve(destination,"assets/product-film"),{recursive:true});
 for(const media of ["overview.mp4","poster.webp","overview.vtt"])
