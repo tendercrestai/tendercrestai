@@ -4,6 +4,7 @@ let env,oldFetch,calls,settings,ip;
 beforeEach(()=>{env={...process.env};oldFetch=global.fetch;process.env.RESEND_API_KEY='test-only';process.env.AIRTABLE_PAT='test-only';delete process.env.TURNSTILE_SECRET_KEY;ip=randomUUID();calls=[];settings={};global.fetch=async(url,options)=>{calls.push({url,options});if(settings.failNotice&&url.includes('resend'))return new Response('{}',{status:422});if(settings.noIdentity&&url.includes('resend'))return new Response('{}',{status:200});if(settings.failStore&&url.includes('airtable'))throw Error('private customer text');if(settings.failAck&&calls.filter(x=>x.url.includes('resend')).length===2)throw Error('private customer text');return new Response(JSON.stringify(url.includes('resend')?{id:'test-message'}:{records:[]}),{status:200});};});
 afterEach(()=>{process.env=env;global.fetch=oldFetch;});
 const event=(data={name:'Fictional Person',email:'fictional-'+randomUUID()+'@example.invalid',company:'Fictional Acorn',message:'A fictional inquiry only.'})=>({httpMethod:'POST',headers:{origin:'https://www.tendercrestai.com','x-nf-client-connection-ip':ip},body:JSON.stringify(data)});
+const previewEvent=(data={name:'Fictional Person',email:'fictional-'+randomUUID()+'@example.invalid',company:'Fictional Acorn',message:'A fictional inquiry only.'})=>({httpMethod:'POST',headers:{origin:'https://deploy-preview-55--tendercrestai.netlify.app',host:'deploy-preview-55--tendercrestai.netlify.app','x-nf-client-connection-ip':ip},body:JSON.stringify(data)});
 test('null, arrays, nonobjects and encoded requests are rejected without a provider call',async()=>{
  for(const value of [null,[],7,'text'])assert.equal((await contact.handler(event(value))).statusCode,400);
  assert.equal((await contact.handler({...event(),isBase64Encoded:true})).statusCode,400);assert.equal(calls.length,0);
@@ -30,6 +31,24 @@ test('origin, method, honeypot and throttling remain enforced',async()=>{
  assert.equal((await contact.handler(event())).statusCode,429);assert.equal(calls.length,12);
 });
 test('configured Turnstile cannot be skipped',async()=>{process.env.TURNSTILE_SECRET_KEY='test-only';assert.equal((await contact.handler(event())).statusCode,403);assert.equal(calls.length,0);});
+test('deploy-preview host skips Turnstile verification when the secret is configured',async()=>{
+ process.env.TURNSTILE_SECRET_KEY='test-only';
+ const response=await contact.handler(previewEvent());
+ assert.equal(response.statusCode,200);assert.equal(calls.length,3);
+ assert.ok(calls.every(c=>!c.url.includes('challenges.cloudflare.com')));
+});
+test('only exact deploy-preview hostnames for this site skip verification',async()=>{
+ process.env.TURNSTILE_SECRET_KEY='test-only';
+ for(const host of ['deploy-preview-55--evil.netlify.app','deploy-preview-55--tendercrestai.netlify.app.evil.invalid','preview-55--tendercrestai.netlify.app']){
+  const e=event();e.headers.host=host;
+  assert.equal((await contact.handler(e)).statusCode,403);
+ }
+ assert.equal(calls.length,0);
+});
+test('deploy-preview origin is accepted while other origins are rejected',async()=>{
+ assert.equal((await contact.handler(previewEvent())).statusCode,200);
+ assert.equal((await contact.handler({...event(),headers:{origin:'https://deploy-preview-55--evil.netlify.app',host:'deploy-preview-55--evil.netlify.app','x-nf-client-connection-ip':ip}})).statusCode,403);
+});
 test('contact accepts one plain mailbox only, not address lists or display-name syntax',async()=>{
  for(const email of ['first@example.invalid,second@example.invalid','<person@example.invalid>'])assert.equal((await contact.handler(event({name:'Fictional',email,message:'Test inquiry'}))).statusCode,400);assert.equal(calls.length,0);
 });
