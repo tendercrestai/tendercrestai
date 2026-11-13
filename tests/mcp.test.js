@@ -223,6 +223,40 @@ test('authorize page requires valid OAuth params and PKCE challenge', async () =
   assert.equal(bad.statusCode, 400);
 });
 
+test('token endpoint accepts form-encoded requests as RFC 6749 requires', async () => {
+  const challenge = mcpAuthLib.pkceChallenge('fixture-verifier-0123456789-abcdefghijklmnopqrstuvwxyz');
+  const code = mcpAuthLib.issueCode({ userId: USER_ID, clientId: 'test-client', redirectUri: 'https://client.example.invalid/callback', codeChallenge: challenge, refreshToken: 'fixture-refresh-token' });
+  const saved = { fetch: global.fetch };
+  global.fetch = async (url) => {
+    const u = String(url);
+    if (u.includes('/auth/v1/token')) return new Response(JSON.stringify({ access_token: 'new-access-token', refresh_token: 'new-refresh-token', expires_in: 3600 }), { status: 200 });
+    throw new Error('Unexpected fetch ' + u);
+  };
+  try {
+    const formCall = (fields) => mcpAuth.handler({ httpMethod: 'POST', path: '/oauth/token', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(fields).toString() });
+    const good = await formCall({ grant_type: 'authorization_code', code, redirect_uri: 'https://client.example.invalid/callback', client_id: 'test-client', code_verifier: 'fixture-verifier-0123456789-abcdefghijklmnopqrstuvwxyz' });
+    assert.equal(good.statusCode, 200);
+    const tokens = JSON.parse(good.body);
+    assert.equal(tokens.access_token, 'new-access-token');
+    assert.equal(tokens.refresh_token, 'new-refresh-token');
+    assert.equal(tokens.token_type, 'Bearer');
+    assert.equal(tokens.scope, 'mcp:read');
+    const wrongVerifier = await formCall({ grant_type: 'authorization_code', code, redirect_uri: 'https://client.example.invalid/callback', client_id: 'test-client', code_verifier: 'wrong-verifier-0123456789-abcdefghijklmnopqrstuvwxyz' });
+    assert.equal(wrongVerifier.statusCode, 400);
+    assert.equal(JSON.parse(wrongVerifier.body).error, 'invalid_grant');
+    const refreshed = await formCall({ grant_type: 'refresh_token', refresh_token: 'new-refresh-token' });
+    assert.equal(refreshed.statusCode, 200);
+    assert.equal(JSON.parse(refreshed.body).access_token, 'new-access-token');
+    // A form body sent without the form content type is still accepted.
+    const noHeader = await mcpAuth.handler({ httpMethod: 'POST', path: '/oauth/token', headers: {}, body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: 'new-refresh-token' }).toString() });
+    assert.equal(noHeader.statusCode, 200);
+    // A body that is neither valid JSON nor valid form data still fails 400.
+    const garbage = await mcpAuth.handler({ httpMethod: 'POST', path: '/oauth/token', headers: { 'content-type': 'application/json' }, body: '{not json' });
+    assert.equal(garbage.statusCode, 400);
+    assert.equal(JSON.parse(garbage.body).error, 'Invalid JSON.');
+  } finally { global.fetch = saved.fetch; }
+});
+
 test('authorization codes are opaque, bound, and expire; PKCE is enforced at the token endpoint', async () => {
   const challenge = mcpAuthLib.pkceChallenge('fixture-verifier-0123456789-abcdefghijklmnopqrstuvwxyz');
   assert.equal(challenge.length, 43);
