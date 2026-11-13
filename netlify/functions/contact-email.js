@@ -1,5 +1,6 @@
 // TenderCrest AI contact intake. Secrets belong in Netlify environment variables.
 const crypto = require("crypto");
+const {isDeployPreviewHost,requestHost}=require("./lib/preview-host");
 const json=(statusCode,body)=>({statusCode,headers:{"Content-Type":"application/json","Cache-Control":"no-store"},body:JSON.stringify(body)});
 const clean=(v,max)=>typeof v==="string"?v.trim().slice(0,max):"";
 const esc=s=>s.replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -41,7 +42,11 @@ exports.handler=async(event)=>{
  if(event.httpMethod!=="POST")return json(405,{error:"Method not allowed"});
  if(!process.env.RESEND_API_KEY)return json(503,{error:"Contact email service is not configured yet."});
  const origin=event.headers?.origin||event.headers?.Origin;
- if(origin && !["https://www.tendercrestai.com","https://tendercrestai.com","https://tendercrestai.netlify.app"].includes(origin))return json(403,{error:"Invalid origin"});
+ // A preview form posts from its preview host, so the same exact
+ // deploy-preview rule admits its origin; every other origin must match
+ // the production allowlist exactly.
+ let originHost="";try{if(origin)originHost=new URL(origin).hostname}catch{}
+ if(origin && !["https://www.tendercrestai.com","https://tendercrestai.com","https://tendercrestai.netlify.app"].includes(origin) && !isDeployPreviewHost(originHost))return json(403,{error:"Invalid origin"});
  let data;try{if((event.body||"").length>12000)return json(413,{error:"Message too large"});data=JSON.parse(event.body||"{}")}catch{return json(400,{error:"Invalid request"})}
  if(!data||typeof data!=="object"||Array.isArray(data)||event.isBase64Encoded)return json(400,{error:"Invalid request"});
  if(data.website||data["bot-field"])return json(200,{ok:true});
@@ -52,7 +57,11 @@ exports.handler=async(event)=>{
  const ip=(event.headers?.["x-nf-client-connection-ip"]||event.headers?.["client-ip"]||event.headers?.["x-forwarded-for"]||"unknown").split(",")[0].trim();
  const hash=v=>crypto.createHash("sha256").update(v).digest("hex").slice(0,24);
  if(limited("ip:"+hash(ip))||limited("email:"+hash(email.toLowerCase())))return json(429,{error:"Too many messages. Please try again in 15 minutes."});
- if(!(await verifyTurnstile(data["cf-turnstile-response"],ip)))return json(403,{error:"Security verification failed. Please refresh the page and try again."});
+ // Turnstile cannot run on deploy previews (the Cloudflare site key
+ // allowlist holds only production hostnames and rejects wildcards), so
+ // verification is skipped only when the request host is an exact
+ // deploy-preview hostname for this site. Production hosts verify as before.
+ if(!isDeployPreviewHost(requestHost(event)) && !(await verifyTurnstile(data["cf-turnstile-response"],ip)))return json(403,{error:"Security verification failed. Please refresh the page and try again."});
  const html='<h2>New TenderCrest AI inquiry</h2><p><b>Name:</b> '+esc(name)+'</p><p><b>Email:</b> '+esc(email)+'</p><p><b>Company:</b> '+esc(company||"Not provided")+'</p><p><b>Message:</b></p><p style="white-space:pre-wrap">'+esc(message)+'</p>';
  try{
   await resend(process.env.RESEND_API_KEY,{from:"TenderCrest AI Website <contact@tendercrestai.com>",to:["hello@tendercrestai.com"],reply_to:email,subject:"Website inquiry from "+name,html});
