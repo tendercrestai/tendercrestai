@@ -158,7 +158,6 @@
   <script type="module">
     import {createCustomerHub} from "/assets/customer-hub.mjs";
     import {createAccountUsage} from "/assets/account-usage.mjs";
-    import {trackReditusSignup} from "/assets/reditus.mjs";
     import {identifyUsage} from "/assets/analytics.mjs";
     import { createClient } from
       "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm";
@@ -218,7 +217,6 @@ if(authConfig){
           }
         });
         if (error) throw error;
-        trackReditusSignup(data.user);
         if (data.session) {
           await showAccount(data.user);
         } else {

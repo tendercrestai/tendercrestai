@@ -8,8 +8,8 @@ try:
  for file in (root/'dist').rglob('*.html'):
   text=file.read_text()
   if '<body'in text.lower():
-   head=text.split('</head>')[0];assert head.count('id="rewardful-tracking"')==1;assert '<script>(function(w,r){w._rwq=r;w[r]=w[r]||function(){(w[r].q=w[r].q||[]).push(arguments)}})(window,\'rewardful\');</script>'in head;assert '<script async src="https://r.wdfl.co/rw.js" data-rewardful="bbbf92"></script>'in head;assert '/assets/rewardful.mjs'in head and '/assets/reditus.mjs'in head
- checks.append('Exact inert snippet and both loader modules in every built page head')
+   head=text.split('</head>')[0];assert head.count('id="rewardful-tracking"')==1;assert '<script>(function(w,r){w._rwq=r;w[r]=w[r]||function(){(w[r].q=w[r].q||[]).push(arguments)}})(window,\'rewardful\');</script>'in head;assert '<script async src="https://r.wdfl.co/rw.js" data-rewardful="bbbf92"></script>'in head;assert '/assets/rewardful.mjs'in head
+ checks.append('Exact inert snippet and loader module in every built page head')
  with sync_playwright()as p:
   browser=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
   def context(init=None,blocked=False):
@@ -22,7 +22,6 @@ try:
      requests.append('rewardful')
      if blocked:r.abort()
      else:r.fulfill(body='window.__rwCalls=[];window.rewardful=function(){window.__rwCalls.push(Array.from(arguments));};',content_type='text/javascript')
-    elif 'script.getreditus.com'in u:requests.append('reditus');r.fulfill(body='',content_type='text/javascript')
     elif '/.netlify/functions/rewardful-customer'in u:lookups.append(r.request.post_data_json);r.fulfill(json={'conversion':{'id':'a'*64,'email':'Exact.Stripe.Email@example.invalid'}})
     elif '/.netlify/functions/'in u:r.fulfill(json={})
     elif u.startswith(base):r.continue_()
@@ -36,8 +35,6 @@ try:
   page.get_by_role('button',name='Rewardful attribution settings',exact=True).click()
   with page.expect_navigation():page.get_by_role('button',name='Decline Rewardful attribution',exact=True).click()
   page.wait_for_load_state('networkidle');assert requests==['rewardful'];assert page.evaluate('typeof window.rewardful')=='undefined';checks.append('Withdrawal reloads and stops SDK/conversion');c.close()
-  red='localStorage.setItem("tendercrest.affiliate-consent.v1",JSON.stringify({allowed:true,expires:Date.now()+86400000}));'
-  c,page,requests,lookups=context(red);page.goto(base+'/');page.wait_for_load_state('networkidle');assert requests==['reditus'];assert not lookups;checks.append('Existing Reditus permission and tracker remain independent');c.close()
   for mode,init,url in [('GPC',"Object.defineProperty(navigator,'globalPrivacyControl',{value:true});",'/'),('DNT',"Object.defineProperty(navigator,'doNotTrack',{value:'1'});",'/'),('Credential URL','', '/?code=fixture-secret')]:
    init+='localStorage.setItem("'+KEY+'",JSON.stringify({allowed:true,since:Date.now()-1000,expires:Date.now()+86400000}));'
    c,page,requests,lookups=context(init);page.goto(base+url);page.wait_for_load_state('networkidle');assert not requests;assert page.get_by_role('button',name='Allow Rewardful attribution',exact=True,include_hidden=True).is_disabled();assert not lookups;checks.append(mode+' blocks Rewardful even with saved consent');c.close()
