@@ -43,6 +43,9 @@ for (const asset of assets) {
   await cp(resolve(root, "assets", asset), resolve(destination, "assets", asset));
 }
 
+await mkdir(resolve(destination,"assets/social"),{recursive:true});
+await cp(resolve(root,"assets/social/og-default.png"),resolve(destination,"assets/social/og-default.png"));
+
 // Only reviewed, fictional public media; renderer sources and private recordings stay excluded.
 await mkdir(resolve(destination,"assets/product-film"),{recursive:true});
 for(const media of ["overview.mp4","poster.webp","overview.vtt"])
