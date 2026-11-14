@@ -241,6 +241,36 @@ test('authorize page requires valid OAuth params and PKCE challenge', async () =
   assert.equal(bad.statusCode, 400);
 });
 
+test('authorize page shows a consent step and a code needs explicit approval', async () => {
+  const base = { client_id: 'test-client', redirect_uri: 'https://client.example.invalid/callback', code_challenge: 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM', code_challenge_method: 'S256', state: 'xyz' };
+  const page = await mcpAuth.handler({ httpMethod: 'GET', path: '/oauth/authorize', queryStringParameters: { response_type: 'code', ...base }, headers: {}, body: '' });
+  assert.equal(page.statusCode, 200);
+  assert.match(page.body, /Review this connection/);
+  assert.match(page.body, /Your connection code will be sent to/);
+  assert.match(page.body, /mcp:read/);
+  assert.match(page.body, /Approve and connect/);
+  assert.match(page.body, /Deny/);
+  assert.match(page.body, /consent:true/);
+  const saved = { fetch: global.fetch };
+  global.fetch = async (url) => {
+    const u = String(url);
+    if (u.includes('/auth/v1/token')) return new Response(JSON.stringify({ access_token: 'new-access-token', refresh_token: 'new-refresh-token', expires_in: 3600 }), { status: 200 });
+    if (u.includes('/auth/v1/user')) return new Response(JSON.stringify(USER), { status: 200 });
+    throw new Error('Unexpected fetch ' + u);
+  };
+  try {
+    const authorizeCall = (extra) => mcpAuth.handler({ httpMethod: 'POST', path: '/oauth/authorize', headers: {}, body: JSON.stringify({ ...base, refresh_token: 'fixture-refresh-token', ...extra }) });
+    const withoutConsent = await authorizeCall({});
+    assert.equal(withoutConsent.statusCode, 400);
+    assert.match(JSON.parse(withoutConsent.body).error, /Approve this connection/);
+    const approved = await authorizeCall({ consent: true });
+    assert.equal(approved.statusCode, 200);
+    const redirect = JSON.parse(approved.body).redirect;
+    assert.ok(redirect.startsWith('https://client.example.invalid/callback?code='), redirect);
+    assert.match(redirect, /state=xyz/);
+  } finally { global.fetch = saved.fetch; }
+});
+
 test('token endpoint accepts form-encoded requests as RFC 6749 requires', async () => {
   const challenge = mcpAuthLib.pkceChallenge('fixture-verifier-0123456789-abcdefghijklmnopqrstuvwxyz');
   const code = mcpAuthLib.issueCode({ userId: USER_ID, clientId: 'test-client', redirectUri: 'https://client.example.invalid/callback', codeChallenge: challenge, refreshToken: 'fixture-refresh-token' });
