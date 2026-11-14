@@ -8,6 +8,7 @@ const mcp = require('../netlify/functions/mcp');
 const mcpAuth = require('../netlify/functions/mcp-auth');
 const mcpAuthLib = require('../netlify/functions/lib/mcp-auth');
 const { TOOL_DEFINITIONS } = require('../netlify/functions/lib/mcp-tools');
+const rateLimit = require('../netlify/functions/lib/rate-limit');
 
 process.env.SUPABASE_URL = 'https://database.invalid';
 process.env.SUPABASE_PUBLISHABLE_KEY = 'fixture-publishable-key';
@@ -221,7 +222,7 @@ test('OAuth metadata needs the signing secret and describes the endpoints when c
 });
 
 test('dynamic client registration validates redirect URIs', async () => {
-  const register = (redirect_uris) => mcpAuth.handler({ httpMethod: 'POST', path: '/oauth/register', headers: {}, body: JSON.stringify({ redirect_uris }) });
+  const register = (redirect_uris) => mcpAuth.handler({ httpMethod: 'POST', path: '/oauth/register', headers: { 'x-nf-client-connection-ip': '192.0.2.21' }, body: JSON.stringify({ redirect_uris }) });
   const bad = await register(['https://evil.invalid/cb', 'javascript:alert(1)']);
   assert.equal(bad.statusCode, 400);
   const loopback = await register(['http://127.0.0.1:54321/callback']);
@@ -237,6 +238,15 @@ test('authorize page requires valid OAuth params and PKCE challenge', async () =
   assert.match(page.headers['Content-Type'], /text\/html/);
   assert.match(page.body, /Connect TenderCrest AI/);
   assert.match(page.body, /test-client/);
+  // The credential page must not be frameable, and its inline script/style
+  // run under a per-response nonce (Netlify's own RUM script stays allowed
+  // via 'self').
+  assert.equal(page.headers['X-Frame-Options'], 'DENY');
+  assert.equal(page.headers['Referrer-Policy'], 'strict-origin-when-cross-origin');
+  assert.match(page.headers['Content-Security-Policy'], /frame-ancestors 'none'/);
+  const nonce = page.headers['Content-Security-Policy'].match(/script-src 'nonce-([^']+)'/)[1];
+  assert.ok(page.body.includes('<script nonce="' + nonce + '">'), 'inline script carries the CSP nonce');
+  assert.ok(page.body.includes('<style nonce="' + nonce + '">'), 'inline style carries the CSP nonce');
   const bad = await mcpAuth.handler({ httpMethod: 'GET', path: '/oauth/authorize', queryStringParameters: { response_type: 'code', ...base, code_challenge_method: 'plain' }, headers: {}, body: '' });
   assert.equal(bad.statusCode, 400);
 });
@@ -259,7 +269,7 @@ test('authorize page shows a consent step and a code needs explicit approval', a
     throw new Error('Unexpected fetch ' + u);
   };
   try {
-    const authorizeCall = (extra) => mcpAuth.handler({ httpMethod: 'POST', path: '/oauth/authorize', headers: {}, body: JSON.stringify({ ...base, refresh_token: 'fixture-refresh-token', ...extra }) });
+    const authorizeCall = (extra) => mcpAuth.handler({ httpMethod: 'POST', path: '/oauth/authorize', headers: { 'x-nf-client-connection-ip': '192.0.2.22' }, body: JSON.stringify({ ...base, refresh_token: 'fixture-refresh-token', ...extra }) });
     const withoutConsent = await authorizeCall({});
     assert.equal(withoutConsent.statusCode, 400);
     assert.match(JSON.parse(withoutConsent.body).error, /Approve this connection/);
@@ -281,7 +291,7 @@ test('token endpoint accepts form-encoded requests as RFC 6749 requires', async 
     throw new Error('Unexpected fetch ' + u);
   };
   try {
-    const formCall = (fields) => mcpAuth.handler({ httpMethod: 'POST', path: '/oauth/token', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(fields).toString() });
+    const formCall = (fields) => mcpAuth.handler({ httpMethod: 'POST', path: '/oauth/token', headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-nf-client-connection-ip': '192.0.2.23' }, body: new URLSearchParams(fields).toString() });
     const good = await formCall({ grant_type: 'authorization_code', code, redirect_uri: 'https://client.example.invalid/callback', client_id: 'test-client', code_verifier: 'fixture-verifier-0123456789-abcdefghijklmnopqrstuvwxyz' });
     assert.equal(good.statusCode, 200);
     const tokens = JSON.parse(good.body);
@@ -296,10 +306,10 @@ test('token endpoint accepts form-encoded requests as RFC 6749 requires', async 
     assert.equal(refreshed.statusCode, 200);
     assert.equal(JSON.parse(refreshed.body).access_token, 'new-access-token');
     // A form body sent without the form content type is still accepted.
-    const noHeader = await mcpAuth.handler({ httpMethod: 'POST', path: '/oauth/token', headers: {}, body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: 'new-refresh-token' }).toString() });
+    const noHeader = await mcpAuth.handler({ httpMethod: 'POST', path: '/oauth/token', headers: { 'x-nf-client-connection-ip': '192.0.2.23' }, body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: 'new-refresh-token' }).toString() });
     assert.equal(noHeader.statusCode, 200);
     // A body that is neither valid JSON nor valid form data still fails 400.
-    const garbage = await mcpAuth.handler({ httpMethod: 'POST', path: '/oauth/token', headers: { 'content-type': 'application/json' }, body: '{not json' });
+    const garbage = await mcpAuth.handler({ httpMethod: 'POST', path: '/oauth/token', headers: { 'content-type': 'application/json', 'x-nf-client-connection-ip': '192.0.2.23' }, body: '{not json' });
     assert.equal(garbage.statusCode, 400);
     assert.equal(JSON.parse(garbage.body).error, 'Invalid JSON.');
   } finally { global.fetch = saved.fetch; }
@@ -322,7 +332,7 @@ test('authorization codes are opaque, bound, and expire; PKCE is enforced at the
     throw new Error('Unexpected fetch ' + u);
   };
   try {
-    const tokenCall = (body) => mcpAuth.handler({ httpMethod: 'POST', path: '/oauth/token', headers: {}, body: JSON.stringify(body) });
+    const tokenCall = (body) => mcpAuth.handler({ httpMethod: 'POST', path: '/oauth/token', headers: { 'x-nf-client-connection-ip': '192.0.2.24' }, body: JSON.stringify(body) });
     const wrongVerifier = await tokenCall({ grant_type: 'authorization_code', code, redirect_uri: 'https://client.example.invalid/callback', client_id: 'test-client', code_verifier: 'wrong-verifier-0123456789-abcdefghijklmnopqrstuvwxyz' });
     assert.equal(wrongVerifier.statusCode, 400);
     assert.equal(JSON.parse(wrongVerifier.body).error, 'invalid_grant');
@@ -338,4 +348,40 @@ test('authorization codes are opaque, bound, and expire; PKCE is enforced at the
     assert.equal(refreshed.statusCode, 200);
     assert.equal(JSON.parse(refreshed.body).access_token, 'new-access-token');
   } finally { global.fetch = saved.fetch; }
+});
+
+test('OAuth endpoints enforce per-IP admission', async () => {
+  rateLimit.reset();
+  const register = (ip) => mcpAuth.handler({ httpMethod: 'POST', path: '/oauth/register', headers: { 'x-nf-client-connection-ip': ip }, body: JSON.stringify({ redirect_uris: ['http://127.0.0.1:54321/callback'] }) });
+  for (let i = 0; i < 10; i++) assert.equal((await register('192.0.2.25')).statusCode, 201);
+  const limited = await register('192.0.2.25');
+  assert.equal(limited.statusCode, 429);
+  assert.match(JSON.parse(limited.body).error, /Too many requests/);
+  // A different client is unaffected by the first client's budget.
+  assert.equal((await register('192.0.2.26')).statusCode, 201);
+  // Authorize POST and token are admitted on their own budgets: pre-fill them
+  // directly, then one handler call each must answer 429 before any Supabase
+  // call happens.
+  const authorizeEvent = { headers: { 'x-nf-client-connection-ip': '192.0.2.27' } };
+  for (let i = 0; i < 30; i++) rateLimit.admit(authorizeEvent, 'oauth_authorize', 30, 15 * 60 * 1000);
+  const authorizeLimited = await mcpAuth.handler({ httpMethod: 'POST', path: '/oauth/authorize', headers: { 'x-nf-client-connection-ip': '192.0.2.27' }, body: JSON.stringify({ client_id: 'test-client', redirect_uri: 'https://client.example.invalid/callback', code_challenge: 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM', state: 'xyz', refresh_token: 'fixture-refresh-token', consent: true }) });
+  assert.equal(authorizeLimited.statusCode, 429);
+  const tokenEvent = { headers: { 'x-nf-client-connection-ip': '192.0.2.28' } };
+  for (let i = 0; i < 120; i++) rateLimit.admit(tokenEvent, 'oauth_token', 120, 15 * 60 * 1000);
+  const tokenLimited = await mcpAuth.handler({ httpMethod: 'POST', path: '/oauth/token', headers: { 'x-nf-client-connection-ip': '192.0.2.28' }, body: JSON.stringify({ grant_type: 'refresh_token', refresh_token: 'new-refresh-token' }) });
+  assert.equal(tokenLimited.statusCode, 429);
+});
+
+test('MCP handshake methods enforce per-IP admission', async () => {
+  rateLimit.reset();
+  const listCall = (ip) => rpc(mcp.handler, { jsonrpc: '2.0', id: 'limit-1', method: 'tools/list' }, { 'x-nf-client-connection-ip': ip });
+  for (let i = 0; i < 120; i++) assert.equal((await listCall('192.0.2.29')).response.statusCode, 200);
+  const limited = await listCall('192.0.2.29');
+  assert.equal(limited.response.statusCode, 429);
+  assert.match(limited.body.error, /Too many requests/);
+  // initialize shares the same handshake budget.
+  const initLimited = await rpc(mcp.handler, initialize('2025-06-18'), { 'x-nf-client-connection-ip': '192.0.2.29' });
+  assert.equal(initLimited.response.statusCode, 429);
+  // A different client is unaffected.
+  assert.equal((await listCall('192.0.2.30')).response.statusCode, 200);
 });
