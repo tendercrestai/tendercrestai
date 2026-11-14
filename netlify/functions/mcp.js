@@ -7,6 +7,7 @@
 // No session is required or created: the server is stateless.
 const kb = require('./lib/knowledge-base');
 const protocol = require('./lib/mcp-protocol');
+const rateLimit = require('./lib/rate-limit');
 const { listTools, createToolRunner } = require('./lib/mcp-tools');
 
 const HEADERS = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
@@ -38,6 +39,14 @@ function createHandler(adapters = {}) {
       return { statusCode: 200, headers: HEADERS, body: JSON.stringify(protocol.errorPayload(null, protocol.INVALID_REQUEST, 'Batch requests are not supported.')) };
     }
     try {
+      // The handshake methods are public and cheap, so they are the floodable
+      // surface here. tools/call is already limited inside the free-tool
+      // handlers (ft_admit) and gated by auth for account tools.
+      // The limit is generous: MCP clients connect from shared provider IPs,
+      // so many users can sit behind one address.
+      if (message.method === 'initialize' || message.method === 'tools/list') {
+        rateLimit.admit(event, 'mcp_handshake', 120, 15 * 60 * 1000);
+      }
       let user = null, token = null;
       if (bearerToken(event)) {
         const config = kb.configuration();
