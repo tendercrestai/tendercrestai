@@ -52,6 +52,9 @@ async function rpc(config, name, body) {
 
 // Read existing linked rows in bounded batches. Old submissions without a
 // reservation marker remain chargeable; new rows are counted in Postgres only.
+// A linked Airtable record that was deleted must not break the usage page:
+// count the records that exist and report the missing ones on the result
+// (history().missingIds) instead of throwing.
 async function history(company, root, headers) {
   const ids = company.fields['Proposals Pipeline'] || [];
   const records = [];
@@ -73,8 +76,19 @@ async function history(company, root, headers) {
       offset = data.offset;
     } while (offset);
   }
-  if (records.length !== ids.length) throw new RequestError(503, 'Account usage is still synchronizing. Please try again.');
-  return records;
+  const wanted = new Set(ids);
+  const seen = new Map();
+  for (const record of records) {
+    if (!record || typeof record.id !== 'string' || !wanted.has(record.id) || seen.has(record.id)) continue;
+    seen.set(record.id, record);
+  }
+  const found = [...seen.values()];
+  const missingIds = ids.filter(id => !seen.has(id));
+  if (missingIds.length) {
+    console.warn('Account usage: ' + missingIds.length + ' linked proposal record(s) missing for company ' + company.id + '; counting the records that exist.');
+  }
+  found.missingIds = missingIds;
+  return found;
 }
 
 async function reserve(config, user, submissionId, company, root, headers) {
@@ -100,6 +114,7 @@ async function reserve(config, user, submissionId, company, root, headers) {
     p_period_start: period.start, p_period_end: period.end, p_quota: period.quota,
     p_legacy_used: legacyUsed
   });
+  if (result.code === 'already_held') throw new RequestError(503, 'Your previous submission credit is still being verified. Please try again shortly.');
   if (result.code === 'quota_exceeded') throw new RequestError(429, 'Your proposal allowance for this billing period has been reached.');
   if (result.code === 'period_expired') throw new RequestError(403, 'Your allowance has expired or renewal payment is pending.');
   if (result.code !== 'reserved') throw new RequestError(503, 'Credit verification needs review.');
@@ -111,8 +126,64 @@ async function finish(config, submissionId, status, recordId) {
   });
 }
 
+// Reconcile an 'uncertain' credit reservation: an Airtable insert was
+// dispatched but its response was never confirmed, so the credit is held and
+// the submission cannot be retried. Release the credit ONLY when no Airtable
+// Proposals Pipeline row carries this submission's reservation marker.
+// Never releases a reservation whose Airtable record exists.
+// Safe degradation: if the release RPC does not exist yet (migration
+// 20261115090000 not applied) or any check fails, the credit stays held and
+// the caller is told to retry later; nothing user-visible fails and no
+// reservation is released on a guess.
+async function reconcileUncertain(config, submissionId, root, headers) {
+  let reservation;
+  try {
+    const response = await fetch(config.url + '/rest/v1/proposal_credit_reservations?submission_id=eq.' + submissionId + '&select=submission_id,company_id,status,record_id', {
+      headers: { apikey: config.serviceKey, Authorization: 'Bearer ' + config.serviceKey },
+      signal: AbortSignal.timeout(10000)
+    });
+    if (!response.ok) return { released: false, reason: 'reservation-unavailable' };
+    reservation = (await response.json())[0];
+  } catch (error) {
+    console.error('Uncertain credit reconciliation: reservation read failed for submission ' + submissionId + '; credit stays held.');
+    return { released: false, reason: 'reservation-unavailable' };
+  }
+  if (!reservation || reservation.status !== 'uncertain') {
+    return { released: false, reason: reservation ? 'not-uncertain' : 'not-found' };
+  }
+  // Belt and braces: a record id on the reservation means the queue row exists.
+  if (reservation.record_id) return { released: false, recordExists: true, recordId: reservation.record_id };
+  try {
+    const query = new URLSearchParams({
+      filterByFormula: "{Credit Reservation ID} = '" + submissionId + "'",
+      maxRecords: '1'
+    });
+    const response = await fetch(root + '/' + require('./billing-source').billingSource().proposals + '?' + query, { headers, signal: AbortSignal.timeout(10000) });
+    if (!response.ok) {
+      console.error('Uncertain credit reconciliation: Airtable check failed for submission ' + submissionId + '; credit stays held.');
+      return { released: false, reason: 'airtable-unavailable' };
+    }
+    const data = await response.json();
+    if (Array.isArray(data.records) && data.records.length) {
+      return { released: false, recordExists: true, recordId: data.records[0].id };
+    }
+  } catch (error) {
+    console.error('Uncertain credit reconciliation: Airtable check failed for submission ' + submissionId + '; credit stays held.');
+    return { released: false, reason: 'airtable-unavailable' };
+  }
+  try {
+    await rpc(config, 'release_uncertain_credit', {
+      p_submission_id: submissionId, p_company_id: reservation.company_id
+    });
+    return { released: true };
+  } catch (error) {
+    console.error('Uncertain credit reconciliation: release_uncertain_credit unavailable for submission ' + submissionId + ' (migration 20261115090000 may not be applied yet); credit stays held.');
+    return { released: false, reason: 'release-unavailable' };
+  }
+}
+
 // Read-only balance: mirror reservation accounting without reserving/releasing credits.
-async function summary(config,company,root,headers,now=Date.now()) {
+async function computeSummary(config,company,root,headers,now=Date.now()) {
   if (!/^rec[A-Za-z0-9]+$/.test(company.id||'')) throw new RequestError(503,'Your billing account needs review.');
   const fields=company.fields||{},plan=fields['Subscription Tier']||(fields['Complimentary Access']===true?fields['Calculated Tier']:null);
   let period;
@@ -121,6 +192,7 @@ async function summary(config,company,root,headers,now=Date.now()) {
     return {available:false,state:'inactive',plan:plan||null,message:e.message};
   }
   const records=await history(company,root,headers);
+  const missingLinkedRecords=(records.missingIds||[]).length;
   const failed=new Map(records.filter(r=>FAILED.has(r.fields?.['Pipeline Status'])&&r.fields?.['Credit Reservation ID']).map(r=>[r.fields['Credit Reservation ID'],r.id]));
   let legacyUsed=0;
   for(const r of records){const f=r.fields||{};if(f['Credit Reservation ID']||FAILED.has(f['Pipeline Status']))continue;const at=Date.parse(f['Created Date']||r.createdTime);if(!Number.isFinite(at))throw new RequestError(503,'Account usage needs review.');if(at>=Date.parse(period.start)&&at<Date.parse(period.end))legacyUsed++;}
@@ -131,8 +203,26 @@ async function summary(config,company,root,headers,now=Date.now()) {
     if(!r.ok)throw new RequestError(503,'Account usage is temporarily unavailable.');
     const rows=await r.json();if(!Array.isArray(rows))throw new RequestError(503,'Account usage needs review.');
     held+=rows.filter(r=>!(r.status==='queued'&&r.record_id&&failed.get(r.submission_id)===r.record_id)).length;
-    if(rows.length<1000){const trial=fields.Status==='Trialing';return {available:true,state:trial?'trial':'active',plan:plan||(trial?'Legacy Enterprise trial':null),allowance:period.quota,used:held+legacyUsed,remaining:Math.max(0,period.quota-held-legacyUsed),periodStart:period.start,periodEnd:period.end,nextResetAt:trial?null:period.end,trialEndsAt:trial?period.end:null,asOf:new Date(now).toISOString()};}
+    if(rows.length<1000){const trial=fields.Status==='Trialing';return {available:true,state:trial?'trial':'active',plan:plan||(trial?'Legacy Enterprise trial':null),allowance:period.quota,used:held+legacyUsed,remaining:Math.max(0,period.quota-held-legacyUsed),periodStart:period.start,periodEnd:period.end,nextResetAt:trial?null:period.end,trialEndsAt:trial?period.end:null,asOf:new Date(now).toISOString(),...(missingLinkedRecords?{missingLinkedRecords}:{})};}
   }
   throw new RequestError(503,'Account usage needs review.');
 }
-module.exports = { entitlement, monthlyPeriod, reserve, finish, rpc, summary };
+
+// The usage page is reloaded often and repeats a full Airtable history read
+// plus a Postgres scan on every call. Cache a computed balance briefly
+// (60 s, per company and billing period) so repeated loads are cheap; a
+// balance is at most 60 s stale and never cached across billing periods.
+// Failures are never cached. reserve() never reads this cache.
+const SUMMARY_CACHE_TTL_MS = 60000;
+const summaryCache = new Map();
+function clearUsageCache() { summaryCache.clear(); }
+async function summary(config,company,root,headers,now=Date.now()) {
+  const fields=company.fields||{};
+  const cacheKey=[company.id,fields.Status,fields['Subscription Tier']||fields['Calculated Tier']||'',fields['Billing Period Start']||'',fields['Billing Period End']||'',company.createdTime||''].join('|');
+  const cached=summaryCache.get(cacheKey);
+  if (cached && now-cached.at<SUMMARY_CACHE_TTL_MS) return cached.value;
+  const value=await computeSummary(config,company,root,headers,now);
+  summaryCache.set(cacheKey,{at:now,value});
+  return value;
+}
+module.exports = { entitlement, monthlyPeriod, reserve, finish, rpc, summary, reconcileUncertain, clearUsageCache };

@@ -286,6 +286,16 @@ async function claim(config, user, payload) {
     return { id: saved.id, recordId: saved.record_id };
   }
 
+  if (saved.status === "uncertain") {
+    // A dispatch was attempted but its queue response was never confirmed.
+    // Do not flip the status here: the caller first reconciles the credit
+    // (release it only if no Airtable record exists for this submission),
+    // then calls reclaim() to move the submission back to processing.
+    // Returning wasUncertain instead of a 409 keeps a transient Airtable
+    // blip from costing the customer a credit and a support ticket.
+    return { id: saved.id, wasUncertain: true };
+  }
+
   if (saved.status !== "retryable") {
     throw new RequestError(
       409,
@@ -314,6 +324,30 @@ async function claim(config, user, payload) {
   }
 
   return { id: saved.id };
+}
+
+async function reclaim(config, id) {
+  // Move an 'uncertain' submission back to processing after its credit was
+  // reconciled. The status guard makes concurrent retries safe: only one
+  // caller wins, the other gets a 409.
+  const response = await request(
+    config,
+    "/rest/v1/rfp_submissions?id=eq." + id + "&status=eq.uncertain",
+    config.serviceKey,
+    {
+      method: "PATCH",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({ status: "processing" })
+    },
+    true
+  );
+
+  if (!response.ok || !(await response.json()).length) {
+    throw new RequestError(
+      409,
+      "This submission is already processing."
+    );
+  }
 }
 
 async function finish(config, id, status, recordId = null) {
@@ -345,6 +379,7 @@ module.exports = {
   authenticate,
   verifyDocument,
   claim,
+  reclaim,
   finish,
   RequestError
 };

@@ -100,7 +100,22 @@ beforeEach(() => {
         if (held?.recordId === payload.p_record_id) held.status = "released";
         return json({ ok: true });
       }
+      if (route.pathname.endsWith("release_uncertain_credit")) {
+        const held = creditLedger.get(payload.p_submission_id);
+        if (held?.status === "uncertain" && !held.recordId) {
+          held.status = "released";
+          return json({ ok: true, released: true });
+        }
+        return json({ ok: true, released: false });
+      }
       throw new Error("Unexpected RPC");
+    }
+
+    if (route.pathname === "/rest/v1/proposal_credit_reservations") {
+      const rows = [...creditLedger.entries()]
+        .filter(([id]) => !route.searchParams.has("submission_id") || route.searchParams.get("submission_id") === "eq." + id)
+        .map(([id, row]) => ({ submission_id: id, company_id: "recCompany", status: row.status, record_id: row.recordId || null }));
+      return json(rows);
     }
 
     if (route.pathname === "/rest/v1/rfp_uploads") {
@@ -399,12 +414,56 @@ test("failed account verification can safely retry before queue dispatch", async
   assert.equal(queueCalls().length, 1);
 });
 
-test("an ambiguous Airtable response locks retries for manual reconciliation", async () => {
+test("an ambiguous Airtable response stays retryable while the queue still times out", async () => {
   settings.queueTimeout = true;
 
   assert.equal((await run()).statusCode, 503);
   assert.equal(ledger.get(ID).status, "uncertain");
-  assert.equal((await run()).statusCode, 409);
+  assert.equal(creditLedger.get(ID).status, "uncertain");
+
+  // The retry reconciles the uncertain credit instead of hitting a 409:
+  // the Airtable record is absent, so the credit is released and the
+  // submission is attempted again.
+  assert.equal((await run()).statusCode, 503);
+  assert.equal(ledger.get(ID).status, "uncertain");
+  assert.equal(creditLedger.get(ID).status, "uncertain");
+  assert.equal(queueCalls().length, 2);
+});
+
+test("a transient queue blip can be retried once it clears, without a second credit", async () => {
+  settings.queueTimeout = true;
+
+  assert.equal((await run()).statusCode, 503);
+  assert.equal(ledger.get(ID).status, "uncertain");
+  assert.equal(creditLedger.get(ID).status, "uncertain");
+
+  settings.queueTimeout = false;
+
+  const response = await run();
+  assert.equal(response.statusCode, 200);
+  assert.equal(ledger.get(ID).status, "queued");
+  assert.equal(creditLedger.get(ID).status, "queued");
+  assert.equal(queueCalls().length, 2);
+  assert.equal(creditLedger.size, 1);
+});
+
+test("a retry adopts the Airtable row when the first dispatch did reach the queue", async () => {
+  settings.queueTimeout = true;
+
+  assert.equal((await run()).statusCode, 503);
+  assert.equal(ledger.get(ID).status, "uncertain");
+
+  // The first dispatch actually landed; only its response was lost.
+  settings.queueTimeout = false;
+  settings.history = [{ id: "recProposal", fields: { "Credit Reservation ID": ID, "Pipeline Status": "Uploaded" } }];
+
+  const response = await run();
+  assert.equal(response.statusCode, 200);
+  assert.equal(body(response).duplicate, true);
+  assert.equal(body(response).recordId, "recProposal");
+  assert.equal(ledger.get(ID).status, "queued");
+  assert.equal(creditLedger.get(ID).status, "queued");
+  assert.equal(creditLedger.get(ID).recordId, "recProposal");
   assert.equal(queueCalls().length, 1);
 });
 
