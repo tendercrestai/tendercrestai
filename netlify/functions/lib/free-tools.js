@@ -13,13 +13,37 @@ async function prepare(p){const id=crypto.randomUUID();let bytes,extension,name;
  }else{if(typeof p.text!=='string'||p.text.trim().length<40||p.text.length>100000)kb.fail(413,'Paste 40 to 100,000 characters. This tool reuses the existing parser limit.');bytes=Buffer.from(p.text);extension='txt';name=p.title||'Pasted solicitation';}
  if(!bytes.length)kb.fail(400,'The input is empty.');const document=await doc.extractDocument({bytes,extension,metadata:{id,file_name:name,sha256:crypto.createHash('sha256').update(bytes).digest('hex')}});return {documents:[document],chunks:doc.chunkDocuments([document]),warnings:document.warnings};
 }
+const VALIDATION_MESSAGE = 'AI output failed source validation. Retry this chunk or review the source manually.';
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+// Transient provider failures (rate limits, 5xx, timeouts) are worth one or two
+// quick retries inside the per-chunk 3-attempt budget; source-validation failures
+// keep exactly one retry, as before. Anything else fails the chunk immediately.
+// providerStatus is the real HTTP status seen by the fetcher wrapper: analyzeChunk
+// collapses every non-OK provider response to RequestError 502, so the status
+// alone cannot tell a 429 from a validation 502 (the validation message can).
+function isTransientProviderError(error, providerStatus) {
+  if (error && error.message === VALIDATION_MESSAGE) return false;
+  if (providerStatus === 429 || (Number.isInteger(providerStatus) && providerStatus >= 500)) return true;
+  if (!error) return false;
+  if (error.name === 'TimeoutError') return true;
+  if (error.status === 429 || (Number.isInteger(error.status) && error.status >= 500)) return true;
+  return /timeout|timed out|ECONNRESET|EAI_AGAIN|socket hang up|network/i.test(error.message || '');
+}
+// A job may be re-dispatched while work remains: Pending, lease-expired
+// Processing, or Failed with chunks left (the ft_claim migration bounds Failed
+// re-claims to the 3-claim budget; without it, re-dispatch of a Failed job is a
+// harmless no-op because ft_claim ignores Failed jobs).
+function resumable(j) {
+  return !!j && (j.status === 'Pending' || j.status === 'Failed' ||
+    (j.status === 'Processing' && Date.parse(j.lease_until) < Date.now()));
+}
 async function processJob(config,id){let j=await kb.rpc(config,'ft_claim',{p_id:kb.uuid(id)});if(!j)return;let providerStatus=null,outputSummary='';try{
  for(let n=0;n<3&&j.processed<j.chunks.length;n++){
-  let result;for(let attempt=0;attempt<2;attempt++){await kb.rpc(config,'ft_admit',{p_ip:j.ip_hash,p_kind:'ai',p_limit:16,p_global:24});try{result=await ai.analyzeChunk(j.chunks[j.processed],j.documents,async(...args)=>{const response=await fetch(...args);providerStatus=response.status;if(response.ok){try{const choice=(await response.clone().json()).choices?.[0];let parsed;try{parsed=JSON.parse(choice?.message?.content);}catch{}outputSummary=' Finish '+String(choice?.finish_reason||'unknown').replace(/[^a-z_]/g,'').slice(0,20)+', requirements '+(Array.isArray(parsed?.requirements)?parsed.requirements.length:'unreadable')+', facts '+(Array.isArray(parsed?.facts)?parsed.facts.length:'unreadable')+'.';}catch{}}return response;});break;}catch(error){if(attempt===1||error.message!=='AI output failed source validation. Retry this chunk or review the source manually.')throw error;}}j.requirements=ai.deduplicate([...j.requirements,...result.requirements]);j.processed++;
+  let result;for(let attempt=0;attempt<3;attempt++){providerStatus=null;await kb.rpc(config,'ft_admit',{p_ip:j.ip_hash,p_kind:'ai',p_limit:16,p_global:24});try{result=await ai.analyzeChunk(j.chunks[j.processed],j.documents,async(...args)=>{const response=await fetch(...args);providerStatus=response.status;if(response.ok){try{const choice=(await response.clone().json()).choices?.[0];let parsed;try{parsed=JSON.parse(choice?.message?.content);}catch{}outputSummary=' Finish '+String(choice?.finish_reason||'unknown').replace(/[^a-z_]/g,'').slice(0,20)+', requirements '+(Array.isArray(parsed?.requirements)?parsed.requirements.length:'unreadable')+', facts '+(Array.isArray(parsed?.facts)?parsed.facts.length:'unreadable')+'.';}catch{}}return response;});break;}catch(error){const validation=error.message===VALIDATION_MESSAGE;const retryable=validation?attempt===0:isTransientProviderError(error,providerStatus);if(attempt===2||!retryable)throw error;await sleep(250*Math.pow(2,attempt));}}j.requirements=ai.deduplicate([...j.requirements,...result.requirements]);j.processed++;
   await db(config,'ft_jobs?id=eq.'+id,{method:'PATCH',body:{requirements:j.requirements,processed:j.processed}});
  }
- const complete=j.processed===j.chunks.length;await db(config,'ft_jobs?id=eq.'+id,{method:'PATCH',body:{status:complete?'Completed':'Pending',lease_until:null}});if(!complete)await dispatch(id);
- }catch(e){const reason=providerStatus&&providerStatus!==200?' AI provider HTTP '+providerStatus+'.':e.message==='AI output failed source validation. Retry this chunk or review the source manually.'?' Source validation did not pass.'+outputSummary:e.name==='TimeoutError'?' The AI request timed out.':e.status===503?' AI or database configuration is unavailable.':'';await db(config,'ft_jobs?id=eq.'+id,{method:'PATCH',body:{status:'Failed',lease_until:null,error:'Analysis could not finish.'+reason+' No compliance result is implied. Try later or use the source manually.'}});}}
+ const complete=j.processed===j.chunks.length;await db(config,'ft_jobs?id=eq.'+id,{method:'PATCH',body:{status:complete?'Completed':'Pending',lease_until:null,...(complete?{error:null}:{})}});if(!complete)await dispatch(id);
+ }catch(e){const reason=providerStatus&&providerStatus!==200?' AI provider HTTP '+providerStatus+'.':e.message===VALIDATION_MESSAGE?' Source validation did not pass.'+outputSummary:e.name==='TimeoutError'?' The AI request timed out.':e.status===503?' AI or database configuration is unavailable.':'';await db(config,'ft_jobs?id=eq.'+id,{method:'PATCH',body:{status:'Failed',lease_until:null,error:'Analysis could not finish.'+reason+' No compliance result is implied. Try later or use the source manually.'}});}}
 async function mail(config,j,lead,report=null){if(!process.env.RESEND_API_KEY)return {customer:'Unavailable',admin:'Unavailable'};
  const states={customer:lead.customer_state,admin:lead.admin_state};
  if((states.customer==='Accepted'&&states.admin==='Accepted')||(process.env.CUSTOMER_CARE_TEST_MODE==='true'&&lead.email!=='hello@tendercrestai.com'))return states;
@@ -32,8 +56,8 @@ async function mail(config,j,lead,report=null){if(!process.env.RESEND_API_KEY)re
   const payload=kind==='customer'?{to:[lead.email],subject:'Your TenderCrest AI compliance matrix',text:'Your requested matrix is attached. '+j.requirements.length+' extracted requirements. Every row needs human review: no proposal response or company evidence was supplied. Check the original solicitation and all attachments. This is not a compliance certification.',attachments:[attachment]}:{to:['hello@tendercrestai.com'],subject:'New free RFP shredder lead',text:'Email: '+lead.email+'\nSolicitation: '+lead.title+'\nSource: '+lead.source+'\nRequested: '+lead.created_at+'\nMarketing opt-in: '+(lead.marketing_opt_in?'Yes':'No')+'\nPublic teardown interest: '+(lead.teardown_opt_in?'Yes':'No')+'\nThis request is for a matrix, not a paid subscription.'};
   if(report){payload.subject=kind==='customer'?report.customerSubject:report.adminSubject;if(kind==='customer')payload.text=report.customerText;else payload.text=payload.text.replace('This request is for a matrix, not a paid subscription.','This request is for a bid-check breakdown, not a paid subscription.')+report.adminExtra;}
   if(process.env.CUSTOMER_CARE_TEST_MODE==='true')payload.subject='[FICTIONAL PREVIEW TEST] '+payload.subject;
-  try{const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+process.env.RESEND_API_KEY,'Content-Type':'application/json','Idempotency-Key':(report?report.prefix:'free-matrix')+'-'+kind+'-'+j.id},body:JSON.stringify({from:'TenderCrest AI <hello@tendercrestai.com>',reply_to:'hello@tendercrestai.com',...payload}),signal:AbortSignal.timeout(10000)});if(r.ok){const receipt=await r.json();if(receipt.id){results[kind]='Accepted';await db(config,'ft_leads?id=eq.'+j.id,{method:'PATCH',body:{[kind+'_state']:'Accepted'}});}}}catch{/* Persisted lead can retry with stable provider idempotency. */}
+  try{const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+process.env.RESEND_API_KEY,'Content-Type':'application/json','Idempotency-Key':(report?report.prefix:'free-matrix')+'-'+kind+'-'+j.id},body:JSON.stringify({from:'TenderCrest AI <hello@tendercrestai.com>',reply_to:'hello@tendercrestai.com',...payload}),signal:AbortSignal.timeout(10000)});if(r.ok){const receipt=await r.json();if(receipt.id){results[kind]='Accepted';await db(config,'ft_leads?id=eq.'+j.id,{method:'PATCH',body:{[kind+'_state']:'Accepted'}});}}else console.error('Free-tools mail failed',JSON.stringify({jobId:j.id,kind,status:r.status}));}catch(error){console.error('Free-tools mail failed',JSON.stringify({jobId:j.id,kind,status:'fetch_error',error:error&&error.name?error.name:'Error'}));/* Persisted lead can retry with stable provider idempotency. */}
  }
  return results;
 }
-module.exports={enabled,db,mac,ip,sign,verify,job,dispatch,view,prepare,processJob,mail};
+module.exports={enabled,db,mac,ip,sign,verify,job,dispatch,view,prepare,processJob,mail,resumable,isTransientProviderError};
