@@ -2,6 +2,25 @@
 const crypto=require("crypto");
 const {presentation,validXMLText}=require('./lib/proposal-email');
 const reply=(statusCode,body)=>({statusCode,headers:{"Content-Type":"application/json","Cache-Control":"no-store"},body:JSON.stringify(body)});
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+// One retry on 5xx/timeout, reusing the same headers (including the stable
+// Resend Idempotency-Key) and body, so a retried send cannot double-send or
+// double-bill. 4xx responses are terminal and are never retried. A response
+// that arrives but cannot be parsed is also never retried: the email may
+// already have been accepted.
+async function sendResend(headers,body){
+ let response=null,lastError=null;
+ for(let attempt=0;attempt<2;attempt++){
+  try{
+   response=await fetch("https://api.resend.com/emails",{method:"POST",headers,body:JSON.stringify(body),signal:AbortSignal.timeout(15000)});
+   if(response.ok||response.status<500)return response;
+   lastError=null;
+  }catch(e){lastError=e;response=null;}
+  if(attempt===0)await sleep(500);
+ }
+ if(response)return response;
+ throw lastError;
+}
 exports.handler=async(event)=>{
  if(event.httpMethod!=="POST")return reply(405,{error:"Method not allowed"});
  const secret=process.env.AIRTABLE_MAIL_RELAY_TOKEN;
@@ -22,8 +41,8 @@ exports.handler=async(event)=>{
   let identity=d.deliveryKey?{deliveryKey:d.deliveryKey,submissionId:d.submissionId}:null;if(care.enabled()&&!identity)identity=await care.inferLegacyDelivery(email,message);
   if(care.enabled()&&identity){receipt=await care.claimDelivery({to:email,subject:output.subject,message:output.text,...identity});if(!receipt.send)return reply(200,{ok:true,id:receipt.providerId,deliveryState:receipt.status,duplicate:true});}
   dispatched=true;
-  const r=await fetch("https://api.resend.com/emails",{method:"POST",headers:{"Authorization":"Bearer "+process.env.RESEND_API_KEY,"Content-Type":"application/json",...(receipt?{"Idempotency-Key":receipt.key}:{})},body:JSON.stringify({from:"TenderCrest AI <hello@tendercrestai.com>",reply_to:"hello@tendercrestai.com",to:[email],subject:output.subject,text:output.text,html:output.html,attachments:[output.attachment],...(receipt?{tags:[{name:'tendercrest_delivery',value:receipt.id}]}:{})}),signal:AbortSignal.timeout(15000)});
+  const r=await sendResend({"Authorization":"Bearer "+process.env.RESEND_API_KEY,"Content-Type":"application/json",...(receipt?{"Idempotency-Key":receipt.key}:{})},{from:"TenderCrest AI <hello@tendercrestai.com>",reply_to:"hello@tendercrestai.com",to:[email],subject:output.subject,text:output.text,html:output.html,attachments:[output.attachment],...(receipt?{tags:[{name:'tendercrest_delivery',value:receipt.id}]}:{})});
   if(!r.ok){if(receipt)await require('./lib/knowledge-base').rpc(receipt.config,'cc_finish_delivery',{p_id:receipt.id,p_status:r.status>=500?'Uncertain':'Failed',p_provider:null});console.error("Resend rejected proposal email",r.status);return reply(502,{error:"Delivery provider rejected request"})}
   const j=await r.json();if(typeof j?.id!=="string"||!j.id.trim()){if(receipt)await require('./lib/knowledge-base').rpc(receipt.config,'cc_finish_delivery',{p_id:receipt.id,p_status:'Uncertain',p_provider:null});return reply(502,{deliveryState:"uncertain",error:"Delivery acceptance could not be confirmed. Verify before retrying."});}if(receipt)await require('./lib/knowledge-base').rpc(receipt.config,'cc_finish_delivery',{p_id:receipt.id,p_status:'Accepted',p_provider:j.id});return reply(200,{ok:true,id:j.id});
- }catch(e){if(receipt&&dispatched)try{await require('./lib/knowledge-base').rpc(receipt.config,'cc_finish_delivery',{p_id:receipt.id,p_status:'Uncertain',p_provider:null});}catch{}if(e.status) return reply(e.status,{error:e.message});if(e.statusCode===413)return reply(413,{error:"Proposal structure exceeds delivery limits"});console.error("Mail relay delivery failed");return reply(502,dispatched?{deliveryState:"uncertain",error:"Delivery outcome could not be confirmed. Verify before retrying."}:{error:"Delivery failed"})}
+ }catch(e){if(receipt&&dispatched)try{await require('./lib/knowledge-base').rpc(receipt.config,'cc_finish_delivery',{p_id:receipt.id,p_status:'Uncertain',p_provider:null});}catch{console.error(JSON.stringify({event:'mail_relay_finish_failed',delivery:receipt?receipt.id:null}));}if(e.status) return reply(e.status,{error:e.message});if(e.statusCode===413)return reply(413,{error:"Proposal structure exceeds delivery limits"});console.error(JSON.stringify({event:'mail_relay_failed',delivery:receipt?receipt.id:null,error:dispatched?'uncertain':'failed'}));return reply(502,dispatched?{deliveryState:"uncertain",error:"Delivery outcome could not be confirmed. Verify before retrying."}:{error:"Delivery failed"})}
 };

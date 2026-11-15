@@ -1,5 +1,15 @@
 const {randomUUID}=require('node:crypto');
 const S=require('./lib/proposal-service');
+// Only short allowlisted codes are ever persisted to pw_jobs.error_code.
+// Anything else (provider messages, export internals) is classified by job
+// kind, so source text and secrets can never leak into the jobs table.
+const KNOWN_ERRORS=new Set(['revision_changed','attachment_unavailable','attachment_source_changed','attachment_integrity']);
+function errorClass(error,kind){
+ if(error&&typeof error.message==='string'&&KNOWN_ERRORS.has(error.message))return error.message;
+ if(kind==='export')return 'export_failed';
+ if(kind==='draft')return 'draft_failed';
+ return 'job_failed';
+}
 async function run(config,id){
  const lease=randomUUID(),claimed=await S.rpc(config,'claim',{p_job:S.kb.uuid(id),p_lease:lease});if(claimed.done)return {done:true};const {job,project}=claimed;
  try{
@@ -12,9 +22,18 @@ async function run(config,id){
    result={fileId:file.id,revision:job.revision,evidenceEpoch:job.evidence_epoch,contentHash:output.measured.contentHash,pages:output.measured.pages,submissionReady:output.manifest.submissionReady,unresolvedItems:output.manifest.unresolvedItems,draft:output.manifest.draft};
   }
   const saved=await S.rpc(config,'finish',{p_job:job.id,p_lease:lease,p_result:result,p_error:null});return {saved};
- }catch{
-  await S.rpc(config,'finish',{p_job:job.id,p_lease:lease,p_result:null,p_error:'job_failed'});return {failed:true};
+ }catch(e){
+  const code=errorClass(e,job.kind);
+  console.error(JSON.stringify({event:'proposal_job_failed',jobId:job.id,kind:job.kind,error:code}));
+  try{
+   await S.rpc(config,'finish',{p_job:job.id,p_lease:lease,p_result:null,p_error:code});
+  }catch{
+   // The finish RPC itself failed: the job stays Processing until its
+   // 10-minute lease expires, but the failure is now logged instead of silent.
+   console.error(JSON.stringify({event:'proposal_job_finish_failed',jobId:job.id,kind:job.kind,error:'job_failed'}));
+  }
+  return {failed:true};
  }
 }
-exports.handler=async event=>{try{S.enabled();S.kb.verifyWorker(event);const body=S.kb.parse(event,2000);S.kb.exact(body,['jobId']);await run(S.kb.configuration(),body.jobId);return S.kb.reply(200,{accepted:true});}catch(e){return S.kb.reply(e.status||503,{error:e.status?e.message:'Background job failed; saved work remains available.'});}};
-exports.run=run;
+exports.handler=async event=>{try{S.enabled();S.kb.verifyWorker(event);const body=S.kb.parse(event,2000);S.kb.exact(body,['jobId']);await run(S.kb.configuration(),body.jobId);return S.kb.reply(200,{accepted:true});}catch(e){console.error(JSON.stringify({event:'proposal_worker_rejected',status:e.status||503}));return S.kb.reply(e.status||503,{error:e.status?e.message:'Background job failed; saved work remains available.'});}};
+exports.run=run;exports.errorClass=errorClass;
