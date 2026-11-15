@@ -3,7 +3,7 @@ import {identifyUsage} from './analytics.mjs';
 import {uploadRfp} from './private-rfp-upload.mjs';
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm";
 import { validateFile } from "./rfp-document.mjs";
-import { statuses, categories, metrics, sourceLabel, filterRows, alerts } from "./compliance-model.mjs";
+import { statuses, categories, metrics, sourceLabel, filterRows, alerts, stableRequirementId } from "./compliance-model.mjs";
 import { csv, xlsx } from "./compliance-export.mjs";
 const $ = id => document.getElementById(id);
 const el = (tag, text, className) => { const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n; };
@@ -92,7 +92,7 @@ function renderTable() {
   for(const row of rows) {
     const tr=el("tr"), id=el("td");
     const label="R"+String(state.requirements.findIndex(r=>r.id===row.id)+1).padStart(4,"0");
-    const edit=el("button","Edit "+label);edit.type="button";edit.disabled=busy;edit.onclick=()=>openEdit(row);id.append(edit);tr.append(id);
+    const edit=el("button","Edit "+label);edit.type="button";edit.disabled=busy;edit.onclick=()=>openEdit(row);id.append(edit,el("small",stableRequirementId(row)));tr.append(id);
     for(const text of [row.requirement,row.category,row.mandatory]) tr.append(el("td",text));
     const source=el("td");
     for(const s of row.sources) source.append(el("p",sourceLabel(s)));

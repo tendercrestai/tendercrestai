@@ -23,7 +23,7 @@ function unzipStored(bytes) {
 test("CSV retains every field, exact source references, quotes and multiline comments; neutralizes formulas",()=>{
   const value=csv(workspace);assert.ok(value.startsWith("\uFEFF"));
   assert.ok(value.includes('"\'=HYPERLINK(""bad"")"'));assert.ok(value.includes('"Line one\nLine two, with comma"'));
-  assert.ok(value.includes("PDF page 2"));assert.ok(value.includes('""references""'));assert.equal(exportRows(workspace)[0].length,18);
+  assert.ok(value.includes("PDF page 2"));assert.ok(value.includes('""references""'));assert.equal(exportRows(workspace)[0].length,25);
   assert.ok(value.includes('"Partial"'));assert.ok(value.includes('"OCR needed"'));
   for(const unsafe of ["+cmd","-cmd","@formula","  =1","\t=1","\r=1"])
     assert.ok(csv({...workspace,requirements:[{...row,comments:unsafe}]}).includes("'"+unsafe));
