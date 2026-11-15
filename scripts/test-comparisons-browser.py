@@ -4,13 +4,14 @@ root=pathlib.Path(__file__).resolve().parents[1]
 class Handler(http.server.SimpleHTTPRequestHandler):
  def log_message(self,*a):pass
  def do_GET(self):
-  if self.path in ['/compare/responsive','/compare/loopio']:self.path='/compare-'+self.path.rsplit('/',1)[-1]+'.html'
+  if self.path.startswith('/compare/'):self.path='/compare-'+self.path.rsplit('/',1)[-1]+'.html'
   super().do_GET()
 server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Handler,directory=str(root/'dist')));threading.Thread(target=server.serve_forever,daemon=True).start();base='http://127.0.0.1:'+str(server.server_port);checks=[]
+headings={'responsive':'Responsive','loopio':'Loopio','qvidian':'Qvidian','xait':'XaitPorter','chatgpt':'ChatGPT or Claude'}
 try:
  with sync_playwright()as p:
   b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
-  for slug in ['responsive','loopio']:
+  for slug in ['responsive','loopio','qvidian','xait','chatgpt']:
    for width in [390,768,1280]:
     page=b.new_page(viewport={'width':width,'height':950});page.route('**/*',lambda r:r.continue_() if r.request.url.startswith(base) and '/.netlify/functions/' not in r.request.url else r.abort());page.goto(base+'/compare/'+slug)
     assert page.locator('h1').is_visible() and page.locator('table tbody tr').count()==8
@@ -21,7 +22,7 @@ try:
     assert 'automatically' in page.locator('main').inner_text() and 'fictional' in page.locator('main').inner_text()
     if slug=='loopio':assert '$20,000' not in page.content()
     if width==390:page.locator('.table-wrap').evaluate('(e)=>e.scrollLeft=250');assert page.locator('.table-wrap').evaluate('(e)=>e.scrollLeft')>0
-    assert page.get_by_role('heading',name='When '+('Loopio'if slug=='loopio'else'Responsive')+' is the better fit').count()==1
+    assert page.get_by_role('heading',name='When '+headings[slug]+' is the better fit').count()==1
     checks.append(slug+' '+str(width)+' render/schema/legibility/claims');page.close()
   b.close()
  print(json.dumps({'passed':len(checks),'checks':checks,'thirdPartyRequests':0}))
