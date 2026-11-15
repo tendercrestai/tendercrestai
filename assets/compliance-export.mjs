@@ -1,13 +1,16 @@
-import { sourceLabel } from "./compliance-model.mjs";
-const headers = ["Requirement ID","Requirement","Category","Mandatory","Source","Evaluation Weight","Compliance Status","Evidence","Evidence Reference","Response Owner","Comments","AI Recommendation","Original Requirement","Uncertain","Duplicate Count","Analysis Status","Analysis ID","Extraction Warnings"];
+import { sourceLabel, traceRow } from "./compliance-model.mjs";
+const headers = ["Requirement ID","Requirement","Category","Mandatory","Source","Evaluation Weight","Compliance Status","Evidence","Evidence Reference","Response Owner","Comments","AI Recommendation","Original Requirement","Uncertain","Duplicate Count","Analysis Status","Analysis ID","Extraction Warnings","Stable Requirement ID","Source Reference","Evidence References","Evidence Coverage","Coverage Source","Review Status","Response Approval"];
 export function exportRows(workspace) {
-  return [headers, ...workspace.requirements.map((r,i) => [
+  return [headers, ...workspace.requirements.map((r,i) => {
+    const t = traceRow(r);
+    return [
     "R" + String(i + 1).padStart(4,"0") + " (" + r.id + ")",r.requirement,r.category,r.mandatory,
     r.sources.map(s => sourceLabel(s) + " — " + s.quote).join("\n"),
     r.evaluation_weight || "Not explicitly provided",r.status,r.evidence,r.evidence_reference,
     r.response_owner,r.comments,r.recommendation,r.original_requirement,String(r.uncertain),String(r.duplicate_count),
-    workspace.analysis.status,workspace.analysis.id,workspace.analysis.warnings.join("\n")
-  ])];
+    workspace.analysis.status,workspace.analysis.id,workspace.analysis.warnings.join("\n"),
+    t.stableId,t.sourceReference,t.evidenceReferences,t.coverage,t.coverageSource,t.reviewStatus,t.responseApproval];
+  })];
 }
 const safeCSV = value => {
   let text = String(value ?? "");
