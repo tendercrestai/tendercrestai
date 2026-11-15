@@ -49,4 +49,20 @@ test('explicit server worker origin supports isolated aliases without trusting c
 
 test('business revision conflicts return 409 without retrying provider or database calls',async()=>{settings.staleApproval=true;const r=await run({action:'approve',orgId:ORG,id:JOB,revision:0});assert.equal(r.statusCode,409);assert.equal(rpcCalls().length,1);});
 
+test('embedding retries transient 429/5xx with backoff and keeps the three-attempt budget',async()=>{
+ let calls=0;
+ const flaky=async()=>{calls++;if(calls===1)return json({error:{message:'rate limited'}},429);return json({data:[{index:0,embedding:vec()}]});};
+ const vectors=await kb.embed(['fictional evidence'],flaky,{retryDelays:[0,0]});
+ assert.equal(vectors[0][0],1);assert.equal(calls,2);
+ let failed=0;
+ await assert.rejects(kb.embed(['fictional evidence'],async()=>{failed++;return json({error:{message:'boom'}},500);},{retryDelays:[0,0]}),e=>e.status===502);
+ assert.equal(failed,3);
+ let denied=0;
+ await assert.rejects(kb.embed(['fictional evidence'],async()=>{denied++;return json({},401);},{retryDelays:[0,0]}),e=>e.status===503);
+ assert.equal(denied,1);
+ let timeouts=0;
+ await assert.rejects(kb.embed(['fictional evidence'],async()=>{timeouts++;throw Error('network');},{retryDelays:[0,0]}),e=>e.status===502);
+ assert.equal(timeouts,3);
+});
+
 test('provider access and quota errors are actionable without exposing upstream secrets',async()=>{for(const [upstream,status,message] of [[401,503,/access is denied/],[403,503,/access is denied/],[429,429,/quota or rate limit/],[500,502,/temporarily unavailable/]]){await assert.rejects(kb.embed(['fictional evidence'],async()=>json({error:{message:'sk-upstream-private document text'}},upstream)),e=>{assert.equal(e.status,status);assert.match(e.message,message);if([401,403].includes(upstream))assert.ok(e.message.includes('provider HTTP '+upstream));assert.ok(!e.message.includes('sk-upstream-private'));assert.ok(!e.message.includes('document text'));return true;});}});

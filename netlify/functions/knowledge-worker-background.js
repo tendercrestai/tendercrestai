@@ -12,7 +12,10 @@ function createHandler(adapters={}) {
    const warnings=document.warnings.slice(0,30).map(w=>w.slice(0,300));if(document.warnings.length>30)warnings[29]='Additional extraction warnings omitted; review the original source.';
    const saved=await kb.rpc(config,'kb_finish_job',{p_job:jobId,p_lease:lease,p_chunks:chunks,p_warnings:warnings});return kb.reply(saved?200:409,{processed:saved});
   }catch(e){
-   if(claimed){try{await kb.rpc(config,'kb_fail_job',{p_job:jobId,p_lease:lease,p_error:errorCode});}catch{/* Lease/budget state remains durable; never log source or secrets. */}}
+   if(claimed){try{await kb.rpc(config,'kb_fail_job',{p_job:jobId,p_lease:lease,p_error:errorCode});}catch{console.error(JSON.stringify({event:'knowledge_job_fail_failed',jobId:jobId||null,error:errorCode}));}}
+   // Structured failure log: job id + sanitized error class only, never
+   // source text or secrets (errorCode is one of three allowlisted codes).
+   console.error(JSON.stringify({event:'knowledge_job_failed',jobId:jobId||null,error:errorCode}));
    return kb.reply(e.status||503,{error:e.status?e.message:'Background processing failed. Inspect the saved job before retrying.'});
   }
  };

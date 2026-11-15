@@ -46,16 +46,41 @@ function embeddingSettings() {
  if(!key||model!=='text-embedding-3-small')fail(503,'Knowledge embeddings are not configured.');return {key,model};
 }
 function vector(value) {if(!Array.isArray(value)||value.length!==1536||value.some(n=>typeof n!=='number'||!Number.isFinite(n))||!value.some(n=>n!==0))fail(502,'Invalid embedding response.');return value;}
-async function embed(inputs,fetcher=fetch) {
+const EMBED_RETRY_DELAYS_MS=[250,1000];
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+// Retry transient embedding failures (429/5xx/network) with backoff, up to 3
+// attempts total per batch. The 3-attempt job budget in kb_claim_job is
+// untouched: these retries happen inside one claimed attempt, so a brief
+// provider outage no longer burns all 3 job attempts. 401/403 and other 4xx
+// fail immediately; malformed responses are never retried.
+async function embed(inputs,fetcher=fetch,options={}) {
  const {key,model}=embeddingSettings();if(!Array.isArray(inputs)||!inputs.length||inputs.length>16||inputs.some(s=>typeof s!=='string'||!s.trim()||s.length>2000))fail(400,'Invalid embedding input.');
- const response=await fetcher('https://api.openai.com/v1/embeddings',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model,input:inputs,dimensions:1536,encoding_format:'float'}),signal:AbortSignal.timeout(30000)});
- if(!response.ok){
+ const delays=Array.isArray(options.retryDelays)&&options.retryDelays.length?options.retryDelays:EMBED_RETRY_DELAYS_MS;
+ for(let attempt=0;attempt<3;attempt++){
+  let response;
+  try{
+   response=await fetcher('https://api.openai.com/v1/embeddings',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model,input:inputs,dimensions:1536,encoding_format:'float'}),signal:AbortSignal.timeout(30000)});
+  }catch{
+   if(attempt<2){await sleep(delays[attempt]??delays[delays.length-1]);continue;}
+   fail(502,'Embedding service is temporarily unavailable.');
+  }
+  if(response.ok){
+   const data=await response.json();
+   if(!Array.isArray(data.data)||data.data.length!==inputs.length)fail(502,'Invalid embedding response.');const sorted=[...data.data].sort((a,b)=>a.index-b.index);
+   if(sorted.some((d,i)=>d.index!==i))fail(502,'Invalid embedding response.');return sorted.map(d=>vector(d.embedding));
+  }
   if(response.status===401||response.status===403)fail(503,'Embedding access is denied (provider HTTP '+response.status+'). Ask your organization administrator to verify the provider key and model.');
-  if(response.status===429)fail(429,'Embedding provider quota or rate limit reached. Try again later.');
+  if(response.status===429||response.status>=500){
+   if(attempt<2){
+    const retryAfter=response.headers?.get?.('retry-after'),parsed=retryAfter?Math.round(Number(retryAfter)*1000):NaN;
+    await sleep(Number.isFinite(parsed)&&parsed>0?Math.min(parsed,5000):(delays[attempt]??delays[delays.length-1]));
+    continue;
+   }
+   if(response.status===429)fail(429,'Embedding provider quota or rate limit reached. Try again later.');
+   fail(502,'Embedding service is temporarily unavailable.');
+  }
   fail(502,'Embedding service is temporarily unavailable.');
- }const data=await response.json();
- if(!Array.isArray(data.data)||data.data.length!==inputs.length)fail(502,'Invalid embedding response.');const sorted=[...data.data].sort((a,b)=>a.index-b.index);
- if(sorted.some((d,i)=>d.index!==i))fail(502,'Invalid embedding response.');return sorted.map(d=>vector(d.embedding));
+ }
 }
 function citationChunks(document) {
  const chunks=[];
