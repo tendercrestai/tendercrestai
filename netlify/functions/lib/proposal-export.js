@@ -57,15 +57,73 @@ function readinessReportText(project){
  if(!resolved.length)lines.push('- None yet.');
  for(const i of resolved)lines.push(...itemLines(i));
  return lines.join('\n')+'\n';
-}async function packageFiles(project,{draft=true,attachments=[]}={}){
+}// Amendment impact report (Capability 3). Plain text, same pattern as the
+// readiness report. Lists every proposed change with old and new wording side
+// by side and source references, the affected evidence, draft responses and
+// approvals, and the reviews still unresolved. States exactly which documents
+// were compared and which could not be processed. Never claims a change is
+// confirmed until a person confirms or corrects it.
+const AMENDMENT_TYPE_HEADINGS={added:'ADDED REQUIREMENTS',changed:'CHANGED REQUIREMENTS','deadline-changed':'CHANGED DEADLINES','instruction-changed':'CHANGED SUBMISSION INSTRUCTIONS','potentially-removed':'POTENTIALLY REMOVED REQUIREMENTS','uncertain-match':'UNCERTAIN MATCHES — NEED HUMAN REVIEW'};
+function amendmentImpactReportText(project,amendmentId){
+ const amendments=core.amendmentsState(project.state);
+ const a=amendmentId?amendments.find(x=>x.id===amendmentId):amendments[amendments.length-1];
+ if(!a)throw Error('No amendment impact to report yet.');
+ const view=core.amendmentView(project.state).find(x=>x.id===a.id);
+ const summary=view.summary;
+ const lines=[project.state.company.name+' — '+project.state.title,'Amendment impact report · solicitation version '+a.versionNumber+' ('+(a.kind==='replacement'?'complete replacement solicitation':'supplemental amendment')+') · saved proposal revision '+project.revision+' · generated '+new Date().toISOString(),'',
+  core.AMENDMENT_SCOPE_NOTE,'',
+  'Documents compared ('+a.documentsCompared.length+')'];
+ for(const d of a.documentsCompared)lines.push('- '+d.name);
+ if(!a.documentsCompared.length)lines.push('- None listed.');
+ lines.push('','Documents that could not be processed ('+a.documentsUnprocessed.length+')');
+ if(!a.documentsUnprocessed.length)lines.push('- None. Every supplied document was processed; a document missing from the analysis entirely cannot be named here.');
+ for(const d of a.documentsUnprocessed)lines.push('- '+d.name+' — '+(d.reason||'Could not be processed.'));
+ lines.push('','Summary','- '+summary.total+' proposed changes: '+Object.entries(summary.byType).map(([t,n])=>n+' '+t.replace(/-/g,' ')).join(', ')+'.',
+  '- '+summary.proposed+' still proposed (unresolved), '+summary.confirmed+' confirmed, '+summary.corrected+' corrected, '+summary.rejected+' rejected.',
+  '- Amendment status: '+summary.status+'.');
+ if(a.kind==='supplemental')lines.push('- '+(a.notMentioned||[]).length+' earlier requirements were not mentioned in this supplemental amendment. Absence from a supplemental amendment does not mean a requirement was removed.');
+ const affectedLines=c=>{
+  const out=[];const aff=c.affected||{};
+  if(aff.evidence&&aff.evidence.length)for(const e of aff.evidence)out.push('  Affected evidence: '+e.answerId+' rev '+e.revision+' · '+e.decision+(e.stale?' · STALE':'')+' · '+e.excerpt);
+  else out.push('  Affected evidence: none linked.');
+  if(aff.sections&&aff.sections.length)for(const s of aff.sections)out.push('  Affected draft response: '+s.title+' · '+s.status+' · revision '+s.revision);
+  else out.push('  Affected draft response: none yet.');
+  out.push('  Response approval: '+(aff.responseApproval||'not-approved')+(aff.needsReconfirmation?' · NEEDS RECONFIRMATION':'')+' · Coverage: '+(aff.coverage||'not-assessed')+(aff.coverageSource?' ('+aff.coverageSource+')':''));
+  return out;};
+ for(const type of Object.keys(AMENDMENT_TYPE_HEADINGS)){
+  const group=view.changes.filter(c=>c.type===type);if(!group.length)continue;
+  lines.push('',AMENDMENT_TYPE_HEADINGS[type]+' ('+group.length+')');
+  for(const c of group){
+   lines.push('- ['+c.status.toUpperCase()+'] '+(c.stableId||'')+(c.similarity!==null&&c.similarity!==undefined?' · similarity '+c.similarity.toFixed(2)+' ('+c.matchMethod+')':' · matched by '+c.matchMethod));
+   if(c.oldText!==null&&c.oldText!==undefined)lines.push('  OLD: '+c.oldText);
+   if(c.newText!==null&&c.newText!==undefined)lines.push('  NEW: '+c.newText);
+   for(const ref of c.oldSources||[])lines.push('  Old source: '+readinessSourceLabel(ref));
+   for(const ref of c.newSources||[])lines.push('  New source: '+readinessSourceLabel(ref));
+   if(c.correctionNote)lines.push('  Correction: '+c.correctionNote);
+   if(c.decisionNote)lines.push('  Decision: '+c.decisionNote);
+   lines.push(...affectedLines(c));
+  }
+ }
+ const unresolved=view.changes.filter(c=>c.status==='proposed');
+ lines.push('','UNRESOLVED REVIEWS ('+unresolved.length+')');
+ if(!unresolved.length)lines.push('- None. Every proposed change has been confirmed, corrected or rejected.');
+ for(const c of unresolved)lines.push('- ['+c.type+'] '+(c.stableId||'')+' · '+(c.newText||c.oldText||''));
+ if(a.kind==='supplemental'&&(a.notMentioned||[]).length){
+  lines.push('','NOT MENTIONED IN THIS SUPPLEMENTAL AMENDMENT ('+a.notMentioned.length+') — unchanged, not removed');
+  for(const n of a.notMentioned)lines.push('- '+n.stableId+' · '+n.text);
+ }
+ return lines.join('\n')+'\n';
+}
+async function packageFiles(project,{draft=true,attachments=[]}={}){
  if(attachments.length>10||attachments.reduce((n,a)=>n+a.bytes.length,0)>20971520)throw Error('Attachment package exceeds the declared bound.');
  const m=model(project,draft),rendered=await pdf(m);const measured={contentHash:m.contentHash,pages:rendered.pages,evidenceEpoch:m.epoch};const readiness=core.readiness(project.state,project.evidence_epoch,measured);
  if(!draft&&(!readiness.ready||!project.state.finalApproval||project.state.finalApproval.contentHash!==m.contentHash))throw Error('Final export blocked by current readiness/rendered page checks.');
  const word=await docx(m);const {csv,xlsx}=await import('../../../assets/compliance-export.mjs');const view=complianceView(project);
  const files={'proposal.docx':word,'proposal.pdf':rendered.bytes,'compliance-matrix.csv':Buffer.from(csv(view)),'compliance-matrix.xlsx':xlsx(view),'readiness-report.md':Buffer.from(readinessReportText(project))};
+ if((project.state.amendments||[]).length)files['amendment-impact-report.md']=Buffer.from(amendmentImpactReportText(project));
  for(const a of attachments){if(!/^[0-9a-f-]{36}$/i.test(a.id))throw Error('Invalid attachment identity.');files['attachments/'+a.id+'-'+safeName(a.name)]=a.bytes;}
  const provenance={projectId:project.id,revision:project.revision,sections:m.sections.map(s=>({sectionId:s.id,requirementIds:s.requirements,claims:s.claims.map(c=>({text:c.text,requirementId:c.requirementId,answerId:c.answerId,answerRevision:c.answerRevision,citationIds:c.citations.map(x=>x.id),sources:c.citations.map(x=>({documentId:x.documentId,name:x.fileName,sha256:x.sha256,page:x.page??null,section:x.section??null,quote:x.quote}))})),evidenceReferences:project.state.evidence.filter(e=>s.requirements.includes(e.requirementId)&&core.activeEvidence(project.state,e.requirementId).some(x=>x.id===e.id)).map(e=>({requirementId:e.requirementId,answerId:e.answerId,answerRevision:e.revision,citations:e.citations})),humanReviewed:!s.unverified}))};files['source-references.json']=Buffer.from(JSON.stringify(provenance,null,2));
- const manifest={schema:'tendercrest-submission-v1',projectId:project.id,revision:project.revision,evidenceEpoch:m.epoch,contentHash:m.contentHash,draft,submissionReady:!draft&&readiness.ready,unresolvedItems:readiness.blockers,readinessSummary:core.readinessSummary(project.state),excludedRequirements:project.state.requirements.filter(core.excluded).map(r=>({id:r.id,disposition:r.disposition})),renderedPDFPages:rendered.pages,docxPaginationMeasured:false,wordCount:readiness.wordCount,files:Object.entries(files).map(([name,bytes])=>({name,bytes:bytes.length,sha256:require('node:crypto').createHash('sha256').update(bytes).digest('hex')})),generatedAt:new Date().toISOString(),internalCommentsIncluded:false};
+ const manifest={schema:'tendercrest-submission-v1',projectId:project.id,revision:project.revision,evidenceEpoch:m.epoch,contentHash:m.contentHash,draft,submissionReady:!draft&&readiness.ready,unresolvedItems:readiness.blockers,readinessSummary:core.readinessSummary(project.state),amendmentImpact:(project.state.amendments||[]).length?core.amendmentSummary(project.state.amendments[project.state.amendments.length-1]):null,excludedRequirements:project.state.requirements.filter(core.excluded).map(r=>({id:r.id,disposition:r.disposition})),renderedPDFPages:rendered.pages,docxPaginationMeasured:false,wordCount:readiness.wordCount,files:Object.entries(files).map(([name,bytes])=>({name,bytes:bytes.length,sha256:require('node:crypto').createHash('sha256').update(bytes).digest('hex')})),generatedAt:new Date().toISOString(),internalCommentsIncluded:false};
  files['manifest.json']=Buffer.from(JSON.stringify(manifest,null,2));const zip=Buffer.from(zipSync(Object.fromEntries(Object.entries(files).map(([k,v])=>[k,new Uint8Array(v)])),{level:6}));if(zip.length>52428800)throw Error('Submission package exceeds 50 MiB.');return {files,zip,manifest,measured};
 }
-module.exports={model,docx,pdf,packageFiles,complianceView,safeName,readinessReportText,readinessSourceLabel};
+module.exports={model,docx,pdf,packageFiles,complianceView,safeName,readinessReportText,readinessSourceLabel,amendmentImpactReportText,AMENDMENT_TYPE_HEADINGS};

@@ -31,7 +31,7 @@ function suggestCoverage(mappings){return mappings.length?'partially-supported':
 function invalidateResponseApproval(s,requirementId,actor,reason,force=false){const r=s.requirements.find(x=>x.id===requirementId);if(!r)return;const t=ensureTrace(r);if(t.responseApproval.status!=='approved')return;if(!force&&t.responseApproval.responseHash&&t.responseApproval.responseHash===responseHash(s,requirementId))return;const prior={...t.responseApproval};t.responseApproval={...t.responseApproval,status:'needs-reconfirmation'};traceHistoryPush(t,{action:'response-invalidated',actor,reason,requirementRevision:r.revision,responseRevision:responseRevision(s,requirementId),priorStatus:prior.status});}
 function markCoverageReconfirmation(s,requirementId,actor,reason){const r=s.requirements.find(x=>x.id===requirementId);if(!r)return;const t=ensureTrace(r);if(t.coverageSource!=='human-confirmed'||t.needsReconfirmation)return;t.needsReconfirmation=true;traceHistoryPush(t,{action:'coverage-needs-reconfirmation',actor,reason,requirementRevision:r.revision});}
 function evidenceSuggested(s,requirementId,actor){const r=s.requirements.find(x=>x.id===requirementId);if(!r)return;const t=ensureTrace(r);const mappings=s.evidence.filter(e=>e.requirementId===requirementId&&e.decision!=='rejected');if(t.coverageSource!=='human-confirmed'){t.coverage=suggestCoverage(mappings);t.coverageSource='ai-suggested';t.explanation='';t.reviewedBy=null;t.reviewedAt=null;}else markCoverageReconfirmation(s,requirementId,actor,'Linked evidence changed after human coverage confirmation.');invalidateResponseApproval(s,requirementId,actor,'Linked evidence changed after response approval.',true);traceHistoryPush(t,{action:'evidence-suggested',actor,coverage:t.coverage,coverageSource:t.coverageSource,requirementRevision:r.revision});}
-function traceSummary(s,epoch){return s.requirements.map(r=>{const t=ensureTrace(r);const evidence=s.evidence.filter(e=>e.requirementId===r.id).map(e=>({id:e.id,answerId:e.answerId,revision:e.revision,excerpt:String(e.text||'').slice(0,200),decision:e.decision,stale:!!e.stale}));const unresolved=!excluded(r)&&(t.coverage!=='supported'||t.responseApproval.status!=='approved');return {requirementId:r.id,stableId:r.stableId||stableRequirementId(r),text:r.text,category:r.category,mandatory:r.mandatory,coverage:t.coverage,coverageSource:t.coverageSource,needsReconfirmation:!!t.needsReconfirmation,reviewStatus:t.coverageSource?(t.needsReconfirmation?'needs-reconfirmation':'current'):'not-assessed',responseApproval:t.responseApproval.status,responseReviewedBy:t.responseApproval.reviewedBy,responseReviewedAt:t.responseApproval.reviewedAt,evidence,sources:r.sources||[],unresolved};});}
+function traceSummary(s,epoch){return s.requirements.map(r=>{const t=ensureTrace(r);const evidence=s.evidence.filter(e=>e.requirementId===r.id).map(e=>({id:e.id,answerId:e.answerId,revision:e.revision,excerpt:String(e.text||'').slice(0,200),decision:e.decision,stale:!!e.stale}));const unresolved=!excluded(r)&&!amendmentRemoved(r)&&(t.coverage!=='supported'||t.responseApproval.status!=='approved');return {requirementId:r.id,stableId:r.stableId||stableRequirementId(r),text:r.text,category:r.category,mandatory:r.mandatory,coverage:t.coverage,coverageSource:t.coverageSource,needsReconfirmation:!!t.needsReconfirmation,reviewStatus:t.coverageSource?(t.needsReconfirmation?'needs-reconfirmation':'current'):'not-assessed',responseApproval:t.responseApproval.status,responseReviewedBy:t.responseApproval.reviewedBy,responseReviewedAt:t.responseApproval.reviewedAt,evidence,sources:r.sources||[],unresolved};});}
 function unresolvedItems(s){return traceSummary(s).filter(x=>x.unresolved).map(x=>({stableId:x.stableId,requirementId:x.requirementId,text:x.text,coverage:x.coverage,coverageSource:x.coverageSource,responseApproval:x.responseApproval,reasons:[...(x.coverage!=='supported'?['Evidence coverage is '+x.coverage]:[]),...(x.responseApproval!=='approved'?['Response approval is '+x.responseApproval]:[])]}));}
 // --- Submission readiness (Capability 2) ---
 // Readiness is a checklist derived from the extracted requirements already in
@@ -56,6 +56,7 @@ function readinessItems(s){
  const rd=readinessState(s),items=[];
  for(const r of s.requirements||[]){
   if(excluded(r))continue; // explicitly out of scope: not readiness work
+  if(amendmentRemoved(r))continue; // confirmed removed by an amendment: kept for history, not readiness work
   const t=ensureTrace(r),sid=r.stableId||stableRequirementId(r),corr=rd.corrections[sid]||{};
   const view={text:corr.text||r.text,category:corr.category||r.category,mandatory:corr.mandatory||r.mandatory};
   const override=rd.items['readiness:'+sid]||{};
@@ -78,7 +79,172 @@ function readinessSummary(s){
  return summary;
 }
 function readinessView(s){return {items:readinessItems(s),summary:readinessSummary(s),scopeNote:READINESS_SCOPE_NOTE};}
-function initial(title,company){return {schema:1,title:text(title,200),company:{name:text(company||title,200),accent:'#1d4ed8'},requirements:[],sections:[],evidence:[],comments:[],facts:[],bidInputs:{},weights:{experience:25,certifications:25,capacity:20,timeline:15,strategy:15},decision:null,assessment:null,finalApproval:null,reviewedEpoch:0,sourceWarnings:[],analysis:null,attachments:[],archivedResponses:[],readiness:{items:{},corrections:{},manual:[]}};}function excluded(r){return ['not applicable','extraction error'].includes(r.disposition)&&!!r.reviewReason&&!!r.reviewedBy;}
+// --- Amendment impact review (Capability 3) ---
+// When the solicitation changes, the user adds the new version as a proposed
+// amendment; the original version and its review history stay intact in
+// pw_revisions (full state snapshots per revision) and in state.requirements
+// until a change is confirmed. Comparison is deterministic text matching:
+// stable-ID match first, then word-set similarity for reworded requirements.
+// No model call is made: genuinely ambiguous pairs are flagged
+// "uncertain-match" for a human instead of being guessed by a model, and no
+// other customer's evidence is ever sent into a comparison. Every proposed
+// change starts as a suggestion: confirming applies it, correcting adjusts
+// the match or wording, rejecting restores the prior approval state. Nothing
+// is silently overwritten or deleted — a "potentially removed" requirement
+// stays in the project until a person confirms the removal, and absence from
+// a supplemental amendment never means removal. All amendment state lives in
+// pw_projects.state.amendments (JSONB); activity history comes from
+// pw_events via commit and trace history in the state mirror, so NO migration
+// is needed for this capability.
+const AMENDMENT_KINDS=['replacement','supplemental'];
+const AMENDMENT_CHANGE_TYPES=['added','changed','deadline-changed','instruction-changed','potentially-removed','uncertain-match'];
+const AMENDMENT_CHANGE_STATUSES=['proposed','confirmed','corrected','rejected'];
+const AMENDMENT_MAX_PER_PROJECT=50,AMENDMENT_MAX_REQUIREMENTS=500;
+const AMENDMENT_MATCH_THRESHOLD=0.5,AMENDMENT_UNCERTAIN_THRESHOLD=0.25;
+const AMENDMENT_SCOPE_NOTE='Amendment comparison is deterministic text matching on the supplied documents. Every proposed change is a suggestion until a person confirms or corrects it; nothing is silently overwritten, and no requirement, response, deadline or evidence link is deleted by proposing an amendment. Absence from a supplemental amendment does not mean a requirement was removed.';
+function amendmentsState(s){const list=(s&&Array.isArray(s.amendments))?s.amendments:[];return list;}
+function amendmentRemoved(r){return !!(r&&r.removedByAmendment&&typeof r.removedByAmendment==='object');}
+function amendmentNormalize(text){return String(text||'').replace(/\s+/g,' ').trim().toLowerCase();}
+function amendmentTokens(text){return new Set(amendmentNormalize(text).replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(Boolean));}
+function amendmentSimilarity(a,b){const x=amendmentTokens(a),y=amendmentTokens(b);if(!x.size||!y.size)return 0;let shared=0;for(const t of x)if(y.has(t))shared++;return shared/(x.size+y.size-shared);}
+const AMENDMENT_MONTHS={january:1,february:2,march:3,april:4,may:5,june:6,july:7,august:8,september:9,october:10,november:11,december:12};
+function extractAmendmentDates(text){
+ const found=new Set();const src=String(text||'');
+ for(const m of src.matchAll(/\b(\d{4})-(\d{2})-(\d{2})\b/g)){try{found.add(date(m[0]));}catch{/* Not a valid calendar date; never inferred. */}}
+ for(const m of src.matchAll(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})\b/gi)){const iso=`${m[3]}-${String(AMENDMENT_MONTHS[m[1].toLowerCase()]).padStart(2,'0')}-${String(Number(m[2])).padStart(2,'0')}`;try{found.add(date(iso));}catch{/* Not a valid calendar date. */}}
+ return [...found].sort();
+}
+function amendmentDatesRemoved(text){return amendmentNormalize(text).replace(/\b\d{4}-\d{2}-\d{2}\b/g,'').replace(/\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4}\b/g,'').replace(/\s+/g,' ').trim();}
+// Same mapping as imported(): the stable ID of a freshly extracted requirement
+// is its content-anchored ID; prior identity is preserved by matching, below.
+function normalizeAnalysisRequirements(w){
+ if(!w||!Array.isArray(w.requirements)||!w.requirements.length||w.requirements.length>AMENDMENT_MAX_REQUIREMENTS)kb.fail(400,'Complete a nonempty analysis with at most 500 requirements.');
+ return w.requirements.map(r=>({id:r.id,stableId:stableRequirementId(r),text:r.requirement,originalText:r.original_requirement||r.requirement,mandatory:r.mandatory,category:r.category,evaluationWeight:r.evaluation_weight||null,sources:Array.isArray(r.sources)?r.sources:[],fingerprint:r.fingerprint||null}));
+}
+function amendmentSourceRefs(r){return (r.sources||[]).map(src=>({document:src.document||src.document_name||'Source unavailable',section:src.section||null,page:src.page??null,quote:src.quote||''}));}
+function classifyAmendmentPair(oldReq,newReq){
+ const datesOld=extractAmendmentDates(oldReq.text),datesNew=extractAmendmentDates(newReq.text);
+ const deadlineChanged=JSON.stringify(datesOld)!==JSON.stringify(datesNew);
+ const category=(newReq.category||oldReq.category||'');
+ if(deadlineChanged&&(category==='Submission'||amendmentDatesRemoved(oldReq.text)===amendmentDatesRemoved(newReq.text)))return {type:'deadline-changed',deadlineChanged};
+ if(category==='Submission')return {type:'instruction-changed',deadlineChanged};
+ return {type:'changed',deadlineChanged};
+}
+function amendmentChangeFields(pair){
+ return {oldRequirementId:pair.oldReq.id,newRequirementId:pair.newReq.id,stableId:pair.oldReq.stableId||stableRequirementId(pair.oldReq),oldText:pair.oldReq.text,newText:pair.newReq.text,oldSources:amendmentSourceRefs(pair.oldReq),newSources:amendmentSourceRefs(pair.newReq),oldMandatory:pair.oldReq.mandatory,newMandatory:pair.newReq.mandatory,oldCategory:pair.oldReq.category,newCategory:pair.newReq.category,similarity:pair.similarity??null,matchMethod:pair.matchMethod,deadlineChanged:!!pair.deadlineChanged};
+}
+function compareRequirements(oldReqs,newReqs,kind){
+ if(!AMENDMENT_KINDS.includes(kind))kb.fail(400,'Choose replacement or supplemental.');
+ const oldList=(oldReqs||[]).filter(r=>!amendmentRemoved(r)).map(r=>({id:r.id,stableId:r.stableId||stableRequirementId(r),text:r.text,mandatory:r.mandatory,category:r.category,sources:r.sources||[]}));
+ const newList=(newReqs||[]).map(r=>({id:r.id,stableId:r.stableId||stableRequirementId(r),text:r.text,mandatory:r.mandatory,category:r.category,sources:r.sources||[]}));
+ const changes=[],notMentioned=[],usedOld=new Set(),usedNew=new Set();
+ const pair=(oldReq,newReq,matchMethod,similarity)=>{const c=classifyAmendmentPair(oldReq,newReq);return {...c,oldReq,newReq,matchMethod,similarity};};
+ // 1. Stable-ID match: same content-anchored ID. Identical wording is
+ // unchanged (no change record); edited wording is a detected change.
+ const oldByStable=new Map(oldList.map(r=>[r.stableId,r]));
+ for(const n of newList){const o=oldByStable.get(n.stableId);if(!o||usedOld.has(o.id))continue;usedOld.add(o.id);usedNew.add(n.id);if(amendmentNormalize(o.text)!==amendmentNormalize(n.text)){const p=pair(o,n,'stable-id',null);changes.push({id:randomUUID(),type:p.type,status:'proposed',...amendmentChangeFields(p)});}}
+ // 2. Similarity match for reworded requirements whose wording (and therefore
+ // stable ID) changed. Short requirements match only on identical wording,
+ // which step 1 already handled; similarity is too noisy for them.
+ for(const n of newList.filter(x=>!usedNew.has(x.id))){
+  let best=null,bestScore=0;
+  for(const o of oldList.filter(x=>!usedOld.has(x.id))){
+   if(Math.min(amendmentTokens(o.text).size,amendmentTokens(n.text).size)<=3)continue;
+   const score=amendmentSimilarity(o.text,n.text);if(score>bestScore){bestScore=score;best=o;}
+  }
+  if(best&&bestScore>=AMENDMENT_MATCH_THRESHOLD){usedOld.add(best.id);usedNew.add(n.id);const p=pair(best,n,'similarity',bestScore);changes.push({id:randomUUID(),type:p.type,status:'proposed',...amendmentChangeFields(p)});}
+  else if(best&&bestScore>=AMENDMENT_UNCERTAIN_THRESHOLD){usedOld.add(best.id);usedNew.add(n.id);changes.push({id:randomUUID(),type:'uncertain-match',status:'proposed',...amendmentChangeFields({oldReq:best,newReq:n,matchMethod:'similarity',similarity:bestScore}),deadlineChanged:JSON.stringify(extractAmendmentDates(best.text))!==JSON.stringify(extractAmendmentDates(n.text))});}
+ }
+ // 3. Unmatched new requirements are additions. Unmatched old requirements
+ // are potentially removed ONLY for a complete replacement; for a supplemental
+ // amendment they are simply not mentioned — never treated as removed.
+ for(const n of newList.filter(x=>!usedNew.has(x.id)))changes.push({id:randomUUID(),type:'added',status:'proposed',stableId:n.stableId,oldRequirementId:null,newRequirementId:n.id,oldText:null,newText:n.text,oldSources:[],newSources:amendmentSourceRefs(n),oldMandatory:null,newMandatory:n.mandatory,oldCategory:null,newCategory:n.category,similarity:null,matchMethod:'none',deadlineChanged:false});
+ for(const o of oldList.filter(x=>!usedOld.has(x.id))){
+  if(kind==='replacement')changes.push({id:randomUUID(),type:'potentially-removed',status:'proposed',stableId:o.stableId,oldRequirementId:o.id,newRequirementId:null,oldText:o.text,newText:null,oldSources:amendmentSourceRefs(o),newSources:[],oldMandatory:o.mandatory,newMandatory:null,oldCategory:o.category,newCategory:null,similarity:null,matchMethod:'none',deadlineChanged:false});
+  else notMentioned.push({stableId:o.stableId,requirementId:o.id,text:o.text});
+ }
+ return {changes,notMentioned};
+}
+function amendmentSummary(a){
+ const byType={},byStatus={};for(const c of a.changes||[]){byType[c.type]=(byType[c.type]||0)+1;byStatus[c.status]=(byStatus[c.status]||0)+1;}
+ return {versionNumber:a.versionNumber,kind:a.kind,status:a.status,total:(a.changes||[]).length,proposed:byStatus.proposed||0,confirmed:byStatus.confirmed||0,corrected:byStatus.corrected||0,rejected:byStatus.rejected||0,byType,notMentioned:(a.notMentioned||[]).length,unresolved:(a.changes||[]).filter(c=>c.status==='proposed').length};
+}
+function amendmentAffectedWork(s,change){
+ const r=change.oldRequirementId?(s.requirements||[]).find(x=>x.id===change.oldRequirementId):null;
+ if(!r)return {requirementId:change.oldRequirementId||null,stableId:change.stableId||null,evidence:[],sections:[],responseApproval:null,coverage:null,coverageSource:null,needsReconfirmation:false};
+ const t=ensureTrace(r);
+ return {requirementId:r.id,stableId:r.stableId||stableRequirementId(r),
+  evidence:(s.evidence||[]).filter(e=>e.requirementId===r.id).map(e=>({id:e.id,answerId:e.answerId,revision:e.revision,excerpt:String(e.text||'').slice(0,200),decision:e.decision,stale:!!e.stale})),
+  sections:responseSections(s,r.id).map(x=>({id:x.id,title:x.title,status:x.status,revision:x.revision})),
+  responseApproval:t.responseApproval.status,coverage:t.coverage,coverageSource:t.coverageSource,needsReconfirmation:!!t.needsReconfirmation};
+}
+function amendmentView(s){return amendmentsState(s).map(a=>({...a,summary:amendmentSummary(a),changes:(a.changes||[]).map(c=>({...c,affected:amendmentAffectedWork(s,c)}))}));}
+// Flag an affected approval as needing reconfirmation when a deterministic
+// change is detected. The prior state is stored on the change so rejecting
+// the change restores it; the approval history in the trace is preserved.
+function flagAmendmentChange(s,change,actor,reason){
+ const r=(s.requirements||[]).find(x=>x.id===change.oldRequirementId);if(!r)return;const t=ensureTrace(r);
+ if(change.priorApprovalStatus===undefined){change.priorApprovalStatus=t.responseApproval.status;change.priorNeedsReconfirmation=!!t.needsReconfirmation;}
+ if(t.responseApproval.status==='approved')t.responseApproval={...t.responseApproval,status:'needs-reconfirmation'};
+ t.needsReconfirmation=true;
+ traceHistoryPush(t,{action:'amendment-change-proposed',actor,reason,requirementRevision:r.revision,priorStatus:change.priorApprovalStatus});
+}
+function unflagAmendmentChange(s,change,actor,reason){
+ const r=(s.requirements||[]).find(x=>x.id===change.oldRequirementId);if(!r)return;const t=ensureTrace(r);
+ // Only restore when nothing else has already re-approved or re-flagged it
+ // since the proposal: never clobber a newer human decision.
+ if(t.responseApproval.status==='needs-reconfirmation'&&change.priorApprovalStatus!==undefined)t.responseApproval={...t.responseApproval,status:change.priorApprovalStatus};
+ if(change.priorNeedsReconfirmation!==undefined)t.needsReconfirmation=!!change.priorNeedsReconfirmation;
+ traceHistoryPush(t,{action:'amendment-change-rejected',actor,reason,requirementRevision:r.revision});
+}
+function proposeAmendment(s,input,actor){
+ s=clone(s);const list=amendmentsState(s);
+ if(list.length>=AMENDMENT_MAX_PER_PROJECT)kb.fail(400,'At most 50 solicitation versions per project.');
+ if(!AMENDMENT_KINDS.includes(input.kind))kb.fail(400,'Choose replacement or supplemental.');
+ const versionNumber=input.versionNumber??(list.reduce((m,a)=>Math.max(m,a.versionNumber||0),0)+1);
+ if(!Number.isSafeInteger(versionNumber)||versionNumber<1||list.some(a=>a.versionNumber===versionNumber))kb.fail(400,'Choose an unused positive version number.');
+ if(!Array.isArray(input.newRequirements)||!input.newRequirements.length||input.newRequirements.length>AMENDMENT_MAX_REQUIREMENTS)kb.fail(400,'Complete a nonempty analysis with at most 500 requirements.');
+ if(!Array.isArray(input.documentsCompared)||!input.documentsCompared.length)kb.fail(400,'State which documents were compared.');
+ const {changes,notMentioned}=compareRequirements(s.requirements,input.newRequirements,input.kind);
+ if(changes.length>AMENDMENT_MAX_REQUIREMENTS)kb.fail(400,'This amendment proposes more than 500 changes; narrow the supplied documents.');
+ const amendment={id:randomUUID(),versionNumber,kind:input.kind,analysisId:input.analysisId||null,sourceDocumentId:input.sourceDocumentId||null,fileIds:Array.isArray(input.fileIds)?input.fileIds:[],documentsCompared:input.documentsCompared,documentsUnprocessed:Array.isArray(input.documentsUnprocessed)?input.documentsUnprocessed:[],status:'open',createdAt:new Date().toISOString(),createdBy:actor||null,changes,notMentioned};
+ s.amendments=[...list,amendment];
+ // Deterministic detections flag affected approvals now; uncertain matches do
+ // not, because the match itself is still only a suggestion.
+ for(const c of changes)if(['changed','deadline-changed','instruction-changed','potentially-removed'].includes(c.type))flagAmendmentChange(s,c,actor,'Amendment version '+versionNumber+' ('+input.kind+') proposed a '+c.type+' change; prior approval needs reconfirmation.');
+ return s;
+}
+function findAmendmentChange(s,amendmentId,changeId){
+ const a=amendmentsState(s).find(x=>x.id===amendmentId);if(!a)kb.fail(404,'Amendment not found.');
+ const c=(a.changes||[]).find(x=>x.id===changeId);if(!c)kb.fail(404,'Amendment change not found.');
+ return {amendment:a,change:c};
+}
+function resolveAmendmentStatus(a){a.status=(a.changes||[]).every(c=>c.status!=='proposed')?'resolved':'open';}
+function applyAmendmentChange(s,amendment,change,actor){
+ const version=amendment.versionNumber;
+ if(change.type==='added'){
+  if((s.requirements||[]).some(r=>r.id===change.newRequirementId))kb.fail(409,'This requirement is already in the project.');
+  const n={id:change.newRequirementId,stableId:change.stableId,analysisRequirementId:change.newRequirementId,fingerprint:null,originalText:change.newText,revision:0,text:change.newText,mandatory:change.newMandatory,category:change.newCategory,evaluationWeight:null,sources:change.newSources.map(src=>({document_id:null,document:src.document,segment_id:null,page:src.page,section:src.section,quote:src.quote})),status:'Needs Review',reviewReason:'',support:'needs review',trace:defaultTrace(),authorId:null,reviewerId:null,dueAt:null};
+  s.requirements=[...(s.requirements||[]),n];
+  s.sections=[...(s.sections||[]),{id:randomUUID(),title:`${s.requirements.length}. ${change.newText.slice(0,100)}`,requirementIds:[n.id],text:'',revision:0,status:'draft',claims:[],unverified:true,authorId:null,reviewerId:null,dueAt:null,reviewReason:'Added by confirmed amendment version '+version+'.'}];
+ }else if(['changed','deadline-changed','instruction-changed','uncertain-match'].includes(change.type)){
+  const r=(s.requirements||[]).find(x=>x.id===change.oldRequirementId);if(!r)kb.fail(404,'Requirement not found.');
+  const newText=change.correctedText||change.newText;
+  invalidateRequirement(r,'Wording changed in amendment version '+version+'; review the prior compliance decision.');
+  r.text=newText;r.originalText=newText;r.revision=(r.revision??0)+1;
+  r.sources=change.newSources.map(src=>({document_id:null,document:src.document,segment_id:null,page:src.page,section:src.section,quote:src.quote}));
+  r.mandatory=change.newMandatory;r.category=change.newCategory;
+  const idx=s.requirements.indexOf(r);
+  for(const section of (s.sections||[]).filter(x=>x.requirementIds.includes(r.id)))section.title=`${idx+1}. ${newText.slice(0,100)}`;
+  const t=ensureTrace(r);traceHistoryPush(t,{action:'amendment-change-confirmed',actor,reason:'Confirmed '+change.type+' change from amendment version '+version+'. Prior approval stays needs-reconfirmation until re-approved.',requirementRevision:r.revision});
+ }else if(change.type==='potentially-removed'){
+  const r=(s.requirements||[]).find(x=>x.id===change.oldRequirementId);if(!r)kb.fail(404,'Requirement not found.');
+  r.removedByAmendment={amendmentId:amendment.id,versionNumber:version,confirmedBy:actor,confirmedAt:new Date().toISOString()};
+  invalidateRequirement(r,'Confirmed removed by amendment version '+version+'.');
+  const t=ensureTrace(r);traceHistoryPush(t,{action:'amendment-removal-confirmed',actor,reason:'Removal confirmed in amendment version '+version+'. The requirement and its history are kept in this project.',requirementRevision:r.revision});
+ }
+}
+function initial(title,company){return {schema:1,title:text(title,200),company:{name:text(company||title,200),accent:'#1d4ed8'},requirements:[],sections:[],evidence:[],comments:[],facts:[],bidInputs:{},weights:{experience:25,certifications:25,capacity:20,timeline:15,strategy:15},decision:null,assessment:null,finalApproval:null,reviewedEpoch:0,sourceWarnings:[],analysis:null,attachments:[],archivedResponses:[],amendments:[],readiness:{items:{},corrections:{},manual:[]}};}function excluded(r){return ['not applicable','extraction error'].includes(r.disposition)&&!!r.reviewReason&&!!r.reviewedBy;}
 function procedural(r){return ['Submission','Attachment','Evaluation'].includes(r.category)&&!/\b(?:certif|licen[cs]|experience|insurance|revenue|employee|eligib|accredit|clearance)/i.test(r.text);}
 function invalidateRequirement(r,reason){if(!r||excluded(r))return;if(r.status!=='Needs Review')r.previousCompliance={status:r.status,reason:r.reviewReason,reviewedBy:r.reviewedBy};r.status='Needs Review';r.support='needs review';r.reviewReason=reason;}
 function expired(e){return e.expired||e.metadataUnavailable||(e.citations||[]).some(c=>c.metadata&&Object.keys(c.metadata).length&&(c.metadata.status!=='approved'||c.metadata.expiresAt&&c.metadata.expiresAt<new Date().toISOString().slice(0,10)))||(e.facts||[]).some(f=>f.key==='explicit.expiry'&&f.value<new Date().toISOString().slice(0,10));}
@@ -238,6 +404,69 @@ function apply(s,action,p,user,{reviewer=false,members=[],evidenceEpoch=null}={}
   if(rd.manual.length===before)kb.fail(404,'Manual readiness item not found.');
   s.readiness=rd;
  }
+ else if(action==='amendmentConfirm'){
+  // Confirm one proposed change and apply it. The original version, its
+  // review history and its approval history stay intact: wording changes
+  // keep the stable ID and bump the requirement revision, approvals already
+  // flagged needs-reconfirmation stay flagged until re-approved, and a
+  // confirmed removal keeps the requirement in the project with a
+  // removedByAmendment marker instead of deleting it. A confirmed addition
+  // becomes a normal requirement, so a new mandatory readiness item derives
+  // from it automatically. Any writable project member may confirm; a viewer
+  // is blocked by the API layer.
+  const {amendment,change}=findAmendmentChange(s,p.amendmentId,p.changeId);
+  if(change.status!=='proposed')kb.fail(409,'This amendment change was already decided.');
+  applyAmendmentChange(s,amendment,change,user);
+  change.status='confirmed';change.decidedBy=user;change.decidedAt=new Date().toISOString();
+  resolveAmendmentStatus(amendment);
+ }
+ else if(action==='amendmentCorrect'){
+  // Correct a proposed change. 'reword' edits the proposed new wording (the
+  // change stays proposed, re-classified if the dates changed). 'same'
+  // resolves an uncertain match by linking it to a requirement the user
+  // names, then applies the wording like a confirmed change and flags the
+  // approval. 'different' says an uncertain match was wrong: the new
+  // requirement becomes a proposed addition instead. A note is required so
+  // the correction is reviewable later.
+  const {amendment,change}=findAmendmentChange(s,p.amendmentId,p.changeId);
+  if(change.status!=='proposed')kb.fail(409,'This amendment change was already decided.');
+  const note=text(p.note,1000);
+  if(p.correction==='reword'){
+   if(!['changed','deadline-changed','instruction-changed','uncertain-match'].includes(change.type))kb.fail(400,'Only a wording change can be reworded.');
+   change.newText=text(p.correctedText,5000);change.correctedText=change.newText;change.correctionNote=note;change.correctedBy=user;change.correctedAt=new Date().toISOString();
+   const oldReq=(s.requirements||[]).find(x=>x.id===change.oldRequirementId);
+   if(oldReq){const c=classifyAmendmentPair(oldReq,{text:change.newText,category:change.newCategory});change.type=c.type;change.deadlineChanged=c.deadlineChanged;}
+  }else if(p.correction==='same'){
+   if(change.type!=='uncertain-match')kb.fail(400,'Only an uncertain match can be linked to a named requirement.');
+   const target=(s.requirements||[]).find(x=>(x.stableId||stableRequirementId(x))===p.targetStableId);
+   if(!target)kb.fail(404,'Named requirement not found.');
+   if(p.correctedText!==undefined&&p.correctedText!==null)change.newText=text(p.correctedText,5000);
+   change.oldRequirementId=target.id;change.stableId=target.stableId||stableRequirementId(target);change.oldText=target.text;change.oldSources=amendmentSourceRefs(target);change.oldMandatory=target.mandatory;change.oldCategory=target.category;
+   const c=classifyAmendmentPair(target,{text:change.newText,category:change.newCategory});change.type=c.type;change.deadlineChanged=c.deadlineChanged;change.matchMethod='human-corrected';change.similarity=null;
+   flagAmendmentChange(s,change,user,'Uncertain match corrected to '+change.stableId+' by '+user+'; prior approval needs reconfirmation.');
+   applyAmendmentChange(s,amendment,change,user);
+   change.status='corrected';change.decidedBy=user;change.decidedAt=new Date().toISOString();change.correctionNote=note;change.correctedBy=user;change.correctedAt=new Date().toISOString();
+   resolveAmendmentStatus(amendment);
+  }else if(p.correction==='different'){
+   if(change.type!=='uncertain-match')kb.fail(400,'Only an uncertain match can be split into a new requirement.');
+   change.type='added';change.oldRequirementId=null;change.oldText=null;change.oldSources=[];change.oldMandatory=null;change.oldCategory=null;change.matchMethod='human-corrected';change.similarity=null;change.deadlineChanged=false;
+   change.correctionNote=note;change.correctedBy=user;change.correctedAt=new Date().toISOString();
+   // Stays proposed as an addition, so the user still confirms the new
+   // requirement itself; the correction is recorded, not silently applied.
+  }else kb.fail(400,'Choose how to correct the change.');
+ }
+ else if(action==='amendmentReject'){
+  // Reject a proposed change. Nothing is applied, and an approval flagged
+  // when the change was proposed is restored to its prior state (unless a
+  // newer human decision has already replaced it). The rejection and its
+  // reason stay on the change and in trace history.
+  const {amendment,change}=findAmendmentChange(s,p.amendmentId,p.changeId);
+  if(change.status!=='proposed')kb.fail(409,'This amendment change was already decided.');
+  const reason=text(p.reason,1000);
+  unflagAmendmentChange(s,change,user,'Amendment change rejected: '+reason);
+  change.status='rejected';change.decidedBy=user;change.decidedAt=new Date().toISOString();change.decisionNote=reason;
+  resolveAmendmentStatus(amendment);
+ }
  else if(action==='settings'){s.title=text(p.title,200);s.company={name:text(p.company,200),accent:/^#[a-f0-9]{6}$/i.test(p.accent)?p.accent:'#1d4ed8'};}
  else if(action==='bidDecision'){if(!['pursue','review','pass'].includes(p.decision)||!s.assessment||s.assessment.stale)kb.fail(400,'Run a current assessment before deciding.');s.decision={value:p.decision,reason:text(p.reason,3000),actor:user,assessmentHash:s.assessment.inputHash,createdAt:new Date().toISOString()};}
  else kb.fail(400,'Unknown project operation.');
@@ -247,4 +476,4 @@ function apply(s,action,p,user,{reviewer=false,members=[],evidenceEpoch=null}={}
  if(action==='saveSection'||action==='acceptDraft'){const section=s.sections.find(x=>x.id===p.sectionId);if(section&&beforeSectionText.get(section.id)!==section.text)for(const reqId of section.requirementIds)invalidateResponseApproval(s,reqId,user,'Response text changed after approval; previous approval is preserved in history.');}
  s.finalApproval=null;if(!['bidDecision','comment'].includes(action)){if(s.assessment)s.assessment.stale=true;if(s.decision)s.decision.stale=true;}return s;
 }
-module.exports={invalidateRequirement,expired,excluded,procedural,initial,imported,apply,refresh,candidateFlags,draftSection,readiness,assessment,activeEvidence,explicitLimits,contentHash,hash,text,date,words,stableRequirementId,contentFingerprint,defaultTrace,ensureTrace,suggestCoverage,evidenceSuggested,invalidateResponseApproval,markCoverageReconfirmation,traceSummary,unresolvedItems,responseHash,responseRevision,COVERAGES,READINESS_STATUSES,READINESS_KINDS,READINESS_MANUAL_LIMIT,READINESS_SCOPE_NOTE,readinessState,readinessItems,readinessSummary,readinessView,readinessItemUnresolved};
+module.exports={invalidateRequirement,expired,excluded,procedural,initial,imported,apply,refresh,candidateFlags,draftSection,readiness,assessment,activeEvidence,explicitLimits,contentHash,hash,text,date,words,stableRequirementId,contentFingerprint,defaultTrace,ensureTrace,suggestCoverage,evidenceSuggested,invalidateResponseApproval,markCoverageReconfirmation,traceSummary,unresolvedItems,responseHash,responseRevision,COVERAGES,READINESS_STATUSES,READINESS_KINDS,READINESS_MANUAL_LIMIT,READINESS_SCOPE_NOTE,readinessState,readinessItems,readinessSummary,readinessView,readinessItemUnresolved,AMENDMENT_KINDS,AMENDMENT_CHANGE_TYPES,AMENDMENT_CHANGE_STATUSES,AMENDMENT_MAX_PER_PROJECT,AMENDMENT_MAX_REQUIREMENTS,AMENDMENT_MATCH_THRESHOLD,AMENDMENT_UNCERTAIN_THRESHOLD,AMENDMENT_SCOPE_NOTE,amendmentsState,amendmentRemoved,amendmentNormalize,amendmentSimilarity,extractAmendmentDates,normalizeAnalysisRequirements,amendmentSourceRefs,compareRequirements,amendmentSummary,amendmentAffectedWork,amendmentView,proposeAmendment};
