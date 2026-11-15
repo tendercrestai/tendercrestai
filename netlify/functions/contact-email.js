@@ -1,5 +1,6 @@
 // TenderCrest AI contact intake. Secrets belong in Netlify environment variables.
 const crypto = require("crypto");
+const kb=require("./lib/knowledge-base");
 const {isDeployPreviewHost,requestHost}=require("./lib/preview-host");
 const json=(statusCode,body)=>({statusCode,headers:{"Content-Type":"application/json","Cache-Control":"no-store"},body:JSON.stringify(body)});
 const clean=(v,max)=>typeof v==="string"?v.trim().slice(0,max):"";
@@ -16,6 +17,26 @@ async function resend(apiKey,payload){
  if(!response.ok)throw new Error("Resend "+response.status);
  const accepted=await response.json();if(typeof accepted?.id!=="string"||!accepted.id.trim())throw new Error("Delivery acceptance unavailable");
 }
+// Daily DB-backed admission for the contact form (kind 'contact', see
+// supabase/migrations/20261114190000_ft_admit_contact_kind.sql): 20 messages
+// per IP per UTC day, 100 per day globally. The 15-minute in-memory throttle
+// stays as burst control. Returns true when admitted, false when the daily
+// cap is hit. Any other failure (migration not applied yet, Supabase
+// unreachable, service key unset) fails open to the in-memory limit only,
+// so the form keeps working; the missing-service-key case is silent because
+// that only means this deployment has no database admission configured.
+const CONTACT_DAILY_LIMIT=20, CONTACT_DAILY_GLOBAL=100;
+async function dbAdmit(ipHash){
+ let config;try{config=kb.configuration();}catch(e){return true;}
+ try{
+  await kb.rpc(config,"ft_admit",{p_ip:ipHash,p_kind:"contact",p_limit:CONTACT_DAILY_LIMIT,p_global:CONTACT_DAILY_GLOBAL});
+  return true;
+ }catch(e){
+  if(e&&e.status===429)return false;
+  console.error("Contact database admission unavailable; using in-memory limit only.");
+  return true;
+ }
+}
 async function saveLead(data){
  const token=process.env.AIRTABLE_PAT;
  if(!token)return false;
@@ -27,7 +48,10 @@ async function saveLead(data){
 }
 async function verifyTurnstile(token,ip){
  const secret=process.env.TURNSTILE_SECRET_KEY;
- if(!secret)return true; // Remains backward compatible until Cloudflare keys are configured.
+ // Fail closed: a missing secret must never silently disable the check.
+ // Deploy-preview hosts skip verification separately in the handler, so
+ // this only affects production hosts, where the secret is configured.
+ if(!secret)return false;
  if(typeof token!=="string"||!token||token.length>2048)return false;
  const body=new URLSearchParams({secret,response:token});
  if(ip&&ip!=="unknown")body.set("remoteip",ip);
@@ -62,6 +86,8 @@ exports.handler=async(event)=>{
  // verification is skipped only when the request host is an exact
  // deploy-preview hostname for this site. Production hosts verify as before.
  if(!isDeployPreviewHost(requestHost(event)) && !(await verifyTurnstile(data["cf-turnstile-response"],ip)))return json(403,{error:"Security verification failed. Please refresh the page and try again."});
+ // Daily DB-backed cap, on top of the 15-minute in-memory throttle above.
+ if(!(await dbAdmit(hash(ip))))return json(429,{error:"Too many messages. Please try again tomorrow."});
  const html='<h2>New TenderCrest AI inquiry</h2><p><b>Name:</b> '+esc(name)+'</p><p><b>Email:</b> '+esc(email)+'</p><p><b>Company:</b> '+esc(company||"Not provided")+'</p><p><b>Message:</b></p><p style="white-space:pre-wrap">'+esc(message)+'</p>';
  try{
   await resend(process.env.RESEND_API_KEY,{from:"TenderCrest AI Website <contact@tendercrestai.com>",to:["hello@tendercrestai.com"],reply_to:email,subject:"Website inquiry from "+name,html});

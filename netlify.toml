@@ -27,6 +27,14 @@
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    # HSTS: Netlify serves a platform default of max-age=31536000 when no
+    # custom header is set; this value overrides it on static responses.
+    # includeSubDomains is safe: the only tendercrestai.com hosts are the
+    # apex and www, both served over HTTPS by Netlify. No `preload`
+    # directive on purpose: the apex redirect and function responses still
+    # carry the platform default, so the site does not fully qualify for
+    # the preload list yet, and preload is hard to reverse once submitted.
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://r.wdfl.co https://www.googletagmanager.com https://bzrcdn.openai.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://ph-files.imgix.net https://api.producthunt.com https://www.google-analytics.com https://stats.g.doubleclick.net https://www.googleadservices.com; connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net https://api.getrewardful.com https://bzr.openai.com https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com https://stats.g.doubleclick.net https://www.googleadservices.com https://challenges.cloudflare.com https://ingesteer.services-prod.nsvcs.net; frame-src https://challenges.cloudflare.com; worker-src 'self' https://cdn.jsdelivr.net https://challenges.cloudflare.com; frame-ancestors 'none'; form-action 'self'; object-src 'none'; base-uri 'self'"
 
 [functions."proposal-worker-background"]
@@ -46,6 +54,13 @@
   for = "/assets/product-film/*.vtt"
   [headers.values]
     Content-Type = "text/vtt; charset=utf-8"
+
+# RFC 9728 protected-resource metadata is an extensionless static file (see
+# scripts/build-site.mjs), so its Content-Type is set explicitly here.
+[[headers]]
+  for = "/.well-known/oauth-protected-resource"
+  [headers.values]
+    Content-Type = "application/json"
 
 # Search Console change of address (Nov 13, 2026): the old Netlify subdomain must
 # 301-redirect to the custom domain, or Google refuses the move. Placed first so it

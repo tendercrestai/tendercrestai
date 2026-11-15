@@ -83,3 +83,8 @@ for (const sample of samples) await cp(resolve(root, "samples", sample), resolve
 // Vulnerability disclosure file; copied explicitly like the other public files above.
 await mkdir(resolve(destination, ".well-known"), { recursive: true });
 await cp(resolve(root, ".well-known", "security.txt"), resolve(destination, ".well-known", "security.txt"));
+
+// RFC 9728 protected-resource metadata for the MCP server; the file has no
+// extension so the public-build test's no-.json rule still holds, and
+// netlify.toml sets its Content-Type to application/json.
+await cp(resolve(root, ".well-known", "oauth-protected-resource"), resolve(destination, ".well-known", "oauth-protected-resource"));

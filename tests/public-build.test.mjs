@@ -30,6 +30,20 @@ test("public build excludes internal source and preserves public module dependen
   assert.match(config, /included_files\s*=\s*\["assets\/docx-validation\.mjs"\]/);
   assert.match(config, /publish\s*=\s*"dist"/);
   assert.match(config, /command\s*=\s*"node scripts\/build-site.mjs"/);
+  // RFC 9728 protected-resource metadata is published as an extensionless
+  // static file (no .json, per the no-.json rule above) with its
+  // Content-Type set explicitly in netlify.toml.
+  assert.ok(files.includes(".well-known/oauth-protected-resource"), ".well-known/oauth-protected-resource");
+  const protectedResource = JSON.parse(await readFile(new URL("dist/.well-known/oauth-protected-resource", root), "utf8"));
+  assert.equal(protectedResource.resource, "https://www.tendercrestai.com/mcp");
+  assert.deepEqual(protectedResource.authorization_servers, ["https://www.tendercrestai.com"]);
+  assert.deepEqual(protectedResource.scopes_supported, ["mcp:read"]);
+  assert.match(config, /for\s*=\s*"\/.well-known\/oauth-protected-resource"/);
+  assert.match(config, /Content-Type\s*=\s*"application\/json"/);
+  const hsts = config.match(/Strict-Transport-Security\s*=\s*"([^"]+)"/);
+  assert.ok(hsts, "netlify.toml must set a Strict-Transport-Security header");
+  assert.ok(hsts[1].includes("includeSubDomains"), "HSTS must include includeSubDomains");
+  assert.ok(!hsts[1].includes("preload"), "HSTS must not include preload until the preload submission is approved");
   const csp = config.match(/Content-Security-Policy\s*=\s*"([^"]+)"/);
   assert.ok(csp, "netlify.toml must set a Content-Security-Policy header");
   const policy = csp[1];
