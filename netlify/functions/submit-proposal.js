@@ -320,6 +320,50 @@ exports.handler = async function (event) {
       });
     }
 
+    if (reservation.wasUncertain) {
+      // The previous attempt dispatched to Airtable but its response was
+      // never confirmed. Reconcile the held credit before queueing again:
+      // release it only if no Airtable row exists for this submission.
+      const source = require("./lib/billing-source").billingSource();
+      if (!source.pat) {
+        return reply(503, {
+          error: "Proposal submission is temporarily unavailable. Please try again later."
+        });
+      }
+      const reconciled = await credits.reconcileUncertain(
+        config,
+        reservation.id,
+        source.root,
+        { Authorization: "Bearer " + source.pat, "Content-Type": "application/json" }
+      );
+      if (reconciled.recordExists) {
+        // The earlier dispatch did reach Airtable: adopt that row instead of
+        // queueing a duplicate. finish_proposal_credit accepts the
+        // uncertain -> queued transition once migration 20261115090000 is
+        // applied; until then this degrades to a retry-later 503 and the
+        // submission stays uncertain (no duplicate, no credit lost).
+        try {
+          await credits.finish(config, reservation.id, "queued", reconciled.recordId);
+        } catch {
+          return reply(503, {
+            error: "Your previous submission is still being verified. Please try again in a few minutes."
+          });
+        }
+        await security.finish(config, reservation.id, "queued", reconciled.recordId);
+        return reply(200, {
+          success: true,
+          recordId: reconciled.recordId,
+          duplicate: true
+        });
+      }
+      if (!reconciled.released) {
+        return reply(503, {
+          error: "Your previous submission is still being verified. Please try again in a few minutes."
+        });
+      }
+      await security.reclaim(config, reservation.id);
+    }
+
     const response = await queueProposal(validated, attempt, { config, user, submissionId: reservation.id });
     const result = JSON.parse(response.body);
 
@@ -342,7 +386,7 @@ exports.handler = async function (event) {
 
     if (attempt.dispatched && !result.success) {
       return reply(503, {
-        error: "The queue response could not be confirmed. Do not resubmit; contact support to verify this submission.",
+        error: "The queue response could not be confirmed. You can safely retry this submission; your credit is verified before it is queued again.",
         submissionId: reservation.id
       });
     }

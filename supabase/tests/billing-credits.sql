@@ -50,5 +50,50 @@ begin
   result := public.reserve_proposal_credit('99000000-0000-4000-8000-000000000019',
     '99000000-0000-4000-8000-000000000001','recCreditTest',start_at,end_at,5,0);
   if result->>'code' <> 'reserved' then raise exception 'Renewal did not restore allowance'; end if;
+
+  -- F2 (migration 20261115090000): uncertain credits release only for their
+  -- own company and only while no Airtable record is attached; a queued
+  -- reservation is never released by this path.
+  if has_function_privilege('anon','public.release_uncertain_credit(uuid,text)','execute')
+    or has_function_privilege('authenticated','public.release_uncertain_credit(uuid,text)','execute') then
+    raise exception 'Customer role can release uncertain credits';
+  end if;
+  insert into public.rfp_submissions(id,user_id,fingerprint,status)
+  select ('99000000-0000-4000-8000-' || lpad(n::text,12,'0'))::uuid,
+    '99000000-0000-4000-8000-000000000001',repeat('b',64),'processing'
+  from generate_series(20,23) n;
+  result := public.reserve_proposal_credit('99000000-0000-4000-8000-000000000020',
+    '99000000-0000-4000-8000-000000000001','recCreditTest',start_at,end_at,5,0);
+  if result->>'code' <> 'reserved' then raise exception 'Uncertain fixture not reserved'; end if;
+  perform public.finish_proposal_credit('99000000-0000-4000-8000-000000000020','uncertain',null);
+  perform public.release_uncertain_credit('99000000-0000-4000-8000-000000000020','recOther');
+  if (select status from public.proposal_credit_reservations where submission_id='99000000-0000-4000-8000-000000000020') <> 'uncertain' then raise exception 'Foreign company released an uncertain credit'; end if;
+  result := public.release_uncertain_credit('99000000-0000-4000-8000-000000000020','recCreditTest');
+  if not (result->>'released')::boolean then raise exception 'Uncertain credit not released'; end if;
+  if (select status from public.proposal_credit_reservations where submission_id='99000000-0000-4000-8000-000000000020') <> 'released' then raise exception 'Uncertain credit still held'; end if;
+  result := public.reserve_proposal_credit('99000000-0000-4000-8000-000000000020',
+    '99000000-0000-4000-8000-000000000001','recCreditTest',start_at,end_at,5,0);
+  if result->>'code' <> 'reserved' then raise exception 'Released uncertain credit cannot be re-reserved'; end if;
+  result := public.reserve_proposal_credit('99000000-0000-4000-8000-000000000021',
+    '99000000-0000-4000-8000-000000000001','recCreditTest',start_at,end_at,5,0);
+  if result->>'code' <> 'reserved' then raise exception 'Queued fixture not reserved'; end if;
+  perform public.finish_proposal_credit('99000000-0000-4000-8000-000000000021','queued','recQueuedTest');
+  perform public.release_uncertain_credit('99000000-0000-4000-8000-000000000021','recCreditTest');
+  if (select status from public.proposal_credit_reservations where submission_id='99000000-0000-4000-8000-000000000021') <> 'queued' then raise exception 'Queued credit released as uncertain'; end if;
+  result := public.reserve_proposal_credit('99000000-0000-4000-8000-000000000022',
+    '99000000-0000-4000-8000-000000000001','recCreditTest',start_at,end_at,5,0);
+  if result->>'code' <> 'reserved' then raise exception 'Adoption fixture not reserved'; end if;
+  perform public.finish_proposal_credit('99000000-0000-4000-8000-000000000022','uncertain',null);
+  perform public.finish_proposal_credit('99000000-0000-4000-8000-000000000022','queued','recAdoptedTest');
+  if (select status from public.proposal_credit_reservations where submission_id='99000000-0000-4000-8000-000000000022') <> 'queued' then raise exception 'Uncertain credit not adopted as queued'; end if;
+  if (select record_id from public.proposal_credit_reservations where submission_id='99000000-0000-4000-8000-000000000022') <> 'recAdoptedTest' then raise exception 'Adopted credit lost its Airtable record'; end if;
+  result := public.reserve_proposal_credit('99000000-0000-4000-8000-000000000023',
+    '99000000-0000-4000-8000-000000000001','recCreditTest',start_at,end_at,5,0);
+  if result->>'code' <> 'reserved' then raise exception 'Recorded fixture not reserved'; end if;
+  perform public.finish_proposal_credit('99000000-0000-4000-8000-000000000023','uncertain',null);
+  update public.proposal_credit_reservations set record_id='recExistsTest'
+    where submission_id='99000000-0000-4000-8000-000000000023';
+  perform public.release_uncertain_credit('99000000-0000-4000-8000-000000000023','recCreditTest');
+  if (select status from public.proposal_credit_reservations where submission_id='99000000-0000-4000-8000-000000000023') <> 'uncertain' then raise exception 'Uncertain credit with an Airtable record was released'; end if;
 end $$;
 rollback;
