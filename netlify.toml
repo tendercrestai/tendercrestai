@@ -84,6 +84,24 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/compare/qvidian"
+  to = "/compare-qvidian.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/compare/xait"
+  to = "/compare-xait.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/compare/chatgpt"
+  to = "/compare-chatgpt.html"
+  status = 200
+  force = true
+
 [functions."free-tools"]
   external_node_modules = ["pdfjs-dist", "sax"]
   included_files = ["assets/docx-validation.mjs", "assets/compliance-export.mjs", "assets/compliance-model.mjs"]
