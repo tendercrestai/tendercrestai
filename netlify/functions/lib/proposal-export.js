@@ -35,15 +35,37 @@ async function pdf(m){
  });
 }
 function complianceView(project){return {analysis:{id:project.state.analysis?.id||project.id,status:project.state.analysis?.status||'Pending',processed:1,total_chunks:1,warnings:project.state.sourceWarnings,facts:project.state.analysis?.facts||[]},requirements:project.state.requirements.map(r=>({id:r.id,stableId:r.stableId||core.stableRequirementId(r),requirement:r.text,category:r.category,mandatory:r.mandatory,sources:r.sources,evaluation_weight:r.evaluationWeight||null,status:r.status,evidence:core.activeEvidence(project.state,r.id).map(e=>e.text).join('\n'),evidence_reference:core.activeEvidence(project.state,r.id).flatMap(e=>e.citations.map(c=>c.fileName+' · '+(c.section||'Section unavailable')+(c.page?' · PDF page '+c.page:''))).join('\n'),response_owner:'',comments:'',recommendation:'',original_requirement:r.text,uncertain:r.mandatory==='Unclear',duplicate_count:0,trace:core.ensureTrace(r),traceEvidence:project.state.evidence.filter(e=>e.requirementId===r.id).map(e=>({answerId:e.answerId,revision:e.revision,excerpt:String(e.text||'').slice(0,1000),decision:e.decision}))}))};}
-async function packageFiles(project,{draft=true,attachments=[]}={}){
+// Readiness report (Capability 2). Plain text so it renders anywhere and is
+// easy to forward. Unresolved items first, with unresolved MANDATORY items
+// in their own prominent first section. Mandatory status and task status are
+// separate columns on every line. Never claims certification, guaranteed
+// readiness, or a win probability: the scope note says so explicitly.
+function readinessSourceLabel(ref){return (ref.document||'Source unavailable')+' · '+(ref.section||'Section unavailable')+' · '+(ref.page===null||ref.page===undefined?'Page unavailable':'PDF page '+ref.page);}
+function readinessReportText(project){
+ const items=core.readinessItems(project.state),summary=core.readinessSummary(project.state);
+ const unresolved=items.filter(core.readinessItemUnresolved),mandatoryUnresolved=unresolved.filter(i=>i.mandatory!=='No'),otherUnresolved=unresolved.filter(i=>i.mandatory==='No'),resolved=items.filter(i=>!core.readinessItemUnresolved(i));
+ const lines=[project.state.company.name+' — '+project.state.title,'Readiness report · saved proposal revision '+project.revision+' · generated '+new Date().toISOString(),'',core.READINESS_SCOPE_NOTE,'','Outstanding work'];
+ for(const l of summary.lines)lines.push('- '+l);
+ const itemLines=i=>{const out=['- ['+i.status.toUpperCase()+'] '+(i.mandatory==='Yes'?'MANDATORY':i.mandatory==='Unclear'?'MANDATORY (UNCLEAR)':'Optional')+' · '+i.kind+' · '+i.title,'  Source: '+i.sourceReferences.map(readinessSourceLabel).join(' | '),'  Owner: '+(i.owner||'unassigned')+' · Due: '+(i.dueAt||'not set')+(i.status==='not-applicable'?' · Not applicable because: '+(i.naReason||''):''),...(i.manual?['  Manual addition — no extracted source.']:[]),...(i.corrected?['  Corrected extraction: '+(i.correctionNote||'')]:[]),...(i.evidenceGap?['  Evidence gap: coverage is '+(i.coverage||'not-assessed')+'.']:[]),...(i.responseReviewPending?['  Response awaiting approval ('+(i.responseApproval||'not-approved')+').']:[])];return out;};
+ lines.push('','UNRESOLVED MANDATORY ITEMS ('+mandatoryUnresolved.length+') — resolve these first; they stay prominent here until done or marked not applicable with a reason.');
+ if(!mandatoryUnresolved.length)lines.push('- None. No mandatory item is currently unresolved.');
+ for(const i of mandatoryUnresolved)lines.push(...itemLines(i));
+ lines.push('','OTHER UNRESOLVED ITEMS ('+otherUnresolved.length+')');
+ if(!otherUnresolved.length)lines.push('- None.');
+ for(const i of otherUnresolved)lines.push(...itemLines(i));
+ lines.push('','DONE / NOT APPLICABLE ('+resolved.length+')');
+ if(!resolved.length)lines.push('- None yet.');
+ for(const i of resolved)lines.push(...itemLines(i));
+ return lines.join('\n')+'\n';
+}async function packageFiles(project,{draft=true,attachments=[]}={}){
  if(attachments.length>10||attachments.reduce((n,a)=>n+a.bytes.length,0)>20971520)throw Error('Attachment package exceeds the declared bound.');
  const m=model(project,draft),rendered=await pdf(m);const measured={contentHash:m.contentHash,pages:rendered.pages,evidenceEpoch:m.epoch};const readiness=core.readiness(project.state,project.evidence_epoch,measured);
  if(!draft&&(!readiness.ready||!project.state.finalApproval||project.state.finalApproval.contentHash!==m.contentHash))throw Error('Final export blocked by current readiness/rendered page checks.');
  const word=await docx(m);const {csv,xlsx}=await import('../../../assets/compliance-export.mjs');const view=complianceView(project);
- const files={'proposal.docx':word,'proposal.pdf':rendered.bytes,'compliance-matrix.csv':Buffer.from(csv(view)),'compliance-matrix.xlsx':xlsx(view)};
+ const files={'proposal.docx':word,'proposal.pdf':rendered.bytes,'compliance-matrix.csv':Buffer.from(csv(view)),'compliance-matrix.xlsx':xlsx(view),'readiness-report.md':Buffer.from(readinessReportText(project))};
  for(const a of attachments){if(!/^[0-9a-f-]{36}$/i.test(a.id))throw Error('Invalid attachment identity.');files['attachments/'+a.id+'-'+safeName(a.name)]=a.bytes;}
  const provenance={projectId:project.id,revision:project.revision,sections:m.sections.map(s=>({sectionId:s.id,requirementIds:s.requirements,claims:s.claims.map(c=>({text:c.text,requirementId:c.requirementId,answerId:c.answerId,answerRevision:c.answerRevision,citationIds:c.citations.map(x=>x.id),sources:c.citations.map(x=>({documentId:x.documentId,name:x.fileName,sha256:x.sha256,page:x.page??null,section:x.section??null,quote:x.quote}))})),evidenceReferences:project.state.evidence.filter(e=>s.requirements.includes(e.requirementId)&&core.activeEvidence(project.state,e.requirementId).some(x=>x.id===e.id)).map(e=>({requirementId:e.requirementId,answerId:e.answerId,answerRevision:e.revision,citations:e.citations})),humanReviewed:!s.unverified}))};files['source-references.json']=Buffer.from(JSON.stringify(provenance,null,2));
- const manifest={schema:'tendercrest-submission-v1',projectId:project.id,revision:project.revision,evidenceEpoch:m.epoch,contentHash:m.contentHash,draft,submissionReady:!draft&&readiness.ready,unresolvedItems:readiness.blockers,excludedRequirements:project.state.requirements.filter(core.excluded).map(r=>({id:r.id,disposition:r.disposition})),renderedPDFPages:rendered.pages,docxPaginationMeasured:false,wordCount:readiness.wordCount,files:Object.entries(files).map(([name,bytes])=>({name,bytes:bytes.length,sha256:require('node:crypto').createHash('sha256').update(bytes).digest('hex')})),generatedAt:new Date().toISOString(),internalCommentsIncluded:false};
+ const manifest={schema:'tendercrest-submission-v1',projectId:project.id,revision:project.revision,evidenceEpoch:m.epoch,contentHash:m.contentHash,draft,submissionReady:!draft&&readiness.ready,unresolvedItems:readiness.blockers,readinessSummary:core.readinessSummary(project.state),excludedRequirements:project.state.requirements.filter(core.excluded).map(r=>({id:r.id,disposition:r.disposition})),renderedPDFPages:rendered.pages,docxPaginationMeasured:false,wordCount:readiness.wordCount,files:Object.entries(files).map(([name,bytes])=>({name,bytes:bytes.length,sha256:require('node:crypto').createHash('sha256').update(bytes).digest('hex')})),generatedAt:new Date().toISOString(),internalCommentsIncluded:false};
  files['manifest.json']=Buffer.from(JSON.stringify(manifest,null,2));const zip=Buffer.from(zipSync(Object.fromEntries(Object.entries(files).map(([k,v])=>[k,new Uint8Array(v)])),{level:6}));if(zip.length>52428800)throw Error('Submission package exceeds 50 MiB.');return {files,zip,manifest,measured};
 }
-module.exports={model,docx,pdf,packageFiles,complianceView,safeName};
+module.exports={model,docx,pdf,packageFiles,complianceView,safeName,readinessReportText,readinessSourceLabel};

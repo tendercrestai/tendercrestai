@@ -33,8 +33,52 @@ function markCoverageReconfirmation(s,requirementId,actor,reason){const r=s.requ
 function evidenceSuggested(s,requirementId,actor){const r=s.requirements.find(x=>x.id===requirementId);if(!r)return;const t=ensureTrace(r);const mappings=s.evidence.filter(e=>e.requirementId===requirementId&&e.decision!=='rejected');if(t.coverageSource!=='human-confirmed'){t.coverage=suggestCoverage(mappings);t.coverageSource='ai-suggested';t.explanation='';t.reviewedBy=null;t.reviewedAt=null;}else markCoverageReconfirmation(s,requirementId,actor,'Linked evidence changed after human coverage confirmation.');invalidateResponseApproval(s,requirementId,actor,'Linked evidence changed after response approval.',true);traceHistoryPush(t,{action:'evidence-suggested',actor,coverage:t.coverage,coverageSource:t.coverageSource,requirementRevision:r.revision});}
 function traceSummary(s,epoch){return s.requirements.map(r=>{const t=ensureTrace(r);const evidence=s.evidence.filter(e=>e.requirementId===r.id).map(e=>({id:e.id,answerId:e.answerId,revision:e.revision,excerpt:String(e.text||'').slice(0,200),decision:e.decision,stale:!!e.stale}));const unresolved=!excluded(r)&&(t.coverage!=='supported'||t.responseApproval.status!=='approved');return {requirementId:r.id,stableId:r.stableId||stableRequirementId(r),text:r.text,category:r.category,mandatory:r.mandatory,coverage:t.coverage,coverageSource:t.coverageSource,needsReconfirmation:!!t.needsReconfirmation,reviewStatus:t.coverageSource?(t.needsReconfirmation?'needs-reconfirmation':'current'):'not-assessed',responseApproval:t.responseApproval.status,responseReviewedBy:t.responseApproval.reviewedBy,responseReviewedAt:t.responseApproval.reviewedAt,evidence,sources:r.sources||[],unresolved};});}
 function unresolvedItems(s){return traceSummary(s).filter(x=>x.unresolved).map(x=>({stableId:x.stableId,requirementId:x.requirementId,text:x.text,coverage:x.coverage,coverageSource:x.coverageSource,responseApproval:x.responseApproval,reasons:[...(x.coverage!=='supported'?['Evidence coverage is '+x.coverage]:[]),...(x.responseApproval!=='approved'?['Response approval is '+x.responseApproval]:[])]}));}
-function initial(title,company){return {schema:1,title:text(title,200),company:{name:text(company||title,200),accent:'#1d4ed8'},requirements:[],sections:[],evidence:[],comments:[],facts:[],bidInputs:{},weights:{experience:25,certifications:25,capacity:20,timeline:15,strategy:15},decision:null,assessment:null,finalApproval:null,reviewedEpoch:0,sourceWarnings:[],analysis:null,attachments:[],archivedResponses:[]};}
-function excluded(r){return ['not applicable','extraction error'].includes(r.disposition)&&!!r.reviewReason&&!!r.reviewedBy;}
+// --- Submission readiness (Capability 2) ---
+// Readiness is a checklist derived from the extracted requirements already in
+// state (Capability 1 trace data). No second extraction pass runs. Mandatory
+// status is a property of the requirement (from extraction, correctable); task
+// status is the checklist state — the two are stored and shown separately
+// everywhere, including filters and the report. Readiness covers only the
+// supplied and successfully processed materials; it never labels a proposal
+// "certified compliant" or "guaranteed ready" and never assigns a win
+// probability. All readiness state lives in pw_projects.state.readiness
+// (JSONB), so the view works before any migration; pw_events (via commit)
+// is the activity history. No migration is needed for this capability.
+const READINESS_STATUSES=['not-started','in-progress','needs-review','done','not-applicable'];
+const READINESS_KINDS=['requirement','document','form','instruction','other'];
+const READINESS_MANUAL_LIMIT=200;
+const READINESS_SCOPE_NOTE='Readiness covers only the supplied and successfully processed materials. It does not certify compliance and does not guarantee readiness.';
+function readinessState(s){const r=(s&&s.readiness&&typeof s.readiness==='object'&&!Array.isArray(s.readiness))?s.readiness:{};return {items:(r.items&&typeof r.items==='object'&&!Array.isArray(r.items))?r.items:{},corrections:(r.corrections&&typeof r.corrections==='object'&&!Array.isArray(r.corrections))?r.corrections:{},manual:Array.isArray(r.manual)?r.manual:[]};}
+function readinessKindFor(r){if(r.category==='Attachment')return 'document';if(r.category==='Submission')return /\bform\b/i.test(r.text||'')?'form':'instruction';return 'requirement';}
+function readinessSources(r){return (r.sources||[]).map(src=>({document:src.document||src.document_name||'Source unavailable',section:src.section||null,page:src.page??null,quote:src.quote||''}));}
+function readinessItemUnresolved(i){return i.status!=='done'&&i.status!=='not-applicable';}
+function readinessItems(s){
+ const rd=readinessState(s),items=[];
+ for(const r of s.requirements||[]){
+  if(excluded(r))continue; // explicitly out of scope: not readiness work
+  const t=ensureTrace(r),sid=r.stableId||stableRequirementId(r),corr=rd.corrections[sid]||{};
+  const view={text:corr.text||r.text,category:corr.category||r.category,mandatory:corr.mandatory||r.mandatory};
+  const override=rd.items['readiness:'+sid]||{};
+  const coverage=t.coverage||'not-assessed';
+  items.push({id:'readiness:'+sid,stableId:sid,requirementId:r.id,kind:readinessKindFor(view),category:view.category,title:view.text,mandatory:view.mandatory,sourceReferences:readinessSources(r),manual:false,corrected:Object.keys(corr).length>0,correctionNote:corr.note||null,status:override.status||'not-started',owner:override.owner||null,dueAt:override.dueAt||null,naReason:override.naReason||null,evidenceGap:coverage==='missing-evidence'||coverage==='not-assessed',responseReviewPending:t.responseApproval.status!=='approved',coverage,coverageSource:t.coverageSource||null,responseApproval:t.responseApproval.status});
+ }
+ for(const m of rd.manual)items.push({...m,stableId:null,requirementId:null,manual:true,corrected:false,correctionNote:null,sourceReferences:[{document:m.source||'Manual addition — no extracted source.',section:null,page:null,quote:''}],evidenceGap:false,responseReviewPending:false,coverage:null,coverageSource:null,responseApproval:null});
+ return items;
+}
+function readinessSummary(s){
+ const items=readinessItems(s),unresolved=items.filter(readinessItemUnresolved);
+ const plural=(n,one,many)=>n+' '+ (n===1?one:many);
+ const summary={total:items.length,unresolved:unresolved.length,done:items.filter(i=>i.status==='done').length,notApplicable:items.filter(i=>i.status==='not-applicable').length,
+  mandatoryUnresolved:unresolved.filter(i=>i.mandatory!=='No').length,
+  documentsMissing:unresolved.filter(i=>i.kind==='document'||i.kind==='form').length,
+  responsesAwaitingApproval:unresolved.filter(i=>i.responseReviewPending).length,
+  evidenceGaps:unresolved.filter(i=>i.evidenceGap).length,byOwner:{}};
+ for(const i of unresolved){const k=i.owner||'unassigned';summary.byOwner[k]=(summary.byOwner[k]||0)+1;}
+ summary.lines=[plural(summary.mandatoryUnresolved,'mandatory item unresolved','mandatory items unresolved')+'.',plural(summary.documentsMissing,'required document missing','required documents missing')+'.',plural(summary.responsesAwaitingApproval,'response awaiting approval','responses awaiting approval')+'.',plural(summary.evidenceGaps,'evidence gap','evidence gaps')+'.'];
+ return summary;
+}
+function readinessView(s){return {items:readinessItems(s),summary:readinessSummary(s),scopeNote:READINESS_SCOPE_NOTE};}
+function initial(title,company){return {schema:1,title:text(title,200),company:{name:text(company||title,200),accent:'#1d4ed8'},requirements:[],sections:[],evidence:[],comments:[],facts:[],bidInputs:{},weights:{experience:25,certifications:25,capacity:20,timeline:15,strategy:15},decision:null,assessment:null,finalApproval:null,reviewedEpoch:0,sourceWarnings:[],analysis:null,attachments:[],archivedResponses:[],readiness:{items:{},corrections:{},manual:[]}};}function excluded(r){return ['not applicable','extraction error'].includes(r.disposition)&&!!r.reviewReason&&!!r.reviewedBy;}
 function procedural(r){return ['Submission','Attachment','Evaluation'].includes(r.category)&&!/\b(?:certif|licen[cs]|experience|insurance|revenue|employee|eligib|accredit|clearance)/i.test(r.text);}
 function invalidateRequirement(r,reason){if(!r||excluded(r))return;if(r.status!=='Needs Review')r.previousCompliance={status:r.status,reason:r.reviewReason,reviewedBy:r.reviewedBy};r.status='Needs Review';r.support='needs review';r.reviewReason=reason;}
 function expired(e){return e.expired||e.metadataUnavailable||(e.citations||[]).some(c=>c.metadata&&Object.keys(c.metadata).length&&(c.metadata.status!=='approved'||c.metadata.expiresAt&&c.metadata.expiresAt<new Date().toISOString().slice(0,10)))||(e.facts||[]).some(f=>f.key==='explicit.expiry'&&f.value<new Date().toISOString().slice(0,10));}
@@ -149,6 +193,51 @@ function apply(s,action,p,user,{reviewer=false,members=[],evidenceEpoch=null}={}
   traceHistoryPush(t,{action:'response-approved',actor:user,explanation,requirementRevision:r.revision,evidenceEpoch,responseRevision:t.responseApproval.reviewedResponseRevision,coverage:t.coverage,coverageSource:t.coverageSource});
  }
  else if(action==='reviewWarnings'){requireReviewer();s.warningReview={fingerprint:hash(s.sourceWarnings),reason:text(p.reason,3000),actor:user,createdAt:new Date().toISOString()};}
+ else if(action==='readinessItem'){
+  // Checklist state only: mandatory status is untouched here. Any writable
+  // project member may update a task; a viewer is blocked by the API layer
+  // (mutations require a writable pw_role). Owner must be a current member.
+  const rd=s.readiness=readinessState(s);
+  if(typeof p.itemId!=='string'||!p.itemId.trim())kb.fail(400,'Choose a readiness item.');
+  const manual=rd.manual.find(m=>m.id===p.itemId);
+  if(!manual&&!readinessItems(s).some(i=>i.id===p.itemId))kb.fail(404,'Readiness item not found.');
+  const current=manual||rd.items[p.itemId]||{};
+  const next={status:p.status!==undefined?p.status:current.status||'not-started',owner:p.owner!==undefined?p.owner:current.owner||null,dueAt:p.dueAt!==undefined?date(p.dueAt):current.dueAt||null,naReason:p.naReason!==undefined?p.naReason:current.naReason||null};
+  if(!READINESS_STATUSES.includes(next.status))kb.fail(400,'Invalid readiness task status.');
+  if(next.owner!==null&&(typeof next.owner!=='string'||!members.some(m=>m.user_id===next.owner)))kb.fail(400,'Assign a current project member.');
+  if(next.status==='not-applicable'){if(typeof next.naReason!=='string'||!next.naReason.trim())kb.fail(400,'Give a reason for Not applicable.');next.naReason=text(next.naReason,500);}
+  else next.naReason=null;
+  next.updatedBy=user;next.updatedAt=new Date().toISOString();
+  if(manual)Object.assign(manual,next);else rd.items[p.itemId]={...(rd.items[p.itemId]||{}),...next};
+ }
+ else if(action==='readinessAddManual'){
+  const rd=s.readiness=readinessState(s);
+  if(rd.manual.length>=READINESS_MANUAL_LIMIT)kb.fail(400,'At most 200 manual readiness items per project.');
+  if(!READINESS_KINDS.includes(p.kind))kb.fail(400,'Invalid readiness item kind.');
+  if(!['Yes','Unclear','No'].includes(p.mandatory))kb.fail(400,'Invalid mandatory status.');
+  rd.manual.push({id:'manual-'+randomUUID(),title:text(p.title,500),kind:p.kind,category:text(p.category||'Other',100),mandatory:p.mandatory,source:p.source===undefined||p.source===null?'':text(p.source,500,true),status:'not-started',owner:null,dueAt:null,naReason:null,createdBy:user,createdAt:new Date().toISOString()});
+ }
+ else if(action==='readinessCorrect'){
+  // Correct an extraction mistake on a derived item. Stored as an override
+  // keyed by stable ID (survives amendments); the item is labelled corrected
+  // in the UI and the report, and the change is recorded in activity history
+  // via the commit operation. The underlying requirement text is unchanged;
+  // marking a requirement an extraction error stays reviewer-only.
+  const rd=s.readiness=readinessState(s);
+  const r=s.requirements.find(x=>(x.stableId||stableRequirementId(x))===p.stableId);if(!r)kb.fail(404,'Requirement not found.');
+  const sid=r.stableId||stableRequirementId(r),corr=rd.corrections[sid]||{};
+  const next={text:p.text!==undefined?text(p.text,5000):corr.text,category:p.category!==undefined?text(p.category,100):corr.category,mandatory:p.mandatory!==undefined?p.mandatory:corr.mandatory,note:text(p.note,1000)};
+  if(next.mandatory!==undefined&&!['Yes','Unclear','No'].includes(next.mandatory))kb.fail(400,'Invalid mandatory status.');
+  if(next.text===undefined&&next.category===undefined&&next.mandatory===undefined)kb.fail(400,'Describe the extraction correction.');
+  next.correctedBy=user;next.correctedAt=new Date().toISOString();
+  rd.corrections[sid]={...corr,...next};
+ }
+ else if(action==='readinessDeleteManual'){
+  const rd=s.readiness=readinessState(s);
+  const before=rd.manual.length;rd.manual=rd.manual.filter(m=>m.id!==p.itemId);
+  if(rd.manual.length===before)kb.fail(404,'Manual readiness item not found.');
+  s.readiness=rd;
+ }
  else if(action==='settings'){s.title=text(p.title,200);s.company={name:text(p.company,200),accent:/^#[a-f0-9]{6}$/i.test(p.accent)?p.accent:'#1d4ed8'};}
  else if(action==='bidDecision'){if(!['pursue','review','pass'].includes(p.decision)||!s.assessment||s.assessment.stale)kb.fail(400,'Run a current assessment before deciding.');s.decision={value:p.decision,reason:text(p.reason,3000),actor:user,assessmentHash:s.assessment.inputHash,createdAt:new Date().toISOString()};}
  else kb.fail(400,'Unknown project operation.');
@@ -158,4 +247,4 @@ function apply(s,action,p,user,{reviewer=false,members=[],evidenceEpoch=null}={}
  if(action==='saveSection'||action==='acceptDraft'){const section=s.sections.find(x=>x.id===p.sectionId);if(section&&beforeSectionText.get(section.id)!==section.text)for(const reqId of section.requirementIds)invalidateResponseApproval(s,reqId,user,'Response text changed after approval; previous approval is preserved in history.');}
  s.finalApproval=null;if(!['bidDecision','comment'].includes(action)){if(s.assessment)s.assessment.stale=true;if(s.decision)s.decision.stale=true;}return s;
 }
-module.exports={invalidateRequirement,expired,excluded,procedural,initial,imported,apply,refresh,candidateFlags,draftSection,readiness,assessment,activeEvidence,explicitLimits,contentHash,hash,text,date,words,stableRequirementId,contentFingerprint,defaultTrace,ensureTrace,suggestCoverage,evidenceSuggested,invalidateResponseApproval,markCoverageReconfirmation,traceSummary,unresolvedItems,responseHash,responseRevision,COVERAGES};
+module.exports={invalidateRequirement,expired,excluded,procedural,initial,imported,apply,refresh,candidateFlags,draftSection,readiness,assessment,activeEvidence,explicitLimits,contentHash,hash,text,date,words,stableRequirementId,contentFingerprint,defaultTrace,ensureTrace,suggestCoverage,evidenceSuggested,invalidateResponseApproval,markCoverageReconfirmation,traceSummary,unresolvedItems,responseHash,responseRevision,COVERAGES,READINESS_STATUSES,READINESS_KINDS,READINESS_MANUAL_LIMIT,READINESS_SCOPE_NOTE,readinessState,readinessItems,readinessSummary,readinessView,readinessItemUnresolved};
