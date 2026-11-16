@@ -79,6 +79,63 @@ function readinessSummary(s){
  return summary;
 }
 function readinessView(s){return {items:readinessItems(s),summary:readinessSummary(s),scopeNote:READINESS_SCOPE_NOTE};}
+// --- Import-time structure suggestion (winning-bid structure patterns) ---
+// A structure template is an ordered section map from a reviewed historical
+// example (PR #76 catalogue). The suggestion is computed at import from the
+// imported sections only: it reorders nothing by itself. A person accepts
+// (reorders sections) or dismisses it; the suggestion never blocks import,
+// never writes draft text, never changes a compliance decision, and never
+// claims a structure caused a win. Each template rests on one historical
+// example, so the suggestion is labelled advisory and scoped to that
+// example's market and sector. The current RFP's procurement ID is not
+// known at import, so the same-procurement holdout cannot apply here; the
+// template is matched on section wording alone, and a match is a
+// suggestion, not evidence about this RFP.
+const STRUCTURE_SUGGESTION_NOTE='Advisory only: this section order comes from one reviewed historical example, not from your RFP. Accepting only reorders your sections; no text changes and no compliance decision changes.';
+const STRUCTURE_TEMPLATE_JURISDICTIONS=['US federal','US state/local'];
+const STRUCTURE_TEMPLATE_SECTORS=['IT','consulting'];
+function suggestionTokens(value){return new Set(String(value||'').toLowerCase().match(/[a-z0-9]{3,}/g)||[]);}
+function structureSuggestion(state,catalogue){
+ try{
+  const sections=Array.isArray(state&&state.sections)?state.sections:[];
+  const requirements=Array.isArray(state&&state.requirements)?state.requirements.filter(r=>!excluded(r)&&!amendmentRemoved(r)):[];
+  if(!sections.length||!requirements.length)return null;
+  const {structureTemplates}=require('./reference-patterns');
+  const seen=new Set(),templates=[];
+  for(const jurisdiction of STRUCTURE_TEMPLATE_JURISDICTIONS)for(const sector of STRUCTURE_TEMPLATE_SECTORS){
+   for(const t of structureTemplates(catalogue,{jurisdiction,sector,limit:5,mode:'offline_pilot'})){
+    const key=t.sourceId+'/'+t.patternId;if(seen.has(key))continue;seen.add(key);templates.push({...t,jurisdiction,sector});
+   }
+  }
+  if(!templates.length)return null;
+  const sectionTexts=sections.map(section=>{
+   // Match on the section title, the linked requirement wording and the
+   // requirement category (Technical, Submission and so on): the template
+   // groups are keyed on those words, and the category is extraction
+   // metadata about the requirement, not bidder text.
+   const linked=(section.requirementIds||[]).map(id=>requirements.find(r=>r.id===id)).filter(Boolean);
+   return suggestionTokens([section.title||'',...linked.flatMap(r=>[r.text||'',r.category||''])].join('\n'));
+  });
+  let best=null;
+  for(const t of templates){
+   const groups=(t.groups||[]).map(g=>({label:g.label,keywords:Array.isArray(g.keywords)?g.keywords.map(k=>String(k).toLowerCase()):[],sectionIds:[]}));
+   const assigned=new Set();
+   sections.forEach((section,i)=>{
+    if(assigned.has(section.id))return;
+    for(const g of groups){if(g.keywords.some(k=>sectionTexts[i].has(k))){g.sectionIds.push(section.id);assigned.add(section.id);break;}}
+   });
+   const matchedGroups=groups.filter(g=>g.sectionIds.length).length;
+   if(matchedGroups<2)continue;
+   const score={matchedGroups,matchedSections:assigned.size};
+   if(!best||score.matchedGroups>best.score.matchedGroups||(score.matchedGroups===best.score.matchedGroups&&score.matchedSections>best.score.matchedSections))best={template:t,groups,score};
+  }
+  if(!best)return null;
+  const assigned=new Set(best.groups.flatMap(g=>g.sectionIds));
+  const unmatchedSectionIds=sections.filter(x=>!assigned.has(x.id)).map(x=>x.id);
+  const t=best.template;
+  return {status:'suggested',patternId:t.patternId,sourceId:t.sourceId,title:t.title,guidance:t.guidance,sourceUrl:t.sourceUrl,locator:t.locator,sha256:t.sha256,awardStatus:t.awardStatus,jurisdiction:t.jurisdiction,sector:t.sector,groups:best.groups,unmatchedSectionIds,matchedGroups:best.score.matchedGroups,matchedSections:best.score.matchedSections,totalSections:sections.length,createdAt:new Date().toISOString(),permittedUse:'structure_guidance_only',canSupportCompliance:false,requiresHumanReview:true,note:STRUCTURE_SUGGESTION_NOTE};
+ }catch{return null;}
+}
 // --- Amendment impact review (Capability 3) ---
 // When the solicitation changes, the user adds the new version as a proposed
 // amendment; the original version and its review history stay intact in
@@ -244,7 +301,7 @@ function applyAmendmentChange(s,amendment,change,actor){
   const t=ensureTrace(r);traceHistoryPush(t,{action:'amendment-removal-confirmed',actor,reason:'Removal confirmed in amendment version '+version+'. The requirement and its history are kept in this project.',requirementRevision:r.revision});
  }
 }
-function initial(title,company){return {schema:1,title:text(title,200),company:{name:text(company||title,200),accent:'#1d4ed8'},requirements:[],sections:[],evidence:[],comments:[],facts:[],bidInputs:{},weights:{experience:25,certifications:25,capacity:20,timeline:15,strategy:15},decision:null,assessment:null,finalApproval:null,reviewedEpoch:0,sourceWarnings:[],analysis:null,attachments:[],archivedResponses:[],amendments:[],readiness:{items:{},corrections:{},manual:[]}};}function excluded(r){return ['not applicable','extraction error'].includes(r.disposition)&&!!r.reviewReason&&!!r.reviewedBy;}
+function initial(title,company){return {schema:1,title:text(title,200),company:{name:text(company||title,200),accent:'#1d4ed8'},requirements:[],sections:[],evidence:[],comments:[],facts:[],bidInputs:{},weights:{experience:25,certifications:25,capacity:20,timeline:15,strategy:15},decision:null,assessment:null,finalApproval:null,reviewedEpoch:0,sourceWarnings:[],analysis:null,attachments:[],archivedResponses:[],amendments:[],readiness:{items:{},corrections:{},manual:[]},structureSuggestion:null};}function excluded(r){return ['not applicable','extraction error'].includes(r.disposition)&&!!r.reviewReason&&!!r.reviewedBy;}
 function procedural(r){return ['Submission','Attachment','Evaluation'].includes(r.category)&&!/\b(?:certif|licen[cs]|experience|insurance|revenue|employee|eligib|accredit|clearance)/i.test(r.text);}
 function invalidateRequirement(r,reason){if(!r||excluded(r))return;if(r.status!=='Needs Review')r.previousCompliance={status:r.status,reason:r.reviewReason,reviewedBy:r.reviewedBy};r.status='Needs Review';r.support='needs review';r.reviewReason=reason;}
 function expired(e){return e.expired||e.metadataUnavailable||(e.citations||[]).some(c=>c.metadata&&Object.keys(c.metadata).length&&(c.metadata.status!=='approved'||c.metadata.expiresAt&&c.metadata.expiresAt<new Date().toISOString().slice(0,10)))||(e.facts||[]).some(f=>f.key==='explicit.expiry'&&f.value<new Date().toISOString().slice(0,10));}
@@ -480,6 +537,33 @@ function apply(s,action,p,user,{reviewer=false,members=[],evidenceEpoch=null}={}
   change.status='rejected';change.decidedBy=user;change.decidedAt=new Date().toISOString();change.decisionNote=reason;
   resolveAmendmentStatus(amendment);
  }
+ else if(action==='applyStructureSuggestion'){
+  // Accepting only reorders sections into the suggested template order and
+  // renumbers titles to match; no section text, requirement link or
+  // approval is touched. Sections the template does not cover keep their
+  // relative order at the end. Anything missing from the saved sections
+  // (for example after a re-import) is skipped, never invented.
+  const suggestion=s.structureSuggestion;
+  if(!suggestion||suggestion.status!=='suggested')kb.fail(409,'No suggested section order is waiting for a decision.');
+  const byId=new Map(s.sections.map(x=>[x.id,x]));
+  const ordered=[];
+  for(const g of suggestion.groups||[])for(const id of g.sectionIds||[]){const x=byId.get(id);if(x&&!ordered.includes(x))ordered.push(x);}
+  for(const id of suggestion.unmatchedSectionIds||[]){const x=byId.get(id);if(x&&!ordered.includes(x))ordered.push(x);}
+  for(const x of s.sections)if(!ordered.includes(x))ordered.push(x);
+  ordered.forEach((section,i)=>{
+   const oldIndex=s.sections.indexOf(section);
+   const requirement=s.requirements.find(r=>section.requirementIds.includes(r.id));
+   section.title=`${i+1}. ${(requirement?requirement.text:section.title.replace(/^\d+\.\s*/,'')).slice(0,100)}`;
+   if(oldIndex!==i){section.revision=(section.revision??0)+1;section.reviewReason='Section order changed by an accepted structure suggestion.';}
+  });
+  s.sections=ordered;
+  s.structureSuggestion={...suggestion,status:'applied',appliedBy:user,appliedAt:new Date().toISOString(),appliedOrder:ordered.map(x=>x.id)};
+ }
+ else if(action==='dismissStructureSuggestion'){
+  const suggestion=s.structureSuggestion;
+  if(!suggestion||suggestion.status!=='suggested')kb.fail(409,'No suggested section order is waiting for a decision.');
+  s.structureSuggestion={...suggestion,status:'dismissed',dismissedBy:user,dismissedAt:new Date().toISOString()};
+ }
  else if(action==='settings'){s.title=text(p.title,200);s.company={name:text(p.company,200),accent:/^#[a-f0-9]{6}$/i.test(p.accent)?p.accent:'#1d4ed8'};}
  else if(action==='bidDecision'){if(!['pursue','review','pass'].includes(p.decision)||!s.assessment||s.assessment.stale)kb.fail(400,'Run a current assessment before deciding.');s.decision={value:p.decision,reason:text(p.reason,3000),actor:user,assessmentHash:s.assessment.inputHash,createdAt:new Date().toISOString()};}
  else kb.fail(400,'Unknown project operation.');
@@ -487,6 +571,6 @@ function apply(s,action,p,user,{reviewer=false,members=[],evidenceEpoch=null}={}
  if(action==='reviewEvidence'){const req=s.evidence.find(e=>e.id===p.evidenceId)?.requirementId,r=s.requirements.find(x=>x.id===req);
   if(r){const t=ensureTrace(r);const map={supported:'supported','partially supported':'partially-supported','missing evidence':'missing-evidence','needs review':'not-assessed'};t.coverage=map[p.support]||'not-assessed';t.coverageSource='human-confirmed';t.explanation=p.reason;t.reviewedBy=user;t.reviewedAt=new Date().toISOString();t.reviewedRequirementRevision=r.revision;t.reviewedEvidenceEpoch=evidenceEpoch;t.reviewedResponseRevision=responseRevision(s,r.id);t.needsReconfirmation=false;traceHistoryPush(t,{action:'coverage-assessed',actor:user,coverage:t.coverage,coverageSource:'human-confirmed',explanation:p.reason,requirementRevision:r.revision,evidenceEpoch,responseRevision:t.reviewedResponseRevision});invalidateResponseApproval(s,req,user,'Linked evidence decision changed after response approval.',true);}}
  if(action==='saveSection'||action==='acceptDraft'){const section=s.sections.find(x=>x.id===p.sectionId);if(section&&beforeSectionText.get(section.id)!==section.text)for(const reqId of section.requirementIds)invalidateResponseApproval(s,reqId,user,'Response text changed after approval; previous approval is preserved in history.');}
- s.finalApproval=null;if(!['bidDecision','comment'].includes(action)){if(s.assessment)s.assessment.stale=true;if(s.decision)s.decision.stale=true;}return s;
+ s.finalApproval=null;if(!['bidDecision','comment','dismissStructureSuggestion'].includes(action)){if(s.assessment)s.assessment.stale=true;if(s.decision)s.decision.stale=true;}return s;
 }
-module.exports={invalidateRequirement,expired,excluded,procedural,initial,imported,apply,refresh,candidateFlags,draftSection,readiness,assessment,activeEvidence,explicitLimits,contentHash,hash,text,date,words,stableRequirementId,contentFingerprint,defaultTrace,ensureTrace,suggestCoverage,evidenceSuggested,invalidateResponseApproval,markCoverageReconfirmation,traceSummary,unresolvedItems,responseHash,responseRevision,COVERAGES,READINESS_STATUSES,READINESS_KINDS,READINESS_MANUAL_LIMIT,READINESS_SCOPE_NOTE,readinessState,readinessItems,readinessSummary,readinessView,readinessItemUnresolved,AMENDMENT_KINDS,AMENDMENT_CHANGE_TYPES,AMENDMENT_CHANGE_STATUSES,AMENDMENT_MAX_PER_PROJECT,AMENDMENT_MAX_REQUIREMENTS,AMENDMENT_MATCH_THRESHOLD,AMENDMENT_UNCERTAIN_THRESHOLD,AMENDMENT_SCOPE_NOTE,amendmentsState,amendmentRemoved,amendmentNormalize,amendmentSimilarity,extractAmendmentDates,normalizeAnalysisRequirements,amendmentSourceRefs,compareRequirements,amendmentSummary,amendmentAffectedWork,amendmentView,proposeAmendment};
+module.exports={invalidateRequirement,expired,excluded,procedural,initial,imported,apply,refresh,candidateFlags,draftSection,readiness,assessment,activeEvidence,explicitLimits,contentHash,hash,text,date,words,stableRequirementId,contentFingerprint,defaultTrace,ensureTrace,suggestCoverage,evidenceSuggested,invalidateResponseApproval,markCoverageReconfirmation,traceSummary,unresolvedItems,responseHash,responseRevision,COVERAGES,READINESS_STATUSES,READINESS_KINDS,READINESS_MANUAL_LIMIT,READINESS_SCOPE_NOTE,readinessState,readinessItems,readinessSummary,readinessView,readinessItemUnresolved,structureSuggestion,AMENDMENT_KINDS,AMENDMENT_CHANGE_TYPES,AMENDMENT_CHANGE_STATUSES,AMENDMENT_MAX_PER_PROJECT,AMENDMENT_MAX_REQUIREMENTS,AMENDMENT_MATCH_THRESHOLD,AMENDMENT_UNCERTAIN_THRESHOLD,AMENDMENT_SCOPE_NOTE,amendmentsState,amendmentRemoved,amendmentNormalize,amendmentSimilarity,extractAmendmentDates,normalizeAnalysisRequirements,amendmentSourceRefs,compareRequirements,amendmentSummary,amendmentAffectedWork,amendmentView,proposeAmendment};
