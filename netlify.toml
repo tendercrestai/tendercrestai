@@ -10,7 +10,7 @@
   external_node_modules = ["docx"]
 
 [functions."proposals"]
-  included_files = ["reference-library/production.json", "reference-library/sources/**", "reference-library/notices/**"]
+  included_files = ["reference-library/production.json", "reference-library/catalogue.json", "reference-library/sources/**", "reference-library/notices/**"]
 
 [functions."compliance"]
   external_node_modules = ["pdfjs-dist", "sax"]
