@@ -3,7 +3,7 @@ const {load,pilot}=require('../netlify/functions/lib/reference-catalogue'),{retr
 const root=path.resolve(__dirname,'../reference-library');
 function copy(){const parent=fs.mkdtempSync(path.join(os.tmpdir(),'reference-snapshot-test-')),folder=path.join(parent,'library');fs.cpSync(root,folder,{recursive:true});return {parent,folder};}
 test('real government guidance and retained public-domain notice match their pinned content hashes',()=>{
- const c=load(root),approved=c.records.filter(r=>r.reviewStatus==='approved');assert.equal(approved.length,4);assert.equal(approved.filter(r=>r.documentType==='government_guidance').length,3);assert.ok(approved.every(r=>r.approvalScope==='offline_pilot'));assert.equal(retrieve(c,{jurisdiction:'US federal',sector:'IT',query:'users agile metrics'}).length,0);
+ const c=load(root),approved=c.records.filter(r=>r.reviewStatus==='approved');assert.equal(approved.length,10);assert.equal(approved.filter(r=>r.documentType==='government_guidance').length,3);assert.equal(approved.filter(r=>r.documentType==='technical_submission_documentation').length,6);assert.equal(approved.filter(r=>r.documentType==='proposal_response').length,1);assert.ok(approved.every(r=>r.approvalScope==='offline_pilot'));assert.equal(retrieve(c,{jurisdiction:'US federal',sector:'IT',query:'users agile metrics'}).length,0);
 });
 test('offline context uses attributed structure guidance without repeating RFP text or inventing compliance evidence',()=>{
  const query='FICTIONAL_PRIVATE_MARKER_923: user research, agile delivery and performance metrics.';

@@ -1,6 +1,6 @@
 # US government IT/consulting reference pilot
 
-Offline research pilot only. Three candidate records remain unapproved. Four source snapshots have been reviewed for offline structural guidance: three US Digital Services Playbook plays and one Acumen technical-documentation example. None is approved for production retrieval or model training. Default production-mode retrieval still returns zero suggestions. There are no verified full winning proposal responses. No private customer evidence belongs in this directory.
+Offline research pilot only. Eight candidate records remain unapproved. Ten source snapshots have been reviewed for offline structural guidance: three US Digital Services Playbook plays, one Acumen technical-documentation example, five licensed GSA Agile BPA prototype approach narratives (Flexion, TeraLogics, Esri, World Wide Technology, PwC) and one structure-only extraction of the Cisco response to Utah WSCA-NASPO JP14001. None is approved for production retrieval or model training. Default production-mode retrieval still returns zero suggestions. One record, the Cisco response to Utah WSCA-NASPO JP14001, is a verified full winning proposal; it is approved for offline structure guidance only, and no pattern in the catalogue is labelled a winning response. No private customer evidence belongs in this directory.
 
 ## Sources inspected
 
@@ -28,12 +28,14 @@ A stronger public USP should follow verified response coverage and a held-out be
 
 SAM.gov and USAspending now return HTTP 200 through this environment; GAO returned HTTP 403. This supersedes the initial access probes above; no GAO access control was bypassed. These portals do not by themselves establish access to full winning proposal text.
 
-Four offline-reviewed snapshots are pinned by commit and SHA-256 in the catalogue:
+Ten offline-reviewed snapshots are pinned by commit and SHA-256 in the catalogue:
 
 - USDS Playbook play 1: user needs, research and validation.
 - USDS Playbook play 4: iterative delivery and feedback.
 - USDS Playbook play 12: measurement and operational review.
 - Acumen GSA Agile Prototype README: technical-approach justification and role/responsibility structure. The adjacent MIT notice explicitly covers associated documentation and is retained verbatim. The official agency list contains Acumen Solutions Inc, but the evaluated-document/revision linkage is not verified. This source remains technical documentation, not a full verified winning response. No vendor facts or historical technology choices are transferred into pattern guidance.
+- Flexion, TeraLogics, Esri, World Wide Technology and PwC GSA Agile BPA prototype approach narratives (RFQ 4QTFHS150004, awarded August 2015): licensed (CC0, MIT, Apache-2.0, MIT, MIT-by-README-statement) and pinned by commit; licence notices retained. Each vendor is named on the official 18F Pool 3 awardee list, which establishes a vendor lead, not that the exact document or revision was the evaluated winning submission, so award status is unverified for all five. Structure guidance only; no vendor facts or historical technology choices are transferred into pattern guidance.
+- Cisco response to Utah WSCA-NASPO JP14001: a structure-only extraction (section headings, page ranges, word counts, response format) of the 188-page winning proposal, incorporated as Attachment D to Utah State Cooperative Contract AR233. The full PDF is not stored in the repository; its SHA-256 is recorded on the record. No bidder text, pricing, staffing names, certifications or customer facts are reproduced.
 
 USDS's pinned README contains the US Government public-domain/CC0 declaration and is retained. Reference source code, links and assets are never executed or followed automatically. Copied snapshots are internal research artifacts excluded from the static build.
 

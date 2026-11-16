@@ -15,6 +15,7 @@ function validate(catalogue){
   if(!text(r.title,300)||!text(r.publisher,300)||!url(r.sourceUrl)||!['US federal','US state/local'].includes(r.jurisdiction)||!['IT','consulting'].includes(r.sector)||!TYPES.has(r.documentType)||!REVIEW.has(r.reviewStatus)||!REUSE.has(r.reuseStatus)||!AWARD.has(r.awardStatus))fail('invalid source metadata');
   if(!Array.isArray(r.supportingUrls)||r.supportingUrls.length>10||r.supportingUrls.some(u=>!url(u)))fail('invalid supporting URLs');
   if(!Array.isArray(r.patterns)||r.patterns.length>20||r.patterns.some(p=>!text(p.id,100)||!text(p.title,200)||!text(p.guidance,2000)||!text(p.locator,300)||!Array.isArray(p.tags)||p.tags.length>20||p.tags.some(t=>!text(t,50))))fail('invalid patterns');
+  if(r.patterns.some(p=>p.groups!==undefined&&(!Array.isArray(p.groups)||p.groups.length>10||p.groups.some(g=>!text(g.label,100)||!Array.isArray(g.keywords)||!g.keywords.length||g.keywords.length>20||g.keywords.some(k=>!text(k,50))))))fail('pattern groups are invalid');
   if(r.reviewStatus==='approved'){
    if(!['offline_pilot','production'].includes(r.approvalScope)||r.reuseStatus!=='permitted'||!url(r.licenceEvidenceUrl)||!text(r.reuseBasis,2000)||!text(r.reviewedBy,100)||!/^\d{4}-\d{2}-\d{2}$/.test(r.reviewedAt||'')||!Number.isFinite(Date.parse(r.reviewedAt))||new Date(r.reviewedAt).toISOString().slice(0,10)!==r.reviewedAt||!/^[a-f0-9]{64}$/.test(r.sha256||''))fail('approved source lacks review/reuse/integrity evidence');
   }
@@ -38,4 +39,22 @@ function retrieve(catalogue,{jurisdiction,sector,query,limit=3,excludeProcuremen
  }
  return suggestions.sort((a,b)=>b.matchedTerms.length-a.matchedTerms.length||a.sourceId.localeCompare(b.sourceId)||a.patternId.localeCompare(b.patternId)).slice(0,limit);
 }
-module.exports={validate,retrieve,winningResponse};
+// Structure templates: patterns tagged 'structure-template' from eligible
+// records, under the same market/sector/jurisdiction bounds, no-match
+// behaviour and procurement holdout as retrieve(). A template is an ordered
+// section map (its groups field), not draft text: callers must present it as
+// an accept-or-reject suggestion and never apply it automatically.
+function structureTemplates(catalogue,{jurisdiction,sector,limit=5,excludeProcurementIds=[],mode='production'}){
+ validate(catalogue);
+ if(!['production','offline_pilot'].includes(mode)||!['US federal','US state/local'].includes(jurisdiction)||!['IT','consulting'].includes(sector)||!Number.isInteger(limit)||limit<1||limit>5||!Array.isArray(excludeProcurementIds)||excludeProcurementIds.some(id=>!text(id,200)))fail('invalid structure template query');
+ const templates=[];
+ for(const r of catalogue.records){
+  if(!eligible(r,mode)||r.jurisdiction!==jurisdiction||r.sector!==sector||excludeProcurementIds.includes(r.procurementId))continue;
+  for(const p of r.patterns){
+   if(!Array.isArray(p.tags)||!p.tags.includes('structure-template'))continue;
+   templates.push({sourceId:r.id,patternId:p.id,title:p.title,guidance:p.guidance,sourceUrl:r.sourceUrl,locator:p.locator,sha256:r.sha256,documentType:r.documentType,approvalScope:r.approvalScope,awardStatus:r.awardStatus,verifiedWinningResponse:winningResponse(r),groups:Array.isArray(p.groups)?p.groups.map(g=>({label:g.label,keywords:[...g.keywords]})):[],permittedUse:'structure_guidance_only',canSupportCompliance:false,requiresHumanReview:true,untrustedReferenceData:true,isStructureTemplate:true});
+  }
+ }
+ return templates.sort((a,b)=>a.sourceId.localeCompare(b.sourceId)||a.patternId.localeCompare(b.patternId)).slice(0,limit);
+}
+module.exports={validate,retrieve,structureTemplates,winningResponse};
