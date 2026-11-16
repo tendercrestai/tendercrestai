@@ -78,7 +78,37 @@ function readinessSummary(s){
  summary.lines=[plural(summary.mandatoryUnresolved,'mandatory item unresolved','mandatory items unresolved')+'.',plural(summary.documentsMissing,'required document missing','required documents missing')+'.',plural(summary.responsesAwaitingApproval,'response awaiting approval','responses awaiting approval')+'.',plural(summary.evidenceGaps,'evidence gap','evidence gaps')+'.'];
  return summary;
 }
-function readinessView(s){return {items:readinessItems(s),summary:readinessSummary(s),scopeNote:READINESS_SCOPE_NOTE};}
+function readinessView(s){return {items:readinessItems(s),summary:readinessSummary(s),scopeNote:READINESS_SCOPE_NOTE,factorCoverage:factorCoverage(s)};}
+// --- Evaluation-factor coverage (advisory only) ---
+// The buyer's evaluation factors are the requirements that carry an
+// evaluation weight or are categorised Evaluation. A factor counts as
+// covered when at least one section mapped to it has drafted response
+// text: real words, not an empty section and not a section whose text is
+// only [NEEDS INPUT / [NEEDS REVIEW] placeholders. A section with drafted
+// words plus a gap marker still counts: the draft exists, the gap is a
+// separate concern. Draft text counts; approval is a separate readiness
+// concern. Coverage never changes a compliance status, a readiness
+// blocker, a summary line or an export: it is a count shown next to them,
+// not an input to them. When the RFP carries no evaluation factors the
+// percentage is null, never a fabricated 100%.
+const FACTOR_COVERAGE_NOTE='Advisory only: this counts drafted response text against the buyer\u2019s evaluation factors. It is not a compliance verdict and does not change readiness or exports.';
+function draftedResponseText(text){
+ if(typeof text!=='string')return false;
+ return text.replace(/\[(?:NEEDS INPUT|NEEDS REVIEW)[^\]]*\]/gi,'').trim().length>0;
+}
+function factorCoverage(s){
+ const requirements=Array.isArray(s&&s.requirements)?s.requirements.filter(r=>!excluded(r)&&!amendmentRemoved(r)):[];
+ const sections=Array.isArray(s&&s.sections)?s.sections:[];
+ const factors=requirements.filter(r=>r.evaluationWeight!=null||r.category==='Evaluation');
+ const uncovered=[];
+ let covered=0;
+ for(const r of factors){
+  const drafted=sections.some(x=>(x.requirementIds||[]).includes(r.id)&&draftedResponseText(x.text));
+  if(drafted)covered++;
+  else uncovered.push({requirementId:r.id,stableId:r.stableId||stableRequirementId(r),text:r.text,evaluationWeight:r.evaluationWeight??null,category:r.category||null});
+ }
+ return {total:factors.length,covered,uncovered,coveragePercent:factors.length?Math.round(covered/factors.length*100):null,note:FACTOR_COVERAGE_NOTE};
+}
 // --- Import-time structure suggestion (winning-bid structure patterns) ---
 // A structure template is an ordered section map from a reviewed historical
 // example (PR #76 catalogue). The suggestion is computed at import from the
@@ -573,4 +603,4 @@ function apply(s,action,p,user,{reviewer=false,members=[],evidenceEpoch=null}={}
  if(action==='saveSection'||action==='acceptDraft'){const section=s.sections.find(x=>x.id===p.sectionId);if(section&&beforeSectionText.get(section.id)!==section.text)for(const reqId of section.requirementIds)invalidateResponseApproval(s,reqId,user,'Response text changed after approval; previous approval is preserved in history.');}
  s.finalApproval=null;if(!['bidDecision','comment','dismissStructureSuggestion'].includes(action)){if(s.assessment)s.assessment.stale=true;if(s.decision)s.decision.stale=true;}return s;
 }
-module.exports={invalidateRequirement,expired,excluded,procedural,initial,imported,apply,refresh,candidateFlags,draftSection,readiness,assessment,activeEvidence,explicitLimits,contentHash,hash,text,date,words,stableRequirementId,contentFingerprint,defaultTrace,ensureTrace,suggestCoverage,evidenceSuggested,invalidateResponseApproval,markCoverageReconfirmation,traceSummary,unresolvedItems,responseHash,responseRevision,COVERAGES,READINESS_STATUSES,READINESS_KINDS,READINESS_MANUAL_LIMIT,READINESS_SCOPE_NOTE,readinessState,readinessItems,readinessSummary,readinessView,readinessItemUnresolved,structureSuggestion,AMENDMENT_KINDS,AMENDMENT_CHANGE_TYPES,AMENDMENT_CHANGE_STATUSES,AMENDMENT_MAX_PER_PROJECT,AMENDMENT_MAX_REQUIREMENTS,AMENDMENT_MATCH_THRESHOLD,AMENDMENT_UNCERTAIN_THRESHOLD,AMENDMENT_SCOPE_NOTE,amendmentsState,amendmentRemoved,amendmentNormalize,amendmentSimilarity,extractAmendmentDates,normalizeAnalysisRequirements,amendmentSourceRefs,compareRequirements,amendmentSummary,amendmentAffectedWork,amendmentView,proposeAmendment};
+module.exports={invalidateRequirement,expired,excluded,procedural,initial,imported,apply,refresh,candidateFlags,draftSection,readiness,assessment,activeEvidence,explicitLimits,contentHash,hash,text,date,words,stableRequirementId,contentFingerprint,defaultTrace,ensureTrace,suggestCoverage,evidenceSuggested,invalidateResponseApproval,markCoverageReconfirmation,traceSummary,unresolvedItems,responseHash,responseRevision,COVERAGES,READINESS_STATUSES,READINESS_KINDS,READINESS_MANUAL_LIMIT,READINESS_SCOPE_NOTE,readinessState,readinessItems,readinessSummary,readinessView,readinessItemUnresolved,factorCoverage,structureSuggestion,AMENDMENT_KINDS,AMENDMENT_CHANGE_TYPES,AMENDMENT_CHANGE_STATUSES,AMENDMENT_MAX_PER_PROJECT,AMENDMENT_MAX_REQUIREMENTS,AMENDMENT_MATCH_THRESHOLD,AMENDMENT_UNCERTAIN_THRESHOLD,AMENDMENT_SCOPE_NOTE,amendmentsState,amendmentRemoved,amendmentNormalize,amendmentSimilarity,extractAmendmentDates,normalizeAnalysisRequirements,amendmentSourceRefs,compareRequirements,amendmentSummary,amendmentAffectedWork,amendmentView,proposeAmendment};
