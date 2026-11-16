@@ -59,9 +59,9 @@ begin
     raise exception 'Customer role can release uncertain credits';
   end if;
   insert into public.rfp_submissions(id,user_id,fingerprint,status)
-  select ('99000000-0000-4000-8000-' || lpad(n::text,12,'0'))::uuid,
+  select ('99000000-0000-4000-8000-' || lpad(gs::text,12,'0'))::uuid,
     '99000000-0000-4000-8000-000000000001',repeat('b',64),'processing'
-  from generate_series(20,23) n;
+  from generate_series(20,23) gs;
   result := public.reserve_proposal_credit('99000000-0000-4000-8000-000000000020',
     '99000000-0000-4000-8000-000000000001','recCreditTest',start_at,end_at,5,0);
   if result->>'code' <> 'reserved' then raise exception 'Uncertain fixture not reserved'; end if;
