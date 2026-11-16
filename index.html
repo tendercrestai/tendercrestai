@@ -143,6 +143,14 @@
 
     .nav-portal-link:hover { background: white; }
 
+    .quick-links {
+      display: flex;
+      gap: .75rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 0 auto 2.5rem;
+    }
+
     main {
       flex: 1;
       max-width: 1280px;
@@ -565,19 +573,6 @@
             aria-controls="tab-portal" aria-pressed="false"
             onclick="switchTab('portal')">Email a draft</button>
         </nav>
-
-        <a href="/tools/shredder" class="nav-portal-link">Free Shredder</a><a href="/tools/bid-check" class="nav-portal-link">Bid Checker</a><a href="/teardowns" class="nav-portal-link">Teardowns</a> <a href="/opportunities" class="nav-portal-link">Opportunities</a> <a href="/compare/responsive" class="nav-portal-link">Compare: Responsive</a> <a href="/compare/loopio" class="nav-portal-link">Compare: Loopio</a> <a href="/compare/qvidian" class="nav-portal-link">Compare: Qvidian</a> <a href="/compare/xait" class="nav-portal-link">Compare: XaitPorter</a> <a href="/compare/chatgpt" class="nav-portal-link">Compare: ChatGPT &amp; Claude</a> <a href="/demo.html" class="nav-portal-link">Product tour</a> <a href="/workspace.html" class="nav-portal-link">Team workspace</a>
-
-        <!-- NEW CUSTOMER AUTH LINK -->
-        <a href="/auth.html" class="nav-portal-link" id="customer-auth-link">
-          👤 Customer Login / Sign Up
-        </a>
-
-        <a href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00"
-           target="_blank" rel="noopener noreferrer"
-           class="nav-portal-link">
-          💳 Billing Portal
-        </a>
       </div>
     </div>
   </header>
@@ -608,6 +603,15 @@
           compliance decisions and final submission. No contract award is guaranteed.
         </p>
       </div>
+
+      <nav class="quick-links" aria-label="Tools and comparisons">
+        <a href="/tools/shredder" class="nav-portal-link">Free Shredder</a>
+        <a href="/tools/bid-check" class="nav-portal-link">Bid Checker</a>
+        <a href="/teardowns" class="nav-portal-link">Teardowns</a>
+        <a href="/opportunities" class="nav-portal-link">Opportunities</a>
+        <a href="/compare" class="nav-portal-link">Compare TenderCrest</a>
+        <a href="/demo.html" class="nav-portal-link">Product tour</a>
+      </nav>
 
       <a class="ph-badge" href="https://www.producthunt.com/products/tendercrest-ai?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-tendercrest-ai" target="_blank" rel="noopener noreferrer" aria-label="View TenderCrest AI on Product Hunt (opens in a new tab)">
         <img alt="TenderCrest AI - Evidence-backed RFP responses, reviewed together | Product Hunt" width="250" height="54" loading="lazy" decoding="async" referrerpolicy="no-referrer" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1302089&amp;theme=light&amp;t=1793649933551">
@@ -1056,7 +1060,7 @@
         <a href="#portal" onclick="switchTab('portal');return false;"
            class="footer-link">Portal</a>
 
-        <a href="/auth.html" class="footer-link">My Account</a>
+        <a href="/auth.html" class="footer-link" id="customer-auth-link">My Account</a>
 
         <a href="/product.html" class="footer-link">How it works</a>
         <a href="/samples.html" class="footer-link">Sample deliverables</a>
