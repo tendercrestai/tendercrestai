@@ -1,0 +1,21 @@
+Reuse notice for the PwC (Rxpectations) Agile BPA submission.
+
+The source snapshot is the README of the public repository rxpectations/18f
+at commit d54da3afc938a4700de785f0354ca19f0e752a5c, which contains the agile
+approach narrative ("Agile Design and Development Approach") followed by the
+build instructions. No separate LICENSE file was found in the repository.
+
+Reuse basis: the README itself states the release terms. Its License section
+reads, in full: "Rxpectations is released under the MIT License", linking to
+http://www.opensource.org/licenses/MIT. The MIT notice is retained by this
+record; reuse is limited to structure guidance from the approach narrative.
+No bidder text, staffing names, or customer facts are transferred into
+guidance.
+
+Licence evidence (README, License section):
+https://github.com/rxpectations/18f/blob/d54da3afc938a4700de785f0354ca19f0e752a5c/README.md
+
+Award status is unverified, as for the other 18F submissions: the vendor is
+named on the official 18F Pool 3 awardee list, which establishes a vendor
+lead, not that this exact document/revision was the evaluated winning
+submission.
