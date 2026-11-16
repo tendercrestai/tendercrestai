@@ -142,10 +142,11 @@ test('health check pings openai, airtable and resend history, and sweeps zero st
   assert.equal(byName.openai_models,'passed');
   assert.equal(byName.airtable_base,'passed');
   assert.equal(byName.resend_delivery,'passed');
-  assert.deepEqual(result.swept,{pw:{found:0,redispatched:0,failed:0},kb:{found:0,redispatched:0,failed:0},ft:{found:0,redispatched:0,failed:0}});
+  assert.deepEqual(result.swept,{pw:{found:0,redispatched:0,failed:0},kb:{found:0,redispatched:0,failed:0},ft:{found:0,redispatched:0,failed:0},compliance:{found:0,redispatched:0,failed:0}});
   assert.ok(m.calls.some(p=>p.startsWith('pw_jobs?')&&p.includes('attempts=lt.3')));
   assert.ok(m.calls.some(p=>p.startsWith('kb_jobs?')));
   assert.ok(m.calls.some(p=>p.startsWith('ft_jobs?')));
+  assert.ok(m.calls.some(p=>p.startsWith('rfp_compliance_analyses?')&&p.includes('reviewed_hash=is.not.null')));
   assert.ok(m.stored.find(c=>c.name==='resend_delivery').detail.includes('2026-11-14T10:00:00.000Z'));
   assert.ok(m.calls.every(p=>!p.includes('email')));
  }finally{m.restoreDb();}
