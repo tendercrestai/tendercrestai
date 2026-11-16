@@ -1,0 +1,2 @@
+const kb = require('./lib/knowledge-base'), W = require('./lib/compliance-worker');
+exports.handler = async event => { try { kb.verifyWorker(event); if (process.env.COMPLIANCE_PREVIEW_ENABLED !== 'true') kb.fail(503, 'Disabled'); const p = kb.parse(event, 300); await W.processAnalysis(kb.configuration(), p.id); return kb.reply(200, { processed: true }); } catch (e) { return kb.reply(e.status || 503, { error: 'Background request unavailable.' }); } };

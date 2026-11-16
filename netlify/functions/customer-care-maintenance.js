@@ -32,7 +32,7 @@ exports.run=async(config,{fetcher=fetch,now=new Date(),invocation='operator'}={}
  // jobs. A sweeper failure must never fail the maintenance run.
  let swept=null;
  try{swept=await sweepStrandedJobs(config,{db:(path,options)=>C.db(config,path,options),fetcher,now});}
- catch{console.error(JSON.stringify({event:'sweep_failed'}));swept={pw:{found:0,redispatched:0,failed:0},kb:{found:0,redispatched:0,failed:0},ft:{found:0,redispatched:0,failed:0}};}
+ catch{console.error(JSON.stringify({event:'sweep_failed'}));swept={pw:{found:0,redispatched:0,failed:0},kb:{found:0,redispatched:0,failed:0},ft:{found:0,redispatched:0,failed:0},compliance:{found:0,redispatched:0,failed:0}};}
  // Publish a successful run only after every cleanup step completed.
  await C.db(config,'cc_health',{method:'POST',body:checks,fetcher:(url,init)=>fetcher(url,{...init,headers:{...init.headers,Prefer:'resolution=merge-duplicates,return=representation'}})});
  return {checks:checks.map(c=>({name:c.name,status:c.status})),retentionCleanup:true,swept};
