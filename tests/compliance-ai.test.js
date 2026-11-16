@@ -108,3 +108,39 @@ test("literal scoring and deadline timezone survive model omission without inven
   const ordinary=ai.excerptCatalog([{...segments[0],text:"Optional pricing discount: 20%. Meeting timezone: UTC."}]);
   assert.deepEqual(ai.resolveReferences({requirements:[],facts:[]},ordinary),{requirements:[],facts:[]});
 });
+
+test("exactly 80 requirements and 40 facts pass validation; 81 or 41 fail",()=>{
+  const sentences=Array.from({length:80},(_,i)=>`The vendor must provide deliverable ${i+1}.`);
+  const segs=[{id:"s1",document_id:"doc",page:1,section:"Section L",text:sentences.join(" ")}];
+  const catalog=sentences.map((text,i)=>({id:"e"+i,segment_id:"s1",text,fragmented:false,options:[{id:"e"+i+"v0",value:text,kind:"text"}]}));
+  const reqs=catalog.map(e=>({excerpt_id:e.id,category:"Technical",mandatory:"Yes",uncertain:false}));
+  const facts=Array.from({length:40},(_,i)=>({type:ai.FACTS[i%ai.FACTS.length],value_option_id:"e"+(i%80)+"v0"}));
+  const out=ai.validateOutput(ai.resolveReferences({requirements:reqs,facts},catalog),segs,docs);
+  assert.equal(out.requirements.length,80);assert.equal(out.facts.length,40);
+  assert.throws(()=>ai.resolveReferences({requirements:[...reqs,reqs[0]],facts},catalog),/source validation/);
+  assert.throws(()=>ai.resolveReferences({requirements:reqs,facts:[...facts,facts[0]]},catalog),/source validation/);
+  assert.throws(()=>ai.validateOutput({requirements:[...out.requirements,out.requirements[0]],facts:out.facts},segs,docs),/source validation/);
+  assert.throws(()=>ai.validateOutput({requirements:out.requirements,facts:[...out.facts,out.facts[0]]},segs,docs),/source validation/);
+});
+
+test("similarPairs caps its input at 500 rows and keeps duplicate semantics",()=>{
+  assert.equal(ai.SIMILAR_PAIRS_MAX_ROWS,500);
+  const rows=Array.from({length:500},(_,i)=>({id:"r"+i,requirement:`Fictional unique requirement ${i} word${i} about zebras.`}));
+  rows.push({id:"r500",requirement:"The vendor must provide three references for the downtown office today."});
+  rows.push({id:"r501",requirement:"The vendor must provide three references for the downtown office tomorrow."});
+  const pairs=ai.similarPairs(rows);
+  assert.ok(!pairs.some(p=>p.includes("r500")||p.includes("r501")));
+  assert.deepEqual(ai.similarPairs(rows.slice(500)),[["r500","r501"]]);
+  const similar=ai.similarPairs([{id:"one",requirement:"The vendor must provide three references."},{id:"two",requirement:"The vendor must provide three references today."}]);
+  assert.equal(similar.length,1);
+});
+
+test("analyzeChunk captures provider usage and an estimated cost",async()=>{
+  process.env.COMPLIANCE_AI_API_KEY="fictional-key";process.env.COMPLIANCE_AI_MODEL="fictional-model";
+  const result=await ai.analyzeChunk(segments,docs,async()=>Response.json({usage:{prompt_tokens:1000,completion_tokens:500,total_tokens:1500},choices:[{finish_reason:"stop",message:{content:JSON.stringify({requirements:[{excerpt_id:"e0",category:"Eligibility",mandatory:"Yes",uncertain:false}],facts:[]})}}]}));
+  assert.deepEqual(result.usage,{prompt_tokens:1000,completion_tokens:500,total_tokens:1500});
+  assert.equal(result.estimatedCostUSD,0.00045);
+  assert.equal(ai.estimateCostUSD(null),null);
+  assert.equal(ai.estimateCostUSD({prompt_tokens:100,completion_tokens:50,total_tokens:150}),0.000045);
+  assert.equal(ai.usageTokens({prompt_tokens:1}),null);
+});
