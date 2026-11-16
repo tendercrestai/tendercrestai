@@ -1,0 +1,22 @@
+Reuse notice for the Cisco JP14001 response structure extraction.
+
+The structure extraction in sources/cisco-jp14001-structure.md describes the
+section order, page ranges, word counts and response format of the winning
+proposal submitted by Cisco Systems, Inc. in response to Solicitation JP14001,
+WSCA-NASPO Master Agreement for Data Communications Products and Services,
+issued by the State of Utah Division of Purchasing and General Services.
+
+Reuse basis: public record. The response was released as a public record by the
+State of Utah and is incorporated as Attachment D to Utah State Cooperative
+Contract AR233 (effective June 1, 2014). Award: intent-to-award letter, State
+of Utah to Cisco, December 16, 2013.
+
+Contract record (Attachment D is the vendor response):
+https://documents.kentwa.gov/WebLink/DocView.aspx?id=216671&dbid=0&repo=CityofKent
+
+The response PDF was obtained from the Iowa procurement portal, where it is
+hosted as a contract document:
+https://bidopportunities.iowa.gov/Home/DownloadContractDocument/14763723-00bd-40f1-900e-7f73c4e10800
+
+No bidder text, pricing, staffing names, certifications, or customer facts
+from the response are reproduced in this repository. Structure guidance only.

@@ -38,7 +38,8 @@
       "licenceEvidenceUrl": "https://github.com/empowerai/agile-bpa/blob/0e6eaf50ec802416ffbd3fe8e0aaf928467e84a0/LICENSE.md",
       "awardStatus": "unverified",
       "patterns": [],
-      "limitations": "Agency list names NCI Information Systems. Repository identifies an NCI prototype response. A vendor-level award match is a lead, not verification that this exact revision/document was the evaluated winning response. Repository licence endpoint returned an ISC-style notice; documentation/training reuse scope needs review. Historical 2015 technologies are not current compliance guidance."
+      "limitations": "Agency list names NCI Information Systems. Repository identifies an NCI prototype response. A vendor-level award match is a lead, not verification that this exact revision/document was the evaluated winning response. Repository licence endpoint returned an ISC-style notice; documentation/training reuse scope needs review. Historical 2015 technologies are not current compliance guidance.",
+      "procurementId": "4QTFHS150004"
     },
     {
       "id": "ais-agile-bpa-documentation",
@@ -57,7 +58,8 @@
       "licenceEvidenceUrl": "",
       "awardStatus": "unverified",
       "patterns": [],
-      "limitations": "README identifies Agile Delivery Services BPA 4QTFHS150004 and Applied Information Sciences; agency list names that vendor. Exact submitted revision/award linkage is pending. GitHub repository metadata returned no recognised licence. Not approved for ingestion, model context or training."
+      "limitations": "README identifies Agile Delivery Services BPA 4QTFHS150004 and Applied Information Sciences; agency list names that vendor. Exact submitted revision/award linkage is pending. GitHub repository metadata returned no recognised licence. Not approved for ingestion, model context or training.",
+      "procurementId": "4QTFHS150004"
     },
     {
       "id": "usds-playbook-01",
@@ -235,6 +237,536 @@
         }
       ],
       "limitations": "Historical prototype/response documentation, not a verified full winning proposal. Reuse is limited to source-attributed structure guidance in the offline pilot. Third-party links/assets, names, claims and technology recommendations are not imported into bidder evidence."
+    },
+    {
+      "id": "cisco-jp14001-response",
+      "title": "Cisco response to Utah WSCA-NASPO JP14001 (winning proposal)",
+      "sourceUrl": "https://www.cisco.com/c/dam/en_us/solutions/industries/government/wsca/docs/Solicitation_Number_JP14001_Cisco_Response.pdf",
+      "supportingUrls": [
+        "https://bidopportunities.iowa.gov/Home/DownloadContractDocument/14763723-00bd-40f1-900e-7f73c4e10800"
+      ],
+      "publisher": "Cisco Systems, Inc.",
+      "jurisdiction": "US state/local",
+      "sector": "IT",
+      "documentType": "proposal_response",
+      "reviewStatus": "approved",
+      "approvalScope": "offline_pilot",
+      "reuseStatus": "permitted",
+      "licenceEvidenceUrl": "https://bidopportunities.iowa.gov/Home/DownloadContractDocument/14763723-00bd-40f1-900e-7f73c4e10800",
+      "reuseBasis": "Public record. The response was released as a public record by the State of Utah and is incorporated as Attachment D to Utah State Cooperative Contract AR233. The snapshot stored here is a structure-only extraction (section headings, page ranges, word counts, response format); no bidder text, pricing, staffing names, certifications or customer facts are reproduced. Structure guidance only; no endorsement, and no vendor facts transferred into guidance.",
+      "reviewedBy": "Muse structure extraction; final review Archit Bumb on PR approval",
+      "reviewedAt": "2026-11-16",
+      "sha256": "e4ee2af2fcae070fa17d02b0d9e1685adde23b277f32c689fbe9ff4fb5e2c050",
+      "sourcePath": "sources/cisco-jp14001-structure.md",
+      "licencePath": "notices/cisco-jp14001-public-record.txt",
+      "licenceSha256": "fc12d772ec443b0d769544ad050e75a8d015eafa136e15afb9a88a20b530f9ae",
+      "documentSha256": "2ffbbc898c255da6a593d831538dd284ed2625f0a239a5939b91538e8228eb7e",
+      "awardStatus": "verified",
+      "awardEvidenceUrl": "https://documents.kentwa.gov/WebLink/DocView.aspx?id=216671&dbid=0&repo=CityofKent",
+      "vendorName": "Cisco Systems, Inc.",
+      "procurementId": "JP14001",
+      "awardRationale": "Cisco Systems, Inc. was awarded the WSCA-NASPO Master Agreement for Data Communications Products and Services under Solicitation JP14001; Utah intent-to-award letter December 16, 2013, and Utah State Cooperative Contract AR233, effective June 1, 2014. This PDF is Attachment D to contract AR233, i.e. the winning response itself.",
+      "patterns": [
+        {
+          "id": "structure-template-state-local-it",
+          "title": "State/local IT response section order",
+          "guidance": "One 2013 US state/local IT winning response (188 pages, about 84,200 words) ordered its sections as: cover letter and bidder forms; a short executive summary first (about 5 pages) making the capability case before any requirement text; the bulk as a point-by-point response in the solicitation's own numbering (about 123 pages, 58% of the response), restating each requirement and answering it in turn; terms and conditions with noted exceptions confined to appendices; a glossary and acronyms at the end; and pricing as a separate cost-schedule attachment, not a narrative section. Use this order only as a starting suggestion for state/local IT proposals; it comes from a single example and does not establish what any other buyer expects.",
+          "locator": "Table of Contents; Cover Letter p.1; Executive Summary pp.1-5; Point-by-point response pp.6-136; Appendices A-C",
+          "tags": [
+            "structure-template",
+            "structure",
+            "template",
+            "sections",
+            "order",
+            "executive",
+            "summary",
+            "compliance",
+            "matrix",
+            "requirements",
+            "terms",
+            "conditions",
+            "appendices",
+            "cost",
+            "schedule"
+          ],
+          "groups": [
+            {
+              "label": "Cover letter and bidder forms",
+              "keywords": [
+                "cover",
+                "bidder",
+                "administrative",
+                "forms"
+              ]
+            },
+            {
+              "label": "Executive summary",
+              "keywords": [
+                "executive",
+                "summary",
+                "company",
+                "capability",
+                "overview"
+              ]
+            },
+            {
+              "label": "Requirements response",
+              "keywords": [
+                "requirement",
+                "mandatory",
+                "technical",
+                "specification",
+                "service",
+                "product"
+              ]
+            },
+            {
+              "label": "Terms and conditions",
+              "keywords": [
+                "terms",
+                "conditions",
+                "legal",
+                "governing",
+                "law",
+                "warranty"
+              ]
+            },
+            {
+              "label": "Pricing and cost schedule",
+              "keywords": [
+                "price",
+                "pricing",
+                "cost",
+                "rates",
+                "payment"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "point-by-point-format",
+          "title": "Point-by-point requirements response",
+          "guidance": "Answer requirements in the solicitation's own numbering: restate each numbered requirement, then give the response under it. Mark mandatory items explicitly (this solicitation marked them (M) and warned that a 'no' or an omission disqualifies the service from evaluation). Do not build a standalone compliance matrix when the buyer asked for point-by-point answers; this response had no compliance-matrix table and no 'comply' wording. Record any exceptions against the terms and conditions in appendices, not inline in the requirement answers.",
+          "locator": "Point-by-point response, pp.6-136; Section 3 mandatory minimums",
+          "tags": [
+            "requirements",
+            "point",
+            "mandatory",
+            "response",
+            "restatement",
+            "exceptions",
+            "terms"
+          ]
+        },
+        {
+          "id": "executive-summary-first",
+          "title": "Short executive summary before the requirement answers",
+          "guidance": "Place a short executive summary before the requirement answers (about 5 pages, about 1,300 words in this example): why the bidder, capability and reach, customer satisfaction, market position, research, then a one-paragraph conclusion. Keep terms out of the summary and keep pricing out of the narrative body entirely (terms in appendices, pricing in a separate cost-schedule attachment). Populate every claim from the bidder's own approved evidence; do not import this example's claims, figures or customer references.",
+          "locator": "Executive Summary pp.1-5; Conclusion p.5",
+          "tags": [
+            "executive",
+            "summary",
+            "introduction",
+            "capability",
+            "company"
+          ]
+        }
+      ],
+      "limitations": "One 2013 US state/local IT winning response. The snapshot is a structure-only extraction; the full 188-page PDF is not stored in this repository and its SHA-256 is recorded as documentSha256. The section order does not establish what any other buyer expects. Not a compliance verdict, award evidence for any other procurement, or proof that this structure caused the win."
+    },
+    {
+      "id": "flexion-agile-bpa-documentation",
+      "title": "Flexion GSA Agile BPA prototype approach narrative",
+      "sourceUrl": "https://github.com/flexion/flexion-ads-18f-response/blob/e1e11d02d5b0579d232fe1a2e906dcf54ea86b1a/README.md",
+      "supportingUrls": [
+        "https://github.com/18F/ads-bpa/blob/e92fd50019b83d65396cf347c48e5fd9a7fcb81c/data/vendors.yml"
+      ],
+      "publisher": "Flexion Inc",
+      "jurisdiction": "US federal",
+      "sector": "IT",
+      "documentType": "technical_submission_documentation",
+      "sourceRevision": "e1e11d02d5b0579d232fe1a2e906dcf54ea86b1a",
+      "reviewStatus": "approved",
+      "approvalScope": "offline_pilot",
+      "reuseStatus": "permitted",
+      "licenceEvidenceUrl": "https://github.com/flexion/flexion-ads-18f-response/blob/e1e11d02d5b0579d232fe1a2e906dcf54ea86b1a/LICENSE.md",
+      "reuseBasis": "Repository LICENSE.md is a CC0 1.0 Universal public domain dedication, verified at the pinned commit; retain the notice. Structure guidance only; no endorsement, and no vendor facts transferred into guidance.",
+      "reviewedBy": "Muse structure extraction; final review Archit Bumb on PR approval",
+      "reviewedAt": "2026-11-16",
+      "sha256": "ace64e9c5c03d6ee5950b94882054b3c95228fa83047495c2e123e0c9306cccd",
+      "sourcePath": "sources/flexion-agile-bpa-documentation.md",
+      "licencePath": "notices/flexion-CC0.md",
+      "licenceSha256": "b079c86170545643bf4f805deea088da0a8c239fa59c8c47ab7a56e7adbab773",
+      "awardStatus": "unverified",
+      "awardAssociation": "Official 18F Pool 3 awardee list names Flexion Inc. This establishes a vendor lead, not that this exact document/revision was the evaluated winning submission.",
+      "patterns": [
+        {
+          "id": "user-centred-prototype-narrative",
+          "title": "User-centred prototype approach narrative",
+          "guidance": "Open with the user need and the research behind it (interviews, a primary persona, a defined problem), then the team and its accountable leader, then the iteration cadence with testing and feedback rolled into each cycle, then deployment and monitoring. Cite the buyer's own playbook or framework where the narrative evidences it, as this submission cited USDS play numbers inline. Do not import this example's user research, personas, team, durations or technology choices; they describe one 2015 prototype, not a current requirement.",
+          "locator": "Approach used to create the prototype (single narrative)",
+          "tags": [
+            "users",
+            "personas",
+            "research",
+            "team",
+            "iterations",
+            "testing",
+            "deployment",
+            "prototype",
+            "approach"
+          ]
+        }
+      ],
+      "limitations": "Historical 2015 agile IT prototype documentation, not a verified full winning proposal. Award status is unverified: the vendor is named on the official 18F Pool 3 awardee list, which establishes a vendor lead, not that this exact document/revision was the evaluated winning submission. Reuse is limited to source-attributed structure guidance in the offline pilot. Technology choices, team names and hosting decisions are historical and are not imported into bidder evidence.",
+      "procurementId": "4QTFHS150004"
+    },
+    {
+      "id": "teralogics-agile-bpa-documentation",
+      "title": "TeraLogics Total Briecall Agile BPA submission",
+      "sourceUrl": "https://github.com/TeraLogics/TotalBriecall/blob/73ee86a64d929315126ebd66bd2ec6b5b645e453/README.md",
+      "supportingUrls": [
+        "https://github.com/18F/ads-bpa/blob/e92fd50019b83d65396cf347c48e5fd9a7fcb81c/data/vendors.yml"
+      ],
+      "publisher": "TeraLogics LLC",
+      "jurisdiction": "US federal",
+      "sector": "IT",
+      "documentType": "technical_submission_documentation",
+      "sourceRevision": "73ee86a64d929315126ebd66bd2ec6b5b645e453",
+      "reviewStatus": "approved",
+      "approvalScope": "offline_pilot",
+      "reuseStatus": "permitted",
+      "licenceEvidenceUrl": "https://github.com/TeraLogics/TotalBriecall/blob/73ee86a64d929315126ebd66bd2ec6b5b645e453/LICENSE",
+      "reuseBasis": "Repository LICENSE is the MIT License, Copyright (c) 2015 TeraLogics, verified at the pinned commit; retain the copyright and permission notice. Structure guidance only; no endorsement, and no vendor facts transferred into guidance.",
+      "reviewedBy": "Muse structure extraction; final review Archit Bumb on PR approval",
+      "reviewedAt": "2026-11-16",
+      "sha256": "d611d93b3fa192a71edcdbef31a920c1327d27d5c9bddfeb83bdbe7d5aed18d6",
+      "sourcePath": "sources/teralogics-agile-bpa-documentation.md",
+      "licencePath": "notices/teralogics-MIT.txt",
+      "licenceSha256": "121c35ec677febad1149a21df7c1016cb6e1bf7818cdd8fdf55d0693118ba464",
+      "awardStatus": "unverified",
+      "awardAssociation": "Official 18F Pool 3 awardee list names TeraLogics LLC. This establishes a vendor lead, not that this exact document/revision was the evaluated winning submission.",
+      "patterns": [
+        {
+          "id": "structure-template-agile-delivery",
+          "title": "Agile delivery approach section order",
+          "guidance": "One 2015 US federal agile IT submission organised its approach as: planning and discovery (user interviews, user stories, backlog with priorities and estimates); design (dataset review, design criteria, mockups, style guide); development (rapid prototyping, unit tests before commit, code review, integration and load tests); usability testing by testers not involved in design, with feedback each sprint; then iterative deployment with continuous integration and monitoring. Use this order only as a starting suggestion for agile delivery responses; it comes from a single 2015 example and its technology choices are historical, not current guidance.",
+          "locator": "Planning and Discovery; Design; Development; Usability Testing; Deployment",
+          "tags": [
+            "structure-template",
+            "structure",
+            "template",
+            "sections",
+            "order",
+            "agile",
+            "discovery",
+            "design",
+            "development",
+            "testing",
+            "deployment",
+            "sprints"
+          ],
+          "groups": [
+            {
+              "label": "Planning and discovery",
+              "keywords": [
+                "discovery",
+                "planning",
+                "research",
+                "interview",
+                "persona",
+                "stories",
+                "backlog"
+              ]
+            },
+            {
+              "label": "Design",
+              "keywords": [
+                "design",
+                "mockup",
+                "wireframe",
+                "style"
+              ]
+            },
+            {
+              "label": "Development",
+              "keywords": [
+                "development",
+                "build",
+                "implementation",
+                "code"
+              ]
+            },
+            {
+              "label": "Testing and quality",
+              "keywords": [
+                "testing",
+                "test",
+                "usability",
+                "quality",
+                "review"
+              ]
+            },
+            {
+              "label": "Deployment and operations",
+              "keywords": [
+                "deployment",
+                "deploy",
+                "release",
+                "operations",
+                "monitoring",
+                "support"
+              ]
+            }
+          ]
+        }
+      ],
+      "limitations": "Historical 2015 agile IT prototype documentation, not a verified full winning proposal. Award status is unverified: the vendor is named on the official 18F Pool 3 awardee list, which establishes a vendor lead, not that this exact document/revision was the evaluated winning submission. Reuse is limited to source-attributed structure guidance in the offline pilot. Technology choices, team names and hosting decisions are historical and are not imported into bidder evidence.",
+      "procurementId": "4QTFHS150004"
+    },
+    {
+      "id": "esri-agile-bpa-documentation",
+      "title": "Esri openFDA prototype Agile BPA submission",
+      "sourceUrl": "https://github.com/esridc/openfda/blob/ef449e7e71fec88f067e93937033a57249cb3d99/README.md",
+      "supportingUrls": [
+        "https://github.com/18F/ads-bpa/blob/e92fd50019b83d65396cf347c48e5fd9a7fcb81c/data/vendors.yml"
+      ],
+      "publisher": "Environmental Systems Research Institute Inc. (Esri)",
+      "jurisdiction": "US federal",
+      "sector": "IT",
+      "documentType": "technical_submission_documentation",
+      "sourceRevision": "ef449e7e71fec88f067e93937033a57249cb3d99",
+      "reviewStatus": "approved",
+      "approvalScope": "offline_pilot",
+      "reuseStatus": "permitted",
+      "licenceEvidenceUrl": "https://github.com/esridc/openfda/blob/ef449e7e71fec88f067e93937033a57249cb3d99/LICENSE",
+      "reuseBasis": "Repository LICENSE is the Apache License 2.0, verified at the pinned commit; retain the notice. Structure guidance only; no endorsement, and no vendor facts transferred into guidance.",
+      "reviewedBy": "Muse structure extraction; final review Archit Bumb on PR approval",
+      "reviewedAt": "2026-11-16",
+      "sha256": "c9d10f24e7200f1b5b2cc158ea4d88595464bdbb98a512e12ea1389aa4cbac52",
+      "sourcePath": "sources/esri-agile-bpa-documentation.md",
+      "licencePath": "notices/esri-Apache-2.0.txt",
+      "licenceSha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "awardStatus": "unverified",
+      "awardAssociation": "Official 18F Pool 3 awardee list names Environmental Systems Research Institute Inc. (Esri). This establishes a vendor lead, not that this exact document/revision was the evaluated winning submission.",
+      "patterns": [
+        {
+          "id": "agile-prototype-documentation-structure",
+          "title": "Agile prototype documentation structure",
+          "guidance": "Structure prototype documentation as: objective (one sentence stating the decision the prototype supports); collaboration and backlog links; team roles; front-end and back-end sections each with install, run, test and build steps; and a short approach narrative last. Keep installation and deployment instructions separate from the approach narrative so evaluators can run the prototype without reading the rationale first. Do not import this example's team names, tools, hosting choices or URLs.",
+          "locator": "Objective; Collaboration; Team; Front-End; Testing; Back-End; Installation; Deployment; Approach",
+          "tags": [
+            "objective",
+            "team",
+            "backlog",
+            "testing",
+            "deployment",
+            "approach",
+            "prototype",
+            "collaboration"
+          ]
+        }
+      ],
+      "limitations": "Historical 2015 agile IT prototype documentation, not a verified full winning proposal. Award status is unverified: the vendor is named on the official 18F Pool 3 awardee list, which establishes a vendor lead, not that this exact document/revision was the evaluated winning submission. Reuse is limited to source-attributed structure guidance in the offline pilot. Technology choices, team names and hosting decisions are historical and are not imported into bidder evidence.",
+      "procurementId": "4QTFHS150004"
+    },
+    {
+      "id": "wwt-agile-bpa-documentation",
+      "title": "World Wide Technology FDA.ninja Agile BPA submission",
+      "sourceUrl": "https://github.com/dwafler/gsa_2015/blob/db2875fb544d1a97e6d430da92ba7aea0d509ba7/README.md",
+      "supportingUrls": [
+        "https://github.com/18F/ads-bpa/blob/e92fd50019b83d65396cf347c48e5fd9a7fcb81c/data/vendors.yml"
+      ],
+      "publisher": "World Wide Technology",
+      "jurisdiction": "US federal",
+      "sector": "IT",
+      "documentType": "technical_submission_documentation",
+      "sourceRevision": "db2875fb544d1a97e6d430da92ba7aea0d509ba7",
+      "reviewStatus": "approved",
+      "approvalScope": "offline_pilot",
+      "reuseStatus": "permitted",
+      "licenceEvidenceUrl": "https://github.com/dwafler/gsa_2015/blob/db2875fb544d1a97e6d430da92ba7aea0d509ba7/LICENSE.txt",
+      "reuseBasis": "Repository LICENSE.txt is the MIT License, Copyright (c) 2015 World Wide Technology Asynchrony Labs, verified at the pinned commit; the README also states MIT release. Retain the copyright and permission notice. Structure guidance only; no endorsement, and no vendor facts transferred into guidance.",
+      "reviewedBy": "Muse structure extraction; final review Archit Bumb on PR approval",
+      "reviewedAt": "2026-11-16",
+      "sha256": "a5ef70ee4c89f23d855df88e4a5c4d2dfd9b42873644080bbaa3665194a53107",
+      "sourcePath": "sources/wwt-agile-bpa-documentation.md",
+      "licencePath": "notices/wwt-MIT.txt",
+      "licenceSha256": "6d804cfffdee6242555595de6b0820590a4dd30f29aa38794789c8d7d8d8dd86",
+      "awardStatus": "unverified",
+      "awardAssociation": "Official 18F Pool 3 awardee list names World Wide Technology. This establishes a vendor lead, not that this exact document/revision was the evaluated winning submission.",
+      "patterns": [
+        {
+          "id": "iteration-zero-discovery-structure",
+          "title": "Iteration-zero discovery before build",
+          "guidance": "Begin the approach with an iteration zero: kick-off ideation, target users, a primary use case, an initial feature set and wireframes, before any build. Follow with user research, usability testing, personas and a task flow, then iterative development tracked on a visible board, then a retrospective that feeds a second planning session. End with technical details and installation instructions as separate sections. Do not import this example's team, tools, hosting or usability findings.",
+          "locator": "Project Approach; Technical Details; Installation and Local Deployment",
+          "tags": [
+            "iteration",
+            "discovery",
+            "personas",
+            "usability",
+            "kanban",
+            "retrospective",
+            "prototype",
+            "research"
+          ]
+        }
+      ],
+      "limitations": "Historical 2015 agile IT prototype documentation, not a verified full winning proposal. Award status is unverified: the vendor is named on the official 18F Pool 3 awardee list, which establishes a vendor lead, not that this exact document/revision was the evaluated winning submission. Reuse is limited to source-attributed structure guidance in the offline pilot. Technology choices, team names and hosting decisions are historical and are not imported into bidder evidence.",
+      "procurementId": "4QTFHS150004"
+    },
+    {
+      "id": "pwc-agile-bpa-documentation",
+      "title": "PwC Rxpectations Agile BPA approach narrative",
+      "sourceUrl": "https://github.com/rxpectations/18f/blob/d54da3afc938a4700de785f0354ca19f0e752a5c/README.md",
+      "supportingUrls": [
+        "https://github.com/18F/ads-bpa/blob/e92fd50019b83d65396cf347c48e5fd9a7fcb81c/data/vendors.yml"
+      ],
+      "publisher": "PricewaterhouseCoopers Public Sector LLP",
+      "jurisdiction": "US federal",
+      "sector": "IT",
+      "documentType": "technical_submission_documentation",
+      "sourceRevision": "d54da3afc938a4700de785f0354ca19f0e752a5c",
+      "reviewStatus": "approved",
+      "approvalScope": "offline_pilot",
+      "reuseStatus": "permitted",
+      "licenceEvidenceUrl": "https://github.com/rxpectations/18f/blob/d54da3afc938a4700de785f0354ca19f0e752a5c/README.md",
+      "reuseBasis": "No separate LICENSE file was found in the repository. The README states \"Rxpectations is released under the MIT License\" and links the MIT licence text; that statement is the reuse evidence and is recorded in the notice file. Retain the MIT notice. Structure guidance only; no endorsement, and no vendor facts transferred into guidance.",
+      "reviewedBy": "Muse structure extraction; final review Archit Bumb on PR approval",
+      "reviewedAt": "2026-11-16",
+      "sha256": "6abb7962e360c697ac8d1cd70455eec7621e65504cdbcfd5dc3c4fe359e58700",
+      "sourcePath": "sources/pwc-agile-bpa-documentation.md",
+      "licencePath": "notices/pwc-MIT-statement.txt",
+      "licenceSha256": "6fe6721986a880028cdab22e31a215a2fa10a3a4b44fd2d36d35850659626117",
+      "awardStatus": "unverified",
+      "awardAssociation": "Official 18F Pool 3 awardee list names PricewaterhouseCoopers Public Sector LLP. This establishes a vendor lead, not that this exact document/revision was the evaluated winning submission.",
+      "patterns": [
+        {
+          "id": "discovery-sprint-structure",
+          "title": "Discovery, then daily sprints with usability testing",
+          "guidance": "Structure the approach as a dated sequence: ideation (wide net, then top opportunities voted on); discovery (voice of the customer, journey mapping, personas per segment); user stories and wireframes from the core need; a backlog and release plan at the end of day one; then daily sprints with sprint planning, build, usability testing and retrospectives each day. State the testing methods used (this submission named A/B, think-aloud, man-on-the-street and remote tests) and the accessibility standard checked. Do not import this example's personas, stories, test results or technology choices.",
+          "locator": "Approach; Get Inspired (Ideation); Start with People (Discovery); Solve for the Core Need; Don't Stop Iterating (Sprint); Conclusion",
+          "tags": [
+            "ideation",
+            "discovery",
+            "personas",
+            "stories",
+            "backlog",
+            "sprints",
+            "usability",
+            "testing",
+            "journey"
+          ]
+        }
+      ],
+      "limitations": "Historical 2015 agile IT prototype documentation, not a verified full winning proposal. Award status is unverified: the vendor is named on the official 18F Pool 3 awardee list, which establishes a vendor lead, not that this exact document/revision was the evaluated winning submission. Reuse is limited to source-attributed structure guidance in the offline pilot. Technology choices, team names and hosting decisions are historical and are not imported into bidder evidence.",
+      "procurementId": "4QTFHS150004"
+    },
+    {
+      "id": "vencore-agile-bpa-documentation",
+      "title": "Vencore Agile BPA prototype approach narrative",
+      "sourceUrl": "https://github.com/vencoreinc/18FAGILEPROTOTYPE",
+      "supportingUrls": [
+        "https://github.com/18F/ads-bpa/blob/e92fd50019b83d65396cf347c48e5fd9a7fcb81c/data/vendors.yml"
+      ],
+      "publisher": "Vencore Services and Solutions Inc",
+      "jurisdiction": "US federal",
+      "sector": "IT",
+      "documentType": "technical_submission_documentation",
+      "sourceRevision": "8ac619358c89404325b9e4dc5ffab66faf2afb89",
+      "reviewStatus": "candidate",
+      "reuseStatus": "pending",
+      "licenceEvidenceUrl": "",
+      "awardStatus": "unverified",
+      "awardAssociation": "Official 18F Pool 3 awardee list names Vencore Services and Solutions Inc. This establishes a vendor lead, not that this exact document/revision was the evaluated winning submission.",
+      "patterns": [],
+      "limitations": "Licence not stated in the repository; reuse is pending until a licence or other reuse basis is confirmed. No patterns are published from this record. Award status is unverified: the vendor is named on the official 18F Pool 3 awardee list, which establishes a vendor lead, not that this exact document/revision was the evaluated winning submission.",
+      "procurementId": "4QTFHS150004"
+    },
+    {
+      "id": "dsoft-agile-bpa-documentation",
+      "title": "DSoft Technology Agile BPA prototype submission",
+      "sourceUrl": "https://github.com/DSoftTechnology/ADS-FDA-Pool3",
+      "supportingUrls": [
+        "https://github.com/18F/ads-bpa/blob/e92fd50019b83d65396cf347c48e5fd9a7fcb81c/data/vendors.yml"
+      ],
+      "publisher": "DSoft Technology Company",
+      "jurisdiction": "US federal",
+      "sector": "IT",
+      "documentType": "technical_submission_documentation",
+      "sourceRevision": "e0ab233dc42fb36c6e966876a4b232c845e5d6a7",
+      "reviewStatus": "candidate",
+      "reuseStatus": "pending",
+      "licenceEvidenceUrl": "",
+      "awardStatus": "unverified",
+      "awardAssociation": "Official 18F Pool 3 awardee list names DSoft Technology Company. This establishes a vendor lead, not that this exact document/revision was the evaluated winning submission.",
+      "patterns": [],
+      "limitations": "Licence not stated in the repository; reuse is pending until a licence or other reuse basis is confirmed. No patterns are published from this record. Award status is unverified: the vendor is named on the official 18F Pool 3 awardee list, which establishes a vendor lead, not that this exact document/revision was the evaluated winning submission.",
+      "procurementId": "4QTFHS150004"
+    },
+    {
+      "id": "truetandem-agile-bpa-documentation",
+      "title": "True Tandem Agile BPA technical approach",
+      "sourceUrl": "https://github.com/bmallred/truetandem-gsa",
+      "supportingUrls": [
+        "https://github.com/18F/ads-bpa/blob/e92fd50019b83d65396cf347c48e5fd9a7fcb81c/data/vendors.yml"
+      ],
+      "publisher": "True Tandem LLC",
+      "jurisdiction": "US federal",
+      "sector": "IT",
+      "documentType": "technical_submission_documentation",
+      "sourceRevision": "adf0eeef98e0aeedd14d8ea63bdd532a66724bbf",
+      "reviewStatus": "candidate",
+      "reuseStatus": "pending",
+      "licenceEvidenceUrl": "",
+      "awardStatus": "unverified",
+      "awardAssociation": "Official 18F Pool 3 awardee list names True Tandem LLC. This establishes a vendor lead, not that this exact document/revision was the evaluated winning submission.",
+      "patterns": [],
+      "limitations": "Licence not stated in the repository; reuse is pending until a licence or other reuse basis is confirmed. No patterns are published from this record. Award status is unverified: the vendor is named on the official 18F Pool 3 awardee list, which establishes a vendor lead, not that this exact document/revision was the evaluated winning submission.",
+      "procurementId": "4QTFHS150004"
+    },
+    {
+      "id": "ventera-agile-bpa-documentation",
+      "title": "Ventera openFDA Agile BPA submission",
+      "sourceUrl": "https://github.com/akulasainath/18frepo",
+      "supportingUrls": [
+        "https://github.com/18F/ads-bpa/blob/e92fd50019b83d65396cf347c48e5fd9a7fcb81c/data/vendors.yml"
+      ],
+      "publisher": "Ventera Corporation",
+      "jurisdiction": "US federal",
+      "sector": "IT",
+      "documentType": "technical_submission_documentation",
+      "sourceRevision": "1af54addc1613b0aa8986fde1a7081111787e266",
+      "reviewStatus": "candidate",
+      "reuseStatus": "pending",
+      "licenceEvidenceUrl": "",
+      "awardStatus": "unverified",
+      "awardAssociation": "Official 18F Pool 3 awardee list names Ventera Corporation. This establishes a vendor lead, not that this exact document/revision was the evaluated winning submission.",
+      "patterns": [],
+      "limitations": "Licence not stated in the repository; reuse is pending until a licence or other reuse basis is confirmed. No patterns are published from this record. Award status is unverified: the vendor is named on the official 18F Pool 3 awardee list, which establishes a vendor lead, not that this exact document/revision was the evaluated winning submission.",
+      "procurementId": "4QTFHS150004"
+    },
+    {
+      "id": "threewire-agile-bpa-documentation",
+      "title": "Three Wire Systems MedFinder Agile BPA submission",
+      "sourceUrl": "https://bitbucket.org/ThreeWireSystems/18f_pool3",
+      "supportingUrls": [
+        "https://github.com/18F/ads-bpa/blob/e92fd50019b83d65396cf347c48e5fd9a7fcb81c/data/vendors.yml"
+      ],
+      "publisher": "Three Wire Systems LLC",
+      "jurisdiction": "US federal",
+      "sector": "IT",
+      "documentType": "technical_submission_documentation",
+      "sourceRevision": "1712f318c8141b01a487f681764493b11d73b466",
+      "reviewStatus": "candidate",
+      "reuseStatus": "pending",
+      "licenceEvidenceUrl": "",
+      "awardStatus": "unverified",
+      "awardAssociation": "Official 18F Pool 3 awardee list names Three Wire Systems LLC. This establishes a vendor lead, not that this exact document/revision was the evaluated winning submission.",
+      "patterns": [],
+      "limitations": "Licence not stated in the repository; reuse is pending until a licence or other reuse basis is confirmed. No patterns are published from this record. Award status is unverified: the vendor is named on the official 18F Pool 3 awardee list, which establishes a vendor lead, not that this exact document/revision was the evaluated winning submission.",
+      "procurementId": "4QTFHS150004"
     }
   ]
 }
