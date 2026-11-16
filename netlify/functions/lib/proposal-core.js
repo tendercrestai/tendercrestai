@@ -271,6 +271,19 @@ function imported(s,workspace,amendment=false){
  s.analysis={id:workspace.analysis.id,fingerprint:workspace.analysis.fingerprint,status:workspace.analysis.status,documents:workspace.analysis.documents.map(({segments,...d})=>d),facts:workspace.analysis.facts,processed:Number.isSafeInteger(workspace.analysis.processed)?workspace.analysis.processed:null,total_chunks:Number.isSafeInteger(workspace.analysis.total_chunks)?workspace.analysis.total_chunks:null};s.sourceWarnings=[...workspace.analysis.warnings,...(workspace.analysis.status==='Partial'?['RFP analysis has extraction gaps; review the originals.']:[])];
  s.sections=s.requirements.map((r,i)=>({id:old.has(r.id)&&s.sections.find(x=>x.requirementIds.includes(r.id))?.id||randomUUID(),title:`${i+1}. ${r.text.slice(0,100)}`,requirementIds:[r.id],text:s.sections.find(x=>x.requirementIds.includes(r.id))?.text||'',revision:(s.sections.find(x=>x.requirementIds.includes(r.id))?.revision??-1)+1,status:'draft',claims:[],unverified:true,authorId:r.authorId,reviewerId:r.reviewerId,dueAt:r.dueAt,reviewReason:'Source requirements imported or amended.'}));
  const retained=previousSections.filter(section=>!section.requirementIds.some(id=>s.requirements.some(r=>r.id===id)));if(amendment&&retained.length)s.archivedResponses=[...(s.archivedResponses||[]).slice(-4),{analysisId:previousAnalysisId,archivedAt:new Date().toISOString(),sections:retained,requirements:previousRequirements.filter(r=>retained.some(x=>x.requirementIds.includes(r.id)))}];
+ if(amendment){
+  // A direct import replaces the live snapshot without per-change review.
+  // Record it as an applied amendment version so the replacement, and
+  // exactly which documents were compared, stay visible in the amendment
+  // history and impact report instead of silently bypassing review.
+  // Routing through proposeAmendment would remove the direct-replace
+  // capability the share flow relies on, so this records rather than reroutes.
+  const prior=amendmentsState(s);
+  if(prior.length<AMENDMENT_MAX_PER_PROJECT){
+   const versionNumber=prior.reduce((m,a)=>Math.max(m,a.versionNumber||0),0)+1;
+   s.amendments=[...prior,{id:randomUUID(),versionNumber,kind:'replacement',analysisId:workspace.analysis.id||null,sourceDocumentId:workspace.analysis.documents[0]?.id||null,fileIds:[],documentsCompared:(workspace.analysis.documents||[]).map(d=>({id:d.id,name:d.name})),documentsUnprocessed:workspace.analysis.status==='Partial'?(workspace.analysis.documents||[]).filter(d=>!(d.segments&&d.segments.length)).map(d=>({id:d.id,name:d.name,reason:'No extracted segments in this analysis.'})):[],status:'applied',appliedDirectly:true,createdAt:new Date().toISOString(),createdBy:null,changes:[],notMentioned:[]}];
+  }
+ }
  s.evidence=[];s.finalApproval=null;s.assessment=null;s.decision=null;return s;
 }
 function draftSection(s,sectionId){
