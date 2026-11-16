@@ -81,6 +81,7 @@ function amendmentImpactReportText(project,amendmentId){
  lines.push('','Summary','- '+summary.total+' proposed changes: '+Object.entries(summary.byType).map(([t,n])=>n+' '+t.replace(/-/g,' ')).join(', ')+'.',
   '- '+summary.proposed+' still proposed (unresolved), '+summary.confirmed+' confirmed, '+summary.corrected+' corrected, '+summary.rejected+' rejected.',
   '- Amendment status: '+summary.status+'.');
+ if(a.appliedDirectly)lines.push('- Applied directly by import: the live snapshot was replaced without per-change review. For a reviewed amendment, use Propose amendment instead.');
  if(a.kind==='supplemental')lines.push('- '+(a.notMentioned||[]).length+' earlier requirements were not mentioned in this supplemental amendment. Absence from a supplemental amendment does not mean a requirement was removed.');
  const affectedLines=c=>{
   const out=[];const aff=c.affected||{};
