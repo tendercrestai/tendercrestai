@@ -1,4 +1,21 @@
 export const statuses = ["Compliant", "Partial", "Non-Compliant", "Needs Review"];
+// A submission deadline is only usable when it parses as a real date.
+// Server extraction takes the text after the first colon of a "Due date:"
+// line, and on form-heavy documents that text is header noise, not a date.
+// The compliance page uses this to hide an already-stored unusable deadline
+// instead of showing form noise as a date; the server applies the same rule
+// (netlify/functions/lib/compliance-ai.js) before storing new facts.
+export function validDeadline(value) {
+  if (typeof value !== "string") return false;
+  const v = value.trim();
+  if (!v || v.length > 120) return false;
+  const hasDate = /\b\d{4}-\d{2}-\d{2}\b/.test(v)
+    || /\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b/.test(v)
+    || /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?\b/i.test(v)
+    || /\b\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\b/i.test(v)
+    || /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{4}\b/i.test(v);
+  return hasDate && Number.isFinite(Date.parse(v.replace(/\s+(?:UTC|GMT|Z|EST|EDT|CST|CDT|MST|MDT|PST|PDT|ET|CT|MT|PT)$/i, "")));
+}
 export const categories = ["Technical", "Legal", "Financial", "Administrative", "Eligibility", "Submission", "Attachment", "Evaluation", "Service Level", "Other"];
 export function metrics(rows) {
   const covered = rows.filter(r => r.evidence.trim() && r.evidence_reference.trim()).length;

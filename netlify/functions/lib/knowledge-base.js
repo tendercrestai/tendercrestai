@@ -82,12 +82,16 @@ async function embed(inputs,fetcher=fetch,options={}) {
   fail(502,'Embedding service is temporarily unavailable.');
  }
 }
-function citationChunks(document) {
+function citationChunks(document, options = {}) {
+ // Citation chunks are capped so one document cannot flood the index. The
+ // knowledge worker raises the cap for long source documents (see
+ // KB_MAX_CHUNKS); the 80 default is unchanged for every other caller.
+ const maxChunks = Number.isSafeInteger(options.maxChunks) && options.maxChunks > 0 ? options.maxChunks : 80;
  const chunks=[];
  for(const s of document.segments){
   for(let start=0;start<s.text.length;){let end=Math.min(start+1500,s.text.length);if(end<s.text.length&&/[\uDC00-\uDFFF]/.test(s.text[end]))end--;
    const raw=s.text.slice(start,end),content=raw.trim();if(content)chunks.push({content,page:s.page,section:s.section,segment_id:s.id,start_offset:start+raw.length-raw.trimStart().length});
-   if(chunks.length>80)fail(413,'Source exceeds 80 citation chunks. Split the document.');if(end===s.text.length)break;start=end-200;if(/[\uDC00-\uDFFF]/.test(s.text[start]))start--;
+   if(chunks.length>maxChunks)fail(413,'Source exceeds '+maxChunks+' citation chunks. Split the document.');if(end===s.text.length)break;start=end-200;if(/[\uDC00-\uDFFF]/.test(s.text[start]))start--;
   }
  }
  if(!chunks.length)fail(422,'No searchable source text was extracted.');return chunks;

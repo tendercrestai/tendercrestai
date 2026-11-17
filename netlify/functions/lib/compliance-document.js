@@ -86,8 +86,13 @@ function segmentsFor(documentId, pages) {
   return segments;
 }
 
-async function extractDocument(source, adapters = {}) {
+async function extractDocument(source, options = {}) {
   const { bytes, extension, metadata } = source;
+  // Knowledge documents may be much larger than a free-tool RFP: the caller
+  // may raise the cap (the knowledge worker does, for long winning
+  // proposals). The compliance/free-tool paths keep the 100,000 default,
+  // which bounds AI analysis cost. chunkDocuments enforces its own bound.
+  const maxText = Number.isSafeInteger(options.maxText) && options.maxText > 0 ? options.maxText : MAX_TEXT;
   const warnings = [], pages = [];
   try {
     if (extension === "txt") {
@@ -100,7 +105,7 @@ async function extractDocument(source, adapters = {}) {
       if (result.unsupported) warnings.push("DOCX contains supplementary or unsupported content. Review headers, footers, changes and images separately.");
     } else if (extension === "pdf") {
       if (bytes.subarray(0, 5).toString() !== "%PDF-") throw Error("Invalid PDF");
-      const pdfjs = adapters.pdfjs || await import("pdfjs-dist/legacy/build/pdf.mjs");
+      const pdfjs = options.pdfjs || await import("pdfjs-dist/legacy/build/pdf.mjs");
       const task = pdfjs.getDocument({
         data: Uint8Array.from(bytes), isEvalSupported: false,
         useSystemFonts: false, disableFontFace: true, stopAtErrors: true, verbosity: 0,
@@ -115,7 +120,7 @@ async function extractDocument(source, adapters = {}) {
           const page = await pdf.getPage(n), content = await page.getTextContent();
           const text = clean(content.items.map(x => x.str + (x.hasEOL ? "\n" : " ")).join(""));
           length += text.length;
-          if (length > MAX_TEXT) throw new RequestError(413, "Combined extracted text exceeds 100,000 characters. Select smaller documents.");
+          if (length > maxText) throw new RequestError(413, "Combined extracted text exceeds " + maxText.toLocaleString("en-US") + " characters. Select smaller documents.");
           if (text.replace(/\s/g, "").length < 20) warnings.push("PDF page " + n + " has little or no readable text; OCR/source review required.");
           const operators = await page.getOperatorList?.();
           if (operators && operators.fnArray.some(op => [
@@ -134,7 +139,7 @@ async function extractDocument(source, adapters = {}) {
     throw new RequestError(422, "Document could not be extracted safely. Check PDF/DOCX structure or UTF-8 encoding; scanned PDFs require OCR.");
   }
   if (!pages.some(x => x.text)) throw new RequestError(422, "No readable text found. Scanned PDFs require OCR.");
-  if (pages.reduce((n, p) => n + p.text.length, 0) > MAX_TEXT) throw new RequestError(413, "Combined extracted text exceeds 100,000 characters.");
+  if (pages.reduce((n, p) => n + p.text.length, 0) > maxText) throw new RequestError(413, "Combined extracted text exceeds " + maxText.toLocaleString("en-US") + " characters.");
   return {
     id: metadata.id, name: metadata.file_name, sha256: metadata.sha256,
     format: extension, warnings,

@@ -118,7 +118,7 @@ function resolveReferences(output, catalog) {
     if (/^(?:(?:submission|proposal|response)\s+)?(?:deadline|due date)\s*:/i.test(excerpt.text) &&
         !resolved.facts.some(f => f.type === "Submission Deadline" && f.segment_id === excerpt.segment_id && f.quote === excerpt.text)) {
       const value = excerpt.text.slice(excerpt.text.indexOf(":") + 1).trim().replace(/\.$/, "");
-      if (value) resolved.facts.push({ type: "Submission Deadline", value, segment_id: excerpt.segment_id, quote: excerpt.text });
+      if (value && validDeadline(value)) resolved.facts.push({ type: "Submission Deadline", value, segment_id: excerpt.segment_id, quote: excerpt.text });
     }
     const zones = excerpt.options.filter(o => o.kind === "timezone");
     if (zones.length !== 1) continue;
@@ -130,6 +130,23 @@ function resolveReferences(output, catalog) {
   return resolved;
 }
 const normalize = text => text.replace(/\s+/g, " ").trim();
+// A submission deadline is only usable when it parses as a real date. The
+// extractor takes the text after the first colon of a "Due date:" line, and
+// on form-heavy documents (SF-1449) that text is header noise, not a date
+// ("OFFER ADDENDA ADDENDA 140FS226Q0154 See Schedule ..."). An unusable
+// value is dropped instead of displayed, so the page reports the deadline
+// as not found rather than showing form noise as a date.
+function validDeadline(value) {
+  if (typeof value !== "string") return false;
+  const v = value.trim();
+  if (!v || v.length > 120) return false;
+  const hasDate = /\b\d{4}-\d{2}-\d{2}\b/.test(v)
+    || /\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b/.test(v)
+    || /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?\b/i.test(v)
+    || /\b\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\b/i.test(v)
+    || /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{4}\b/i.test(v);
+  return hasDate && Number.isFinite(Date.parse(v.replace(/\s+(?:UTC|GMT|Z|EST|EDT|CST|CDT|MST|MDT|PST|PDT|ET|CT|MT|PT)$/i, "")));
+}
 const fingerprint = text => createHash("sha256").update(normalize(text).toLowerCase()).digest("hex");
 function exactKeys(value, keys) {
   return value && typeof value === "object" && !Array.isArray(value) &&
@@ -185,7 +202,9 @@ function validateOutput(output, segments, documents) {
         !normalize(row.quote).includes(normalize(row.value))) invalid();
     return { type: row.type, value: row.value, source: sourceFor(row, segments, documents) };
   });
-  return { requirements, facts };
+  // A model-selected deadline that does not parse as a date is dropped, not
+  // stored: the same form-noise failure as the server-derived path above.
+  return { requirements, facts: facts.filter(f => f.type !== "Submission Deadline" || validDeadline(f.value)) };
 }
 function deduplicate(rows) {
   const merged = new Map();
@@ -251,4 +270,4 @@ async function analyzeChunk(segments, documents, fetcher = fetch) {
     estimatedCostUSD: validated.estimatedCostUSD }));
   return validated;
 }
-module.exports = { schema, SYSTEM, validateOutput, deduplicate, fingerprint, similarPairs, SIMILAR_PAIRS_MAX_ROWS, analyzeChunk, excerptCatalog, resolveReferences, usageTokens, estimateCostUSD, modelPrices, FACTS, CATEGORIES };
+module.exports = { schema, SYSTEM, validateOutput, deduplicate, fingerprint, similarPairs, SIMILAR_PAIRS_MAX_ROWS, analyzeChunk, excerptCatalog, resolveReferences, usageTokens, estimateCostUSD, modelPrices, validDeadline, FACTS, CATEGORIES };

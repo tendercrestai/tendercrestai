@@ -44,3 +44,11 @@ test("large extraction is bounded and chunking retains all segments and referenc
   assert.throws(()=>chunkDocuments([{segments:[{text:"x".repeat(100001)}]}]),/100,000/);
   await assert.rejects(extractDocument({...source("txt"),bytes:Buffer.from("x".repeat(100001))}),/100,000/);
 });
+test("knowledge extraction accepts a raised cap; the compliance default stays 100,000",async()=>{
+  const big=Buffer.from("x".repeat(150000));
+  await assert.rejects(extractDocument({...source("txt"),bytes:big}),/100,000/);
+  const doc=await extractDocument({...source("txt"),bytes:big},{maxText:200000});
+  assert.ok(doc.segments.length>1);
+  assert.ok(doc.segments.reduce((n,s)=>n+s.text.length,0)>=140000);
+  await assert.rejects(extractDocument({...source("txt"),bytes:Buffer.from("x".repeat(150001))},{maxText:150000}),/150,000/);
+});

@@ -2,7 +2,7 @@ import {test} from "node:test";
 import assert from "node:assert/strict";
 import {writeFile} from "node:fs/promises";
 import {csv,xlsx,exportRows} from "../assets/compliance-export.mjs";
-import {metrics,filterRows,sourceLabel,alerts} from "../assets/compliance-model.mjs";
+import {metrics,filterRows,sourceLabel,alerts,validDeadline} from "../assets/compliance-model.mjs";
 import {proposalText} from "../assets/compliance-handoff.mjs";
 const source={document:"Fictional RFP",section:"Section L",page:2,quote:'The vendor must provide "references".'};
 const row={id:"row-1",requirement:'=HYPERLINK("bad")',original_requirement:source.quote,category:"Eligibility",
@@ -52,4 +52,11 @@ test("proposal handoff transfers source text only, within existing 100k limit",(
   assert.equal(proposalText(workspace.analysis),source.quote);
   assert.ok(!proposalText(workspace.analysis).includes(row.requirement));
   assert.throws(()=>proposalText({documents:[{segments:[{text:"x".repeat(100001)}]}]}),/limit/);
+});
+test("browser deadline check matches the server rule: form noise is not a date",()=>{
+  assert.equal(validDeadline("OFFER ADDENDA ADDENDA 140FS226Q0154 See Schedule See Schedule FWS SAT 2..."),false);
+  assert.equal(validDeadline("See Schedule"),false);
+  assert.equal(validDeadline("August 15, 2026, 2:00 PM ET"),true);
+  assert.equal(validDeadline("2026-08-15"),true);
+  assert.equal(validDeadline("15 August 2026"),true);
 });

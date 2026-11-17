@@ -66,3 +66,19 @@ test('embedding retries transient 429/5xx with backoff and keeps the three-attem
 });
 
 test('provider access and quota errors are actionable without exposing upstream secrets',async()=>{for(const [upstream,status,message] of [[401,503,/access is denied/],[403,503,/access is denied/],[429,429,/quota or rate limit/],[500,502,/temporarily unavailable/]]){await assert.rejects(kb.embed(['fictional evidence'],async()=>json({error:{message:'sk-upstream-private document text'}},upstream)),e=>{assert.equal(e.status,status);assert.match(e.message,message);if([401,403].includes(upstream))assert.ok(e.message.includes('provider HTTP '+upstream));assert.ok(!e.message.includes('sk-upstream-private'));assert.ok(!e.message.includes('document text'));return true;});}});
+test('citation chunking accepts a raised cap for long knowledge documents',()=>{
+  const text='x'.repeat(120000);
+  assert.throws(()=>kb.citationChunks({segments:[{id:'s',text,page:null,section:null}]}),/80 citation chunks/);
+  const chunks=kb.citationChunks({segments:[{id:'s',text,page:null,section:null}]},{maxChunks:500});
+  assert.ok(chunks.length>80&&chunks.length<=500);
+  for(const c of chunks)assert.ok(text.includes(c.content));
+});
+test('worker extracts knowledge documents with the raised limits',async()=>{
+  let seenOptions;
+  const extract=async(source,options)=>{seenOptions=options;return {id:DOC,name:'source.txt',format:'txt',warnings:[],segments:[{id:DOC+':0',page:null,section:null,text:bytes.toString()}]}};
+  const r=await worker.createHandler({extractDocument:extract,embed:async inputs=>inputs.map(()=>vec())})(event({jobId:JOB},{'x-kb-worker-secret':'x'.repeat(48)}));
+  assert.equal(r.statusCode,200);
+  assert.deepEqual(seenOptions,{maxText:worker.KB_MAX_TEXT});
+  assert.equal(worker.KB_MAX_TEXT,700000);assert.equal(worker.KB_MAX_CHUNKS,500);
+  assert.ok(rpcCalls().some(c=>c.url.endsWith('kb_finish_job')));
+});
