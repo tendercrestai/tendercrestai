@@ -100,3 +100,47 @@ test('SAM rejects masked secret values before making upstream or database calls'
  try{for(const key of ['', '****************abcd', '••••abcd']){process.env.SAM_GOV_API_KEY=key;await assert.rejects(S.search({}, {}, {}),e=>e.status===503&&!e.message.includes(key||'SAM_GOV_API_KEY')&&e.message.includes('free shredder'));}assert.equal(calls,0);process.env.SAM_GOV_API_KEY=' fixture-key ';assert.equal(S.apiKey(),'fixture-key');}
  finally{global.fetch=saved.fetch;if(saved.key===undefined)delete process.env.SAM_GOV_API_KEY;else process.env.SAM_GOV_API_KEY=saved.key;}
 });
+
+test('SAM notice IDs parse from workspace contract URLs',()=>{
+ const id='b'.repeat(32);
+ assert.equal(S.noticeId('https://sam.gov/workspace/contract/opp/'+id+'/view'),id);
+});
+test('SAM normalize keeps the notice type for the shredder gate',()=>{
+ const n=S.normalize({noticeId:'a'.repeat(32),title:'Fictional fixture',active:'Yes',type:'Award Notice'});
+ assert.equal(n.type,'Award Notice');
+ assert.equal(S.normalize({noticeId:'a'.repeat(32),title:'Fictional fixture',active:'Yes'}).type,null);
+});
+test('SAM feed search still defaults to solicitation type',async()=>{
+ const kb=require('../netlify/functions/lib/knowledge-base'),saved={fetch:global.fetch,rpc:kb.rpc,key:process.env.SAM_GOV_API_KEY};
+ process.env.SAM_GOV_API_KEY='fixture-only';let seenPtype='unset';
+ kb.rpc=async()=>null;global.fetch=async(url)=>{const u=new URL(url);if(u.hostname==='database.invalid')return new Response('[]',{status:200});seenPtype=u.searchParams.get('ptype');return new Response('{"opportunitiesData":[],"totalRecords":0}',{status:200});};
+ try{const c={url:'https://database.invalid',serviceKey:'fixture'},e={headers:{'x-nf-client-connection-ip':'192.0.2.1'}};assert.deepEqual((await S.search(c,e,{})).items,[]);assert.equal(seenPtype,'o');}
+ finally{global.fetch=saved.fetch;kb.rpc=saved.rpc;if(saved.key===undefined)delete process.env.SAM_GOV_API_KEY;else process.env.SAM_GOV_API_KEY=saved.key;}
+});
+test('SAM detail names a non-solicitation notice instead of reporting it missing',async()=>{
+ const kb=require('../netlify/functions/lib/knowledge-base'),saved={fetch:global.fetch,rpc:kb.rpc,key:process.env.SAM_GOV_API_KEY};
+ process.env.SAM_GOV_API_KEY='fixture-only';const id='b'.repeat(32);let seenPtype='unset';
+ const item={noticeId:id,title:'Fictional award notice',active:'Yes',type:'Award Notice',description:null};
+ kb.rpc=async()=>null;global.fetch=async(url)=>{const u=new URL(url);if(u.hostname==='database.invalid')return new Response('[]',{status:200});assert.equal(u.hostname,'api.sam.gov');seenPtype=u.searchParams.get('ptype');return new Response(JSON.stringify({opportunitiesData:[item],totalRecords:1}),{status:200});};
+ try{const c={url:'https://database.invalid',serviceKey:'fixture'},e={headers:{'x-nf-client-connection-ip':'192.0.2.1'}};
+  await assert.rejects(S.detail(c,e,'https://sam.gov/workspace/contract/opp/'+id+'/view'),e=>e.status===404&&/Award Notice/.test(e.message)&&/not an open solicitation/.test(e.message));
+  assert.equal(seenPtype,null);
+ }finally{global.fetch=saved.fetch;kb.rpc=saved.rpc;if(saved.key===undefined)delete process.env.SAM_GOV_API_KEY;else process.env.SAM_GOV_API_KEY=saved.key;}
+});
+test('SAM detail shreds solicitation types and loads the description',async()=>{
+ const kb=require('../netlify/functions/lib/knowledge-base'),saved={fetch:global.fetch,rpc:kb.rpc,key:process.env.SAM_GOV_API_KEY};
+ process.env.SAM_GOV_API_KEY='fixture-only';const id='b'.repeat(32);
+ const item={noticeId:id,title:'Fictional combined notice',active:'Yes',type:'Combined Synopsis/Solicitation',description:'https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid='+id};
+ kb.rpc=async()=>null;global.fetch=async(url)=>{const u=new URL(url);if(u.hostname==='database.invalid')return new Response('[]',{status:200});if(u.pathname==='/prod/opportunities/v1/noticedesc'){assert.equal(u.searchParams.get('noticeid'),id);return new Response(JSON.stringify({description:'<p>Fictional RFP text</p>'}),{status:200});}return new Response(JSON.stringify({opportunitiesData:[item],totalRecords:1}),{status:200});};
+ try{const c={url:'https://database.invalid',serviceKey:'fixture'},e={headers:{'x-nf-client-connection-ip':'192.0.2.1'}};
+  const d=await S.detail(c,e,id);assert.equal(d.item.type,'Combined Synopsis/Solicitation');assert.match(d.text,/Fictional RFP text/);assert.equal(d.item.title,'Fictional combined notice');
+ }finally{global.fetch=saved.fetch;kb.rpc=saved.rpc;if(saved.key===undefined)delete process.env.SAM_GOV_API_KEY;else process.env.SAM_GOV_API_KEY=saved.key;}
+});
+test('SAM detail keeps the not-found message when the API returns nothing',async()=>{
+ const kb=require('../netlify/functions/lib/knowledge-base'),saved={fetch:global.fetch,rpc:kb.rpc,key:process.env.SAM_GOV_API_KEY};
+ process.env.SAM_GOV_API_KEY='fixture-only';const id='b'.repeat(32);
+ kb.rpc=async()=>null;global.fetch=async(url)=>{const u=new URL(url);if(u.hostname==='database.invalid')return new Response('[]',{status:200});return new Response('{"opportunitiesData":[],"totalRecords":0}',{status:200});};
+ try{const c={url:'https://database.invalid',serviceKey:'fixture'},e={headers:{'x-nf-client-connection-ip':'192.0.2.1'}};
+  await assert.rejects(S.detail(c,e,id),e=>e.status===404&&/not returned by the API/.test(e.message));
+ }finally{global.fetch=saved.fetch;kb.rpc=saved.rpc;if(saved.key===undefined)delete process.env.SAM_GOV_API_KEY;else process.env.SAM_GOV_API_KEY=saved.key;}
+});
