@@ -6,7 +6,7 @@
   <title>Knowledge Base | TenderCrest AI</title><link rel="stylesheet" href="/assets/knowledge.css">
 </head>
 <body>
-<header><a href="/">TenderCrest AI</a><nav aria-label="Site"><a href="/compliance.html">RFP compliance</a><a href="/compare/responsive">Compare: Responsive</a><a href="/compare/loopio">Compare: Loopio</a> <a href="/auth.html">My account</a></nav></header>
+<header><a href="/">TenderCrest AI</a><nav aria-label="Site"><a href="/workspace.html">Proposal Workspace</a><a href="/compliance.html">RFP compliance</a><a href="/knowledge.html">Knowledge base</a><a href="/auth.html">My Account</a></nav></header>
 <main>
   <h1>Knowledge Base</h1><p>Keep evidence private to your organization. Find sources, write cited answers, and approve them for reuse.</p>
   <p id="message" role="status" aria-live="polite">Checking availability…</p>
@@ -24,6 +24,12 @@
     </section>
     <div id="org-workspace" hidden>
       <nav class="workspace-nav" aria-label="Knowledge Base sections"><a href="#documents-section">Documents</a><a href="#search-section">Search everything</a><a href="#answer-section">Answers</a><a id="activity-link" href="#audit-section" hidden>Activity</a><a id="team-link" href="#team-section" hidden>Team</a><a href="#getting-started">Getting started</a></nav>
+      <section id="documents-section" aria-labelledby="documents-title">
+        <h2 id="documents-title">Source documents</h2>
+        <form id="upload-form"><label>PDF, DOCX or UTF-8 TXT (10 MiB maximum)<input id="file" type="file" accept=".pdf,.docx,.txt" required></label><label class="check"><input id="consent" type="checkbox" required> I authorize sending extracted source text to the embedding provider for indexing. Scans require OCR elsewhere; review extraction warnings.</label><button id="upload">Upload and index privately</button></form>
+        <form id="document-filter-form" class="filter-grid"><label>Find a filename<input id="document-query" type="search" maxlength="2000"></label><label>Status<select id="document-status"><option value="">All statuses</option><option>Uploaded</option><option>Processing</option><option>Ready</option><option>Failed</option><option>Archived</option></select></label><label>File type<select id="document-type"><option value="">All types</option><option value="pdf">PDF</option><option value="docx">DOCX</option><option value="txt">TXT</option></select></label><button>Apply document filters</button></form>
+        <button id="refresh" type="button" class="secondary">Refresh status</button><p class="hint">Processing runs in the background. Use Process / retry for failed or stalled jobs, up to three attempts. Tick the consent box in the upload form above before using Process / retry. Use the page controls to reach older sources.</p><ul id="documents"></ul><div id="document-pages" class="pagination"></div>
+      </section>
       <section id="search-section" aria-labelledby="search-title">
         <h2 id="search-title">Search everything</h2><p>Find filenames, source text, draft or approved answers, and activity you have permission to view.</p>
         <form id="search-form">
@@ -42,12 +48,6 @@
         <p id="search-status" role="status"></p><div id="search-documents"></div><div id="search-answers"></div><div id="search-activity"></div>
         <h3>Source excerpts</h3><p>Select up to ten quotations for a human-written answer. Verify the original before approval.</p><div id="hits"></div>
         <h3 id="approved-matches-title" hidden>Approved answers matching these sources</h3><div id="matches"></div><div id="search-pages" class="pagination"></div>
-      </section>
-      <section id="documents-section" aria-labelledby="documents-title">
-        <h2 id="documents-title">Source documents</h2>
-        <form id="upload-form"><label>PDF, DOCX or UTF-8 TXT (10 MiB maximum)<input id="file" type="file" accept=".pdf,.docx,.txt" required></label><label class="check"><input id="consent" type="checkbox" required> I authorize sending extracted source text to the embedding provider for indexing. Scans require OCR elsewhere; review extraction warnings.</label><button id="upload">Upload and index privately</button></form>
-        <form id="document-filter-form" class="filter-grid"><label>Find a filename<input id="document-query" type="search" maxlength="2000"></label><label>Status<select id="document-status"><option value="">All statuses</option><option>Uploaded</option><option>Processing</option><option>Ready</option><option>Failed</option><option>Archived</option></select></label><label>File type<select id="document-type"><option value="">All types</option><option value="pdf">PDF</option><option value="docx">DOCX</option><option value="txt">TXT</option></select></label><button>Apply document filters</button></form>
-        <button id="refresh" type="button" class="secondary">Refresh status</button><p class="hint">Processing runs in the background. Use Process / retry for failed or stalled jobs, up to three attempts. Use the page controls to reach older sources.</p><ul id="documents"></ul><div id="document-pages" class="pagination"></div>
       </section>
       <section id="answer-section" aria-labelledby="answers-title">
         <h2 id="answers-title">Human-written answers</h2>

@@ -77,7 +77,7 @@ function createHandler(adapters = {}) {
       if (!payload || typeof payload !== "object" || Array.isArray(payload)) fail(400, "Invalid request.");
       const config = security.configuration(), { user, token } = await security.authenticate(event, config);
       if (payload.action === "list") {
-        const rows = await db(config, token, "rfp_compliance_analyses?select=id,status,created_at&order=created_at.desc&limit=30");
+        const rows = await db(config, token, "rfp_compliance_analyses?select=id,status,created_at,documents&order=created_at.desc&limit=30");
         return reply(200, { analyses: rows });
       }
       if (payload.action === "prepare") {

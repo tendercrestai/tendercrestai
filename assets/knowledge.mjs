@@ -65,9 +65,9 @@ function paginate(id,data,load,label='results'){
 function empty(container,text){container.append(node(container.tagName==='UL'?'li':'p',text));container.lastChild.className='empty';}
 function renderDocuments(items,container){
  container.replaceChildren();if(!items.length){empty(container,'No documents match. Adjust the filters or upload your first source.');return;}
- for(const d of items){const li=node('li',d.file_name+' — '+d.status+(d.error_code?' ('+d.error_code+')':''));for(const w of d.warnings||[])li.append(node('p','Review warning: '+w));
+ for(const d of items){const codeText={extraction_failed:'Extraction failed — try Process / retry, or re-upload the file'};const li=node('li',d.file_name+' — '+d.status+(d.error_code?' ('+(codeText[d.error_code]||d.error_code)+')':''));for(const w of d.warnings||[])li.append(node('p','Review warning: '+w));
   if(d.status==='Ready')li.append(button('Verify source',()=>viewSource(d.id)));
-  if(['Uploaded','Processing','Failed'].includes(d.status)&&['owner','editor'].includes(role))li.append(button('Process / retry',async()=>{if(!$('consent').checked)throw Error('Confirm source-processing consent first.');await process(d.id);await refresh();}));
+  if(['Uploaded','Processing','Failed'].includes(d.status)&&['owner','editor'].includes(role))li.append(button('Process / retry',async()=>{if(!$('consent').checked)throw Error('Tick the consent box in the upload form above, then use Process / retry.');await process(d.id);await refresh();}));
   if(d.status!=='Archived'&&['owner','editor'].includes(role))li.append(button('Archive',async()=>{if(!confirm('Archive this source and revoke dependent approvals?'))return;await api({action:'archive',orgId:org,documentId:d.id});clearSearch();resetAnswer();await refresh();},true));
   container.append(li);
  }
@@ -179,5 +179,5 @@ rememberInvitation();
  const response=await fetch('/.netlify/functions/knowledge-config');const config=await response.json();if(!response.ok||!config.enabled)throw Error('Knowledge base is not enabled for this deployment.');
  supabase=createClient(config.url,config.key);supabase.auth.onAuthStateChange((event,s)=>{if(event==='SIGNED_OUT'||(user&&s?.user.id!==user.id))signedOut();});
  const {data}=await supabase.auth.getSession();if(!data.session){signedOut();return;}const verified=await supabase.auth.getUser();if(verified.error)throw Error('Sign in again.');user=verified.data.user;$('workspace').hidden=false;$('login').hidden=true;
- await organizations();await previewInvitation();if(!pendingInvite)message('Choose a section below or follow the getting-started checklist.');
-}catch(e){message(e.message,true);}})();
+ const slow=setTimeout(()=>message('Still loading your library. If this does not resolve, reload the page.'),15000);await organizations();await previewInvitation();clearTimeout(slow);if(!pendingInvite)message('Choose a section below or follow the getting-started checklist.');
+}catch(e){clearTimeout(slow);message(e.message,true);}})();
