@@ -160,3 +160,9 @@ test("public config includes only public values and follows preview settings",as
   assert.deepEqual(body,{url:"https://preview.supabase.co",key:"sb_publishable_preview",enabled:true});
   assert.ok(!result.body.includes("service-fixture"));assert.ok(!result.body.includes("ai-fixture"));
 });
+test("list returns saved analyses with their first document name",async()=>{
+  assert.equal((await run()).statusCode,200);
+  const r=await run({action:"list"}), body=JSON.parse(r.body);
+  assert.equal(r.statusCode,200);assert.equal(body.analyses.length,1);
+  assert.equal(body.analyses[0].documents[0].name,"fictional.txt");
+});

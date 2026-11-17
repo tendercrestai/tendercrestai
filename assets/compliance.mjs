@@ -78,7 +78,7 @@ function renderSources() {
   }
 }
 function openEdit(row) {
-  if(busy) return;
+  if(busy){message("Please wait — finishing the last action…",true);return;}
   editing=row;
   const fields={requirement:"requirement",category:"category",mandatory:"mandatory",status:"status",evidence:"evidence","evidence-reference":"evidence_reference",owner:"response_owner",comments:"comments"};
   for(const [id,key] of Object.entries(fields)) $("edit-"+id).value=row[key];
@@ -103,8 +103,10 @@ function renderTable() {
     body.append(tr);
   }
 }
+function markSteps(current){const steps=["upload","review","analyze","matrix","export","proposal"];for(const li of document.querySelectorAll(".workflow li")){const i=steps.indexOf(li.dataset.step),cur=steps.indexOf(current);li.classList.toggle("done",i<cur);li.classList.toggle("current",i===cur);}}
 function render(result, sources=true) {
   state=result;
+  markSteps(state.analysis.status==="Failed"?"analyze":state.analysis.processed===0?"review":["Completed","Partial"].includes(state.analysis.status)?"matrix":"analyze");
   $("source-review").hidden=false;$("results").hidden=false;
   $("analysis-status").textContent=state.analysis.status;
   $("progress").max=state.analysis.total_chunks;$("progress").value=state.analysis.processed;
@@ -136,7 +138,7 @@ function render(result, sources=true) {
 }
 async function refreshHistory() {
   const result=await api({action:"list"}), select=$("history");select.replaceChildren(new Option("Choose an analysis",""));
-  for(const a of result.analyses)select.append(new Option(new Date(a.created_at).toLocaleString()+" · "+a.status,a.id));
+  for(const a of result.analyses)select.append(new Option(new Date(a.created_at).toLocaleString()+" · "+a.status+" · "+((a.documents&&a.documents[0]&&a.documents[0].name)||"Untitled RFP"),a.id));
   if(state) select.value=state.analysis.id;
 }
 $("upload-form").onsubmit=async event=>{
@@ -156,7 +158,7 @@ $("upload-form").onsubmit=async event=>{
   finally{controls(false);renderTable();}
 };
 $("reload").onclick=async()=>{
-  const id=$("history").value || state?.analysis.id;if(busy || !id)return;
+  if(busy)return;const id=$("history").value || state?.analysis.id;if(!id){message("Choose a saved analysis first.",true);return;}
   controls(true);
   try {render(await api({action:"get",analysisId:id}));message("Saved analysis loaded.");}catch(error){message(error.message,true);}
   finally{controls(false);renderTable();}
@@ -202,8 +204,8 @@ for(const status of statuses){$("status").append(new Option(status,status));$("e
 function download(blob,name) {
   const url=URL.createObjectURL(blob), a=el("a");a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-$("csv").onclick=()=>{if(state && !busy)download(new Blob([csv(state)],{type:"text/csv;charset=utf-8"}),"tendercrest-compliance.csv");};
-$("xlsx").onclick=()=>{if(state && !busy)download(new Blob([xlsx(state)],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),"tendercrest-compliance.xlsx");};
+$("csv").onclick=()=>{if(!state){message("Load or upload an analysis before exporting.",true);return;}if(!busy)download(new Blob([csv(state)],{type:"text/csv;charset=utf-8"}),"tendercrest-compliance.csv");};
+$("xlsx").onclick=()=>{if(!state){message("Load or upload an analysis before exporting.",true);return;}if(!busy)download(new Blob([xlsx(state)],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),"tendercrest-compliance.xlsx");};
 try {
   const response=await fetch("/.netlify/functions/compliance-config"), config=await response.json();
   if(!response.ok || !config.enabled)throw Error("Compliance preview is not enabled for this deployment.");
@@ -213,7 +215,7 @@ try {
   else {
     user=verified.data.user;$("account").textContent="Signed in as "+user.email;$("workspace").hidden=false;
     supabase.auth.onAuthStateChange((event,s)=>{if(event==="SIGNED_OUT" || (s && user && s.user.id!==user.id))setTimeout(clearAccount,0);});
-    message("Upload an RFP or resume a saved analysis.");await refreshHistory();
+    markSteps("upload");message("Upload an RFP or resume a saved analysis.");await refreshHistory();
     const id=new URLSearchParams(location.search).get("analysis");if(id)render(await api({action:"get",analysisId:id}));
   }
 }catch(error){message(error.message || "Workspace could not load. Check your connection.",true);}

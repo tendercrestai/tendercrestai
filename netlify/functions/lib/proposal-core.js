@@ -75,7 +75,7 @@ function readinessSummary(s){
   responsesAwaitingApproval:unresolved.filter(i=>i.responseReviewPending).length,
   evidenceGaps:unresolved.filter(i=>i.evidenceGap).length,byOwner:{}};
  for(const i of unresolved){const k=i.owner||'unassigned';summary.byOwner[k]=(summary.byOwner[k]||0)+1;}
- summary.lines=[plural(summary.mandatoryUnresolved,'mandatory item unresolved','mandatory items unresolved')+'.',plural(summary.documentsMissing,'required document missing','required documents missing')+'.',plural(summary.responsesAwaitingApproval,'response awaiting approval','responses awaiting approval')+'.',plural(summary.evidenceGaps,'evidence gap','evidence gaps')+'.'];
+ summary.lines=[plural(summary.mandatoryUnresolved,'mandatory or unclear item unresolved','mandatory or unclear items unresolved')+'.',plural(summary.documentsMissing,'required document missing','required documents missing')+'.',plural(summary.responsesAwaitingApproval,'response awaiting approval','responses awaiting approval')+'.',plural(summary.evidenceGaps,'evidence gap','evidence gaps')+'.'];
  return summary;
 }
 function readinessView(s){return {items:readinessItems(s),summary:readinessSummary(s),scopeNote:READINESS_SCOPE_NOTE,factorCoverage:factorCoverage(s)};}
