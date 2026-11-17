@@ -20,3 +20,13 @@ test('public config contains only public settings and boolean feature flags',asy
 
 test('project search paginates through the caller JWT instead of privileged global rows',async()=>{const originalDatabase=S.kb.database;try{let path,options;S.kb.database=async(c,p,o)=>{path=p;options=o;return Array.from({length:51},(_,i)=>({id:String(i),title:'Fictional'}));};const response=await createHandler()(event({action:'list',page:1,query:'Fictional'}));assert.equal(response.statusCode,200);const result=JSON.parse(response.body);assert.equal(result.projects.length,50);assert.equal(result.hasMore,true);assert.ok(path.includes('offset=50'));assert.equal(options.token,'test');assert.notEqual(options.service,true);}finally{S.kb.database=originalDatabase;}});
 test('saved record browsing is project-scoped and notifications remain current-user only',async()=>{role='viewer';let path;S.db=async(c,p)=>{path=decodeURIComponent(p);return [];};const response=await run({action:'browse',kind:'notifications',page:2});assert.equal(response.statusCode,200);assert.ok(path.includes('project_id=eq.'+id));assert.ok(path.includes('user_id=eq.'+id));assert.ok(path.includes('offset=100'));assert.equal((await run({action:'browse',kind:'cc_billing_bindings',page:0})).statusCode,400);});
+
+test('draft preview reads the job evidence epoch, so a fresh preview is not flagged stale',async()=>{
+ let path;S.db=async(c,p)=>{path=decodeURIComponent(p);return [{id, kind:'draft', revision:4, evidence_epoch:0, status:'Completed', attempts:1, result:{sectionId:other, text:'Fictional preview'}, error_code:null}];};
+ const response=await run({action:'job',jobId:id});
+ assert.equal(response.statusCode,200);
+ assert.ok(path.includes('evidence_epoch'));
+ const job=JSON.parse(response.body).job;
+ assert.equal(job.evidence_epoch,0);
+ assert.equal(job.revision,4);
+});
