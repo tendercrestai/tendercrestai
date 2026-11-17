@@ -270,4 +270,4 @@ async function analyzeChunk(segments, documents, fetcher = fetch) {
     estimatedCostUSD: validated.estimatedCostUSD }));
   return validated;
 }
-module.exports = { schema, SYSTEM, validateOutput, deduplicate, fingerprint, similarPairs, SIMILAR_PAIRS_MAX_ROWS, analyzeChunk, excerptCatalog, resolveReferences, usageTokens, estimateCostUSD, modelPrices, validDeadline, FACTS, CATEGORIES };
+module.exports = { schema, SYSTEM, validateOutput, deduplicate, fingerprint, normalize, similarPairs, SIMILAR_PAIRS_MAX_ROWS, analyzeChunk, excerptCatalog, resolveReferences, usageTokens, estimateCostUSD, modelPrices, validDeadline, FACTS, CATEGORIES };

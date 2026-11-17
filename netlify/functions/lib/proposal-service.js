@@ -1,6 +1,7 @@
 const {randomUUID,createHash}=require('node:crypto');
 const kb=require('./knowledge-base');
 const core=require('./proposal-core');
+const {normalize}=require('./compliance-ai');
 const BUCKET='proposal-artifacts';
 function enabled(feature){if(process.env.PROPOSAL_WORKSPACE_ENABLED!=='true'||feature&&process.env['PROPOSAL_'+feature.toUpperCase()+'_ENABLED']!=='true')kb.fail(503,'This workspace feature is not enabled.');}
 // Non-throwing form of enabled(): for optional work (such as the
@@ -41,7 +42,25 @@ async function recordTrace(config,p,actor,requirementId){
 }async function dispatch(job){if(job.status==='Completed')return false;try{const w=workerSettings();const r=await fetch(w.url,{method:'POST',headers:{'Content-Type':'application/json','x-kb-worker-secret':w.secret},body:JSON.stringify({jobId:job.id}),signal:AbortSignal.timeout(5000)});return !r.ok;}catch{return true;}}
 async function notify(config,p,actor,users,key,kind){for(const id of new Set(users.filter(Boolean))){await rpc(config,'notify',{p_project:p.id,p_actor:actor,p_user:kb.uuid(id),p_key:key,p_kind:kind});}}
 function verifyAnalysis(w){
- for(const r of w.requirements){if(!Array.isArray(r.sources)||!r.sources.length)kb.fail(409,'A requirement has no source.');for(const source of r.sources){const document=w.analysis.documents.find(d=>d.id===source.document_id),segment=document?.segments.find(s=>s.id===source.segment_id);if(!segment||!source.quote||!segment.text.includes(source.quote)||segment.page!==source.page||segment.section!==source.section)kb.fail(409,'Requirement provenance changed; review the original analysis.');}}
+ // Import-time provenance must use the SAME comparison as creation-time
+ // validation (sourceFor in compliance-ai.js): whitespace-normalized
+ // containment. The stored segment text keeps the PDF's line breaks while
+ // the quoted excerpt has them as spaces, so a raw includes() rejects
+ // requirements that creation already validated, and the whole import
+ // fails with a 409. Page and section stay strict: they are copied verbatim
+ // from the segment at creation, so a mismatch means the source moved.
+ for(const [index,r] of w.requirements.entries()){
+  if(!Array.isArray(r.sources)||!r.sources.length)kb.fail(409,'A requirement has no source.');
+  for(const source of r.sources){
+   const label='Requirement '+(index+1)+' ('+String(r.requirement||r.fingerprint||'').slice(0,60)+')';
+   const document=w.analysis.documents.find(d=>d.id===source.document_id),segment=document?.segments.find(s=>s.id===source.segment_id);
+   if(!segment)kb.fail(409,label+': its source segment is missing from the original analysis. Review the original analysis.');
+   if(!source.quote)kb.fail(409,label+': its source has no quoted text. Review the original analysis.');
+   if(!normalize(segment.text).includes(normalize(source.quote)))kb.fail(409,label+': its quoted text no longer matches the source segment. Review the original analysis.');
+   if(segment.page!==source.page)kb.fail(409,label+': its source page changed. Review the original analysis.');
+   if(segment.section!==source.section)kb.fail(409,label+': its source section changed. Review the original analysis.');
+  }
+ }
 }
 async function workspace(config,user,p){
  const people=await members(config,p,user);const mine=people.find(x=>x.user_id===user.id);if(!mine)kb.fail(403,'Project access was removed.');
