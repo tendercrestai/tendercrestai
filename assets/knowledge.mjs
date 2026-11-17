@@ -175,9 +175,9 @@ $('dismiss-invitation').onclick=forgetInvitation;
 $('close-source').onclick=()=>$('source-dialog').close();
 $('download').onclick=()=>perform(async()=>{if(!source)throw Error('Open a source first.');const current=epoch,doc=source;await session();const {data,error}=await supabase.storage.from('kb-documents').download(doc.storage_path);if(current!==epoch)throw Error('Organization changed.');if(error)throw Error('Private original is unavailable.');const url=URL.createObjectURL(data),a=node('a');a.href=url;a.download=doc.file_name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
 rememberInvitation();
-(async()=>{try{
+(async()=>{let slow;try{
  const response=await fetch('/.netlify/functions/knowledge-config');const config=await response.json();if(!response.ok||!config.enabled)throw Error('Knowledge base is not enabled for this deployment.');
  supabase=createClient(config.url,config.key);supabase.auth.onAuthStateChange((event,s)=>{if(event==='SIGNED_OUT'||(user&&s?.user.id!==user.id))signedOut();});
  const {data}=await supabase.auth.getSession();if(!data.session){signedOut();return;}const verified=await supabase.auth.getUser();if(verified.error)throw Error('Sign in again.');user=verified.data.user;$('workspace').hidden=false;$('login').hidden=true;
- const slow=setTimeout(()=>message('Still loading your library. If this does not resolve, reload the page.'),15000);await organizations();await previewInvitation();clearTimeout(slow);if(!pendingInvite)message('Choose a section below or follow the getting-started checklist.');
+ slow=setTimeout(()=>message('Still loading your library. If this does not resolve, reload the page.'),15000);await organizations();await previewInvitation();clearTimeout(slow);if(!pendingInvite)message('Choose a section below or follow the getting-started checklist.');
 }catch(e){clearTimeout(slow);message(e.message,true);}})();
