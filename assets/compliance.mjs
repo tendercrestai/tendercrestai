@@ -3,7 +3,7 @@ import {identifyUsage} from './analytics.mjs';
 import {uploadRfp} from './private-rfp-upload.mjs';
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm";
 import { validateFile } from "./rfp-document.mjs";
-import { statuses, categories, metrics, sourceLabel, filterRows, alerts, stableRequirementId } from "./compliance-model.mjs";
+import { statuses, categories, metrics, sourceLabel, filterRows, alerts, stableRequirementId, validDeadline } from "./compliance-model.mjs";
 import { csv, xlsx } from "./compliance-export.mjs";
 const $ = id => document.getElementById(id);
 const el = (tag, text, className) => { const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n; };
@@ -111,13 +111,18 @@ function render(result, sources=true) {
   $("progress-label").textContent=state.analysis.processed+" / "+state.analysis.total_chunks+" chunks processed"+
     (state.analysis.status==="Failed"?" · Chunk failed; "+state.analysis.attempts+" / 3 attempts used.":"");
   $("analyze").textContent=state.analysis.status==="Failed"?"Retry failed chunk":state.analysis.processed?"Continue analysis":"Analyze requirements";
-  $("continue").href="/?compliance="+encodeURIComponent(state.analysis.id)+"#portal";
+  $("continue").href="/workspace.html?analysis="+encodeURIComponent(state.analysis.id);
   history.replaceState(null,"","/compliance.html?analysis="+encodeURIComponent(state.analysis.id));
   if(sources) {renderSources();$("reviewed").checked=false;}
+  // An already-stored deadline that does not parse as a date is hidden, not
+  // shown as a date: form-heavy sources store header noise as the deadline
+  // (the server drops such values for new analyses). The same filtered list
+  // feeds alerts, so a missing usable deadline is reported as not found.
+  const visibleFacts=state.analysis.facts.filter(f=>f.type!=="Submission Deadline"||validDeadline(f.value));
   const facts=$("facts");facts.replaceChildren();
-  if(!state.analysis.facts.length) facts.append(el("p","Summary facts appear after analysis. Missing dates, timezones and scoring weights are never inferred."));
+  if(!visibleFacts.length) facts.append(el("p","Summary facts appear after analysis. Missing dates, timezones and scoring weights are never inferred."));
   const seen=new Set();
-  for(const f of state.analysis.facts) {
+  for(const f of visibleFacts) {
     const key=f.type+"|"+f.value+"|"+f.source.segment_id;if(seen.has(key))continue;seen.add(key);
     const p=el("p");p.append(el("strong",f.type+": "),document.createTextNode(f.value+" · "+sourceLabel(f.source)));facts.append(p);
   }
@@ -125,7 +130,7 @@ function render(result, sources=true) {
   for(const [label,value] of [["Total requirements",m.total],["Mandatory",m.mandatory],["Needs Review",m.review],["Non-Compliant",m.noncompliant],["Evidence coverage",m.evidence+"%"]]) {
     const div=el("div");div.append(el("dt",label),el("dd",String(value)));host.append(div);
   }
-  const list=el("ul");for(const text of alerts(state))list.append(el("li",text));
+  const list=el("ul");for(const text of alerts({...state,analysis:{...state.analysis,facts:visibleFacts}}))list.append(el("li",text));
   for(const pair of state.similar_pairs || [])list.append(el("li","Review possible duplicate/amendment conflict: "+pair.join(" / ")));
   $("alerts").replaceChildren(list);renderTable();
 }

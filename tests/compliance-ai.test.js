@@ -111,10 +111,15 @@ test("literal scoring and deadline timezone survive model omission without inven
 
 test("exactly 80 requirements and 40 facts pass validation; 81 or 41 fail",()=>{
   const sentences=Array.from({length:80},(_,i)=>`The vendor must provide deliverable ${i+1}.`);
+  // Deadline facts must carry a real date value (validateOutput drops a
+  // Submission Deadline that does not parse as a date), so one sentence is a
+  // deadline line with a date option, mirroring the excerpt catalog.
+  sentences[3]="Deadline: 30 November 2026.";
   const segs=[{id:"s1",document_id:"doc",page:1,section:"Section L",text:sentences.join(" ")}];
   const catalog=sentences.map((text,i)=>({id:"e"+i,segment_id:"s1",text,fragmented:false,options:[{id:"e"+i+"v0",value:text,kind:"text"}]}));
+  catalog[3].options.push({id:"e3v1",value:"30 November 2026",kind:"text"});
   const reqs=catalog.map(e=>({excerpt_id:e.id,category:"Technical",mandatory:"Yes",uncertain:false}));
-  const facts=Array.from({length:40},(_,i)=>({type:ai.FACTS[i%ai.FACTS.length],value_option_id:"e"+(i%80)+"v0"}));
+  const facts=Array.from({length:40},(_,i)=>({type:ai.FACTS[i%ai.FACTS.length],value_option_id:ai.FACTS[i%ai.FACTS.length]==="Submission Deadline"?"e3v1":"e"+(i%80)+"v0"}));
   const out=ai.validateOutput(ai.resolveReferences({requirements:reqs,facts},catalog),segs,docs);
   assert.equal(out.requirements.length,80);assert.equal(out.facts.length,40);
   assert.throws(()=>ai.resolveReferences({requirements:[...reqs,reqs[0]],facts},catalog),/source validation/);
@@ -143,4 +148,28 @@ test("analyzeChunk captures provider usage and an estimated cost",async()=>{
   assert.equal(ai.estimateCostUSD(null),null);
   assert.equal(ai.estimateCostUSD({prompt_tokens:100,completion_tokens:50,total_tokens:150}),0.000045);
   assert.equal(ai.usageTokens({prompt_tokens:1}),null);
+});
+test("submission deadlines must parse as real dates; form noise is dropped, not displayed",()=>{
+  for(const [value,expected] of [
+    ["OFFER ADDENDA ADDENDA 140FS226Q0154 See Schedule See Schedule FWS SAT 2...",false],
+    ["See Schedule",false],["2:00 PM",false],["",false],["x".repeat(200),false],
+    ["August 15, 2026",true],["August 15, 2026, 2:00 PM ET",true],["2026-08-15",true],
+    ["15 August 2026",true],["08/15/2026",true],["Aug 2026",true]]) {
+    assert.equal(ai.validDeadline(value),expected,value);
+  }
+});
+test("server-derived deadline facts drop form noise and keep real dates",()=>{
+  const garbled=[{id:"s1",document_id:"doc",page:1,section:"Section A",text:"Due date: OFFER ADDENDA ADDENDA 140FS226Q0154 See Schedule See Schedule FWS SAT 2. The vendor must provide three references."}];
+  const dated=[{id:"s1",document_id:"doc",page:1,section:"Section A",text:"Due date: August 15, 2026. The vendor must provide three references."}];
+  assert.equal(ai.resolveReferences({requirements:[],facts:[]},ai.excerptCatalog(garbled)).facts.filter(f=>f.type==="Submission Deadline").length,0);
+  const kept=ai.resolveReferences({requirements:[],facts:[]},ai.excerptCatalog(dated)).facts.filter(f=>f.type==="Submission Deadline");
+  assert.equal(kept.length,1);assert.equal(kept[0].value,"August 15, 2026");
+});
+test("model-selected deadline facts drop unparseable values",()=>{
+  const dated=[{id:"s1",document_id:"doc",page:1,section:"Section A",text:"Due date: August 15, 2026."}];
+  const kept=ai.validateOutput({requirements:[],facts:[{type:"Submission Deadline",value:"August 15, 2026",segment_id:"s1",quote:"Due date: August 15, 2026."}]},dated,docs).facts;
+  assert.equal(kept.length,1);
+  const noise=[{id:"s1",document_id:"doc",page:1,section:"Section A",text:"Due date: OFFER ADDENDA ADDENDA 140FS226Q0154 See Schedule."}];
+  const dropped=ai.validateOutput({requirements:[],facts:[{type:"Submission Deadline",value:"OFFER ADDENDA ADDENDA 140FS226Q0154 See Schedule",segment_id:"s1",quote:"Due date: OFFER ADDENDA ADDENDA 140FS226Q0154 See Schedule."}]},noise,docs).facts;
+  assert.equal(dropped.length,0);
 });
