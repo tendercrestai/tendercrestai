@@ -41,9 +41,20 @@ function verifyWorker(event) {
  const expected=process.env.KB_WORKER_SECRET,actual=event.headers?.['x-kb-worker-secret']||event.headers?.['X-Kb-Worker-Secret'];
  if(!expected||expected.length<32||typeof actual!=='string'||Buffer.byteLength(expected)!==Buffer.byteLength(actual)||!timingSafeEqual(Buffer.from(expected),Buffer.from(actual)))fail(401,'Unauthorized background invocation.');
 }
+// An HTTP header value may hold visible ASCII, spaces/tabs and bytes
+// 0x80-0xFF, but no other control character and nothing above U+00FF:
+// Node's fetch throws synchronously on such a value, before any request
+// leaves, and the embedding retry loop then burns ~1.25s and records a
+// misleading embedding_failed. A pasted provider key can invisibly carry
+// one (a BOM, a zero-width space, NUL/DEL, a stray CR/LF), which no
+// visual check of the stored value can see. Trim surrounding whitespace,
+// then reject a value that cannot be sent, so the failure names the
+// configuration instead of the provider.
+function headerSafe(value){for(let i=0;i<value.length;i++){const c=value.charCodeAt(i);if((c<0x20&&c!==0x09)||c===0x7F||c>0xFF)return false;}return true;}
 function embeddingSettings() {
- const key=process.env.KB_EMBEDDING_API_KEY,model=process.env.KB_EMBEDDING_MODEL;
- if(!key||model!=='text-embedding-3-small')fail(503,'Knowledge embeddings are not configured.');return {key,model};
+ const key=(process.env.KB_EMBEDDING_API_KEY||'').trim(),model=(process.env.KB_EMBEDDING_MODEL||'').trim();
+ if(!key||model!=='text-embedding-3-small'||!headerSafe(key)){const error=new security.RequestError(503,'Knowledge embeddings are not configured.');error.configError='embedding_settings';throw error;}
+ return {key,model};
 }
 function vector(value) {if(!Array.isArray(value)||value.length!==1536||value.some(n=>typeof n!=='number'||!Number.isFinite(n))||!value.some(n=>n!==0))fail(502,'Invalid embedding response.');return value;}
 const EMBED_RETRY_DELAYS_MS=[250,1000];
@@ -60,9 +71,13 @@ async function embed(inputs,fetcher=fetch,options={}) {
   let response;
   try{
    response=await fetcher('https://api.openai.com/v1/embeddings',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model,input:inputs,dimensions:1536,encoding_format:'float'}),signal:AbortSignal.timeout(30000)});
-  }catch{
+  }catch(err){
    if(attempt<2){await sleep(delays[attempt]??delays[delays.length-1]);continue;}
-   fail(502,'Embedding service is temporarily unavailable.');
+   // The fetch threw before any provider request left (an unsendable
+   // header, DNS, a socket error): keep the original error name on the
+   // failure, so the worker log can name it instead of misreading this
+   // 502 as a provider outage.
+   const error=new security.RequestError(502,'Embedding service is temporarily unavailable.');error.transportError=typeof err?.name==='string'&&err.name?err.name:'Error';throw error;
   }
   if(response.ok){
    const data=await response.json();
