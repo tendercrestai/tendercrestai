@@ -65,7 +65,7 @@ function paginate(id,data,load,label='results'){
 function empty(container,text){container.append(node(container.tagName==='UL'?'li':'p',text));container.lastChild.className='empty';}
 function renderDocuments(items,container){
  container.replaceChildren();if(!items.length){empty(container,'No documents match. Adjust the filters or upload your first source.');return;}
- for(const d of items){const codeText={extraction_failed:'Extraction failed — try Process / retry, or re-upload the file'};const li=node('li',d.file_name+' — '+d.status+(d.error_code?' ('+(codeText[d.error_code]||d.error_code)+')':''));for(const w of d.warnings||[])li.append(node('p','Review warning: '+w));
+ for(const d of items){const codeText={extraction_failed:'Extraction failed — try Process / retry, or re-upload the file',embedding_failed:'Embedding failed — the provider denied access, or its quota is exhausted. Ask the organization administrator to verify the provider key and model, then use Process / retry.'};const li=node('li',d.file_name+' — '+d.status+(d.error_code?' ('+(codeText[d.error_code]||d.error_code)+')':''));for(const w of d.warnings||[])li.append(node('p','Review warning: '+w));
   if(d.status==='Ready')li.append(button('Verify source',()=>viewSource(d.id)));
   if(['Uploaded','Processing','Failed'].includes(d.status)&&['owner','editor'].includes(role))li.append(button('Process / retry',async()=>{if(!$('consent').checked)throw Error('Tick the consent box in the upload form above, then use Process / retry.');await process(d.id);await refresh();}));
   if(d.status!=='Archived'&&['owner','editor'].includes(role))li.append(button('Archive',async()=>{if(!confirm('Archive this source and revoke dependent approvals?'))return;await api({action:'archive',orgId:org,documentId:d.id});clearSearch();resetAnswer();await refresh();},true));
@@ -93,7 +93,11 @@ async function browse(kind,page=pages[kind]){
 }
 async function refresh(){
  clearTimeout(timer);overview=await api({action:'overview',orgId:requireOrg()});updateRole(overview.role);
- await Promise.all([browse('documents'),browse('answers')]);guide();
+ const [documents]=await Promise.all([browse('documents'),browse('answers')]);guide();
+ // The queued banner promises the source "will appear as Ready"; once every
+ // document has reached a terminal state and one has Failed, that promise is
+ // false and the banner must not keep standing next to the Failed row.
+ if(overview.processing===0&&documents.items.some(d=>d.status==='Failed')&&$('message').textContent.startsWith('Background job queued'))message('');
  if(overview.processing>0)timer=setTimeout(()=>perform(refresh),7000);
 }
 async function process(documentId){const result=await api({action:'process',orgId:requireOrg(),documentId,consent:true});message(result.done?'Source is already indexed.':result.dispatchPending?'Job saved; dispatch unconfirmed. Use Process / retry to resume the same job.':'Background job queued. Your source will appear as Ready when indexing finishes.');}
