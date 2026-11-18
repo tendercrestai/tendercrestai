@@ -78,7 +78,7 @@
     <h1>TenderCrest AI</h1>
     <p>Secure customer account access</p>
 
-    <section id="login">
+    <section id="login" class="hidden">
       <h2>Welcome back</h2>
       <form id="loginForm">
         <label>Email
@@ -155,6 +155,7 @@
     <p><a href="/">← Back to TenderCrest AI</a></p>
   </main>
 
+  <script>window.__authLoginFallback=setTimeout(function(){var s=document.getElementById('login');if(s)s.classList.remove('hidden');},5000);</script>
   <script type="module">
     import {createCustomerHub} from "/assets/customer-hub.mjs";
     import {createAccountUsage} from "/assets/account-usage.mjs";
@@ -163,6 +164,7 @@
       "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm";
 
     import {loadAuthConfig,showAuthUnavailable,authDestination,authReturnQuery} from "/assets/auth-journey.mjs";
+clearTimeout(window.__authLoginFallback);
 const authConfig=await loadAuthConfig().catch(error=>{showAuthUnavailable(error);return null;});
 if(authConfig){
     const supabase=createClient(authConfig.url,authConfig.key);

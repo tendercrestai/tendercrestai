@@ -79,12 +79,22 @@ function createHandler(adapters={}){return async event=>{
    const legacy=await (adapters.compliance||require('./compliance').handler)({...event,body:JSON.stringify({action:'get',analysisId:kb.uuid(data.analysisId)})});if(legacy.statusCode!==200)kb.fail(legacy.statusCode,'The owned RFP analysis could not be imported.');const w=JSON.parse(legacy.body);S.verifyAnalysis(w);
    const newRequirements=core.normalizeAnalysisRequirements(w);
    const documentsCompared=w.analysis.documents.map(d=>({id:d.id,name:d.name}));
+   // Deadline comparison: the pairwise requirement comparison cannot see
+   // a deadline-only amendment, so pass the amendment's extracted
+   // submission-deadline fact (with its source) through; the core
+   // compares it with the project's stored deadline fact.
+   const deadlineFact=(w.analysis.facts||[]).find(f=>f&&f.type==='Submission Deadline');
+   let deadlineSources=[];
+   if(deadlineFact){
+    const segment=(w.analysis.documents||[]).flatMap(d=>(d.segments||[]).map(s=>({...s,document:d.name}))).find(s=>s.id===deadlineFact.segment_id);
+    if(segment)deadlineSources=[{document:segment.document||'Source unavailable',section:segment.section||null,page:segment.page??null,quote:deadlineFact.quote||segment.text||''}];
+   }
    // Documents the analysis reports but could not extract are named here;
    // a document missing from the analysis entirely cannot be named, and the
    // report says so instead of pretending the comparison was complete.
    const documentsUnprocessed=w.analysis.status==='Partial'?w.analysis.documents.filter(d=>!(d.segments&&d.segments.length)).map(d=>({id:d.id,name:d.name,reason:'No extracted segments in this analysis.'})):[];
    const fileIds=[];for(const doc of w.analysis.documents){const src=await kb.verifyDocument(config,token,user,doc.id,true);const file=await S.putFile(config,p,{name:doc.name,mime:src.mime_type||src.mime||kb.MIME[src.extension],bytes:src.bytes,kind:'source',sourceDocumentId:doc.id});fileIds.push(file.id);}
-   const state=core.proposeAmendment(p.state,{kind:data.kind,versionNumber:data.versionNumber??null,analysisId:w.analysis.id,sourceDocumentId:w.analysis.documents[0]?.id||null,fileIds,documentsCompared,documentsUnprocessed,newRequirements},user.id);
+   const state=core.proposeAmendment(p.state,{kind:data.kind,versionNumber:data.versionNumber??null,analysisId:w.analysis.id,sourceDocumentId:w.analysis.documents[0]?.id||null,fileIds,documentsCompared,documentsUnprocessed,newRequirements,amendmentFacts:w.analysis.facts||[],deadlineSources},user.id);
    const amendment=state.amendments[state.amendments.length-1];
    const saved=await S.commit(config,user,p,state,'amendment.proposed',{amendmentId:amendment.id,versionNumber:amendment.versionNumber,kind:data.kind});
    return kb.reply(200,await S.workspace(config,user,saved));

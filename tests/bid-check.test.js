@@ -8,6 +8,8 @@ test('all scoring bands, boundaries and stable reason ordering',()=>{
  for(const [count,days,expected]of [[14,7,2],[15,6,0],[15,7,1],[15,20,1],[15,21,2],[14,0,1]]){const deadline=new Date(Date.UTC(2026,10,1+days)).toISOString().slice(0,10);assert.equal(B.score(rows(count),{...input,deadline},'2026-11-01').factors[0].points,expected);}
  for(const [hours,expected]of [[0,0],[14.99,0],[15,1],[39.99,1],[40,2]])assert.equal(B.score(rows(3),{...input,hours},'2026-11-01').factors[1].points,expected);
  assert.equal(B.score(rows(3),{...input,deadline:'2026-03-08'},'2026-03-07').days,1);
+ assert.equal(B.score(rows(3),input,'2026-11-01').factors[0].working,'30 days left, 3 mandatory requirements.');
+ assert.equal(B.score(rows(1),{...input,deadline:'2026-11-02'},'2026-11-01').factors[0].working,'1 day left, 1 mandatory requirement.');
 });
 test('forced pass is visible even when high scoring factors otherwise produce eight points',()=>{
  for(const [a,reason]of [[{...input,eligibility:'no'},'You do not meet the stated eligibility requirements.'],[{...input,deadline:'2026-10-31'},'The response deadline has passed or is too close to prepare a compliant bid.']]){const r=B.score(rows(3),a,'2026-11-01');assert.equal(r.total,8);assert.equal(r.band,'pass');assert.ok(r.overrides.includes(reason));}
@@ -49,12 +51,13 @@ test('fictional sample completes all bands through shared extraction, quota, ema
   }
   const fourth=await call({...base,action:'start'});assert.equal(fourth.status,400); // strict shred action rejects answers first
   const quota=await call({action:'start',title:base.title,source:base.source,text:source,processingConsent:true});assert.equal(quota.status,429);assert.match(quota.body.error,/three times per IP/);
+  const bidQuota=await call({...base});assert.equal(bidQuota.status,429);assert.match(bidQuota.body.error,/bid-check/i);assert.doesNotMatch(bidQuota.body.error,/shred/i);
   assert.equal(mail.length,0);const id=[...checks.keys()][0],token=F.sign(id);const bot=await call({action:'bid-report',token,email:'hello@tendercrestai.com',website:'bot',marketing:false});assert.equal(bot.status,400);assert.equal(leads.size,0);
   const gate=await call({action:'bid-report',token,email:'hello@tendercrestai.com',website:'',marketing:false});assert.equal(gate.status,200);assert.equal(gate.body.leadStored,true);assert.match(gate.body.document,/Strong fit/);assert.match(gate.body.document,/Factor breakdown/);assert.equal(leads.size,1);assert.equal(mail.length,2);assert.match(mail[0].payload.subject,/Your TenderCrest AI bid-check breakdown/);assert.equal(mail[0].payload.attachments[0].filename,'bid-check-breakdown.txt');assert.match(mail[1].payload.text,/Verdict: Strong fit/);for(const m of mail){assert.deepEqual(m.payload.to,['hello@tendercrestai.com']);assert.match(m.payload.subject,/FICTIONAL PREVIEW TEST/);assert.match(m.idempotency,/^free-bidcheck-/);}
   await call({action:'bid-report',token,email:'hello@tendercrestai.com',website:'',marketing:false});assert.equal(mail.length,2);assert.equal(leads.size,1);
   const originalFiles=fs.readdirSync('content/teardowns').sort(),shredId='77777777-7777-4777-8777-777777777777';jobs.set(shredId,{...jobs.get(id),id:shredId});
   const matrix=await call({action:'matrix',token:F.sign(shredId),email:'hello@tendercrestai.com',website:'',marketing:false,teardown:true});assert.equal(matrix.status,200);assert.equal(leads.get(shredId).teardown_opt_in,true);assert.equal(leads.get(shredId).marketing_opt_in,false);assert.match(matrix.body.matrix,/Requirement ID/);assert.ok(mail.some(x=>x.payload.subject.includes('New free RFP shredder lead')&&x.payload.text.includes('Public teardown interest: Yes')));assert.deepEqual(fs.readdirSync('content/teardowns').sort(),originalFiles);
   const metric={action:'event',name:'bidcheck_completed',id:'11111111-1111-4111-8111-111111111111',consent:false};assert.equal((await call(metric)).status,400);assert.equal(events.length,0);assert.equal((await call({...metric,consent:true})).status,200);assert.equal(events.length,1);
-  assert.ok(rpcs.filter(x=>x.name==='ft_bidcheck_start').length===3);
+  assert.ok(rpcs.filter(x=>x.name==='ft_bidcheck_start').length===4); // 3 successful starts plus the quota-rejected 4th bid-start above
  }finally{global.fetch=original;for(const k of names)if(saved[k]===undefined)delete process.env[k];else process.env[k]=saved[k];}
 });

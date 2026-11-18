@@ -54,6 +54,56 @@ test('identical wording reuses the stable ID and proposes no change',()=>{
   assert.equal(s.requirements[0].trace.responseApproval.status,'not-approved');
 });
 
+// --- Deadline-only amendments: the deadline moves in the extracted facts
+// while every requirement matches unchanged. The pairwise comparison
+// surfaces nothing, so the facts are compared directly (finding #17).
+function stateWithDeadline(value){
+  const w=workspaceFor(v1Reqs());
+  w.analysis.facts=[{type:'Submission Deadline',value,segment_id:'s1',quote:'Submission deadline: '+value}];
+  return core.imported(core.initial('Fictional','Fictional'),w);
+}
+const deadlineFacts=(value)=>[{type:'Submission Deadline',value,segment_id:'s1',quote:'Submission deadline: '+value}];
+
+test('deadline-only amendment surfaces one project-level deadline change',()=>{
+  const s=propose(stateWithDeadline('September 1, 2026'),v1Reqs(),'supplemental',{amendmentFacts:deadlineFacts('December 31, 2026')});
+  const a=amendmentOf(s);
+  assert.equal(a.changes.length,1);
+  const c=a.changes[0];
+  assert.equal(c.type,'deadline-changed');
+  assert.equal(c.matchMethod,'deadline-fact');
+  assert.equal(c.oldRequirementId,null);
+  assert.equal(c.oldText,'Submission deadline: September 1, 2026');
+  assert.equal(c.newText,'Submission deadline: December 31, 2026');
+  // No requirement was rewritten by the proposal.
+  assert.deepEqual(s.requirements.map(r=>r.text),v1Reqs().map(r=>r.requirement));
+  // The change is visible with empty affected work, not hidden.
+  const view=core.amendmentView(s)[0].changes.find(x=>x.id===c.id);
+  assert.equal(view.type,'deadline-changed');
+  assert.deepEqual(view.affected.evidence,[]);
+  assert.deepEqual(view.affected.sections,[]);
+});
+
+test('ISO deadline facts are compared as dates, not raw strings',()=>{
+  const s=propose(stateWithDeadline('2026-09-01'),v1Reqs(),'supplemental',{amendmentFacts:deadlineFacts('2026-12-31')});
+  assert.equal(amendmentOf(s).changes.length,1);
+  assert.equal(amendmentOf(s).changes[0].type,'deadline-changed');
+});
+
+test('same deadline, or a missing deadline fact on either side, proposes no change',()=>{
+  assert.equal(amendmentOf(propose(stateWithDeadline('September 1, 2026'),v1Reqs(),'supplemental',{amendmentFacts:deadlineFacts('September 1, 2026')})).changes.length,0);
+  assert.equal(amendmentOf(propose(stateWithDeadline('September 1, 2026'),v1Reqs())).changes.length,0);
+  assert.equal(amendmentOf(propose(importedState(),v1Reqs(),'supplemental',{amendmentFacts:deadlineFacts('December 31, 2026')})).changes.length,0);
+});
+
+test('confirming a project-level deadline change resolves it without touching requirements',()=>{
+  let s=propose(stateWithDeadline('September 1, 2026'),v1Reqs(),'supplemental',{amendmentFacts:deadlineFacts('December 31, 2026')});
+  const a=amendmentOf(s),c=a.changes[0];
+  s=core.apply(s,'amendmentConfirm',{amendmentId:a.id,changeId:c.id},'author-1',{});
+  assert.equal(amendmentOf(s).changes[0].status,'confirmed');
+  assert.equal(amendmentOf(s).status,'resolved');
+  assert.deepEqual(s.requirements.map(r=>r.text),v1Reqs().map(r=>r.requirement));
+});
+
 test('reworded requirement is a detected change; confirming reuses the stable ID and flags reconfirmation',()=>{
   let s=approveSetup();
   const before=s.requirements[0].trace;

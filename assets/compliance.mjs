@@ -5,6 +5,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import { validateFile } from "./rfp-document.mjs";
 import { statuses, categories, metrics, sourceLabel, filterRows, alerts, stableRequirementId, validDeadline } from "./compliance-model.mjs";
 import { csv, xlsx } from "./compliance-export.mjs";
+import { createActionQueue } from "./ui-helpers.mjs";
 const $ = id => document.getElementById(id);
 const el = (tag, text, className) => { const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n; };
 let supabase, user, state, editing, busy=false, paused=false, epoch=0;
@@ -14,6 +15,10 @@ function controls(value) {
   for(const id of ["prepare","reload","history","documents","analyze","csv","xlsx"]) $(id).disabled=value;
   $("workspace").setAttribute("aria-busy",String(value));
 }
+// One action at a time; a click that lands while another action runs is
+// queued (latest wins) instead of dropped, and a slow action reports
+// "Working…" after 800ms unless it already reported its own progress.
+const actionQueue=createActionQueue({isBusy:()=>busy,setBusy:controls,notify:t=>message(t),readMessage:()=>$("message").textContent});
 function clearAccount() {
   void identifyUsage(null);
   epoch++;user=null;state=null;editing=null;paused=true;
@@ -141,12 +146,13 @@ async function refreshHistory() {
   for(const a of result.analyses)select.append(new Option(new Date(a.created_at).toLocaleString()+" · "+a.status+" · "+((a.documents&&a.documents[0]&&a.documents[0].name)||"Untitled RFP"),a.id));
   if(state) select.value=state.analysis.id;
 }
-$("upload-form").onsubmit=async event=>{
-  event.preventDefault();if(busy)return;
+$("upload-form").onsubmit=event=>{
+  event.preventDefault();
+  void actionQueue.run(async()=>{
   const files=[...$("documents").files];
   if(files.length<1 || files.length>6) {message("Choose one to six RFP documents.",true);return;}
   try {for(const f of files)validateFile(f);}catch(error){message(error.message,true);return;}
-  controls(true);const current=epoch;
+  const current=epoch;
   try {
     const ids=[];
     for(let i=0;i<files.length;i++){message("Uploading privately: "+(i+1)+" / "+files.length);ids.push(await upload(files[i]));}
@@ -155,19 +161,22 @@ $("upload-form").onsubmit=async event=>{
     if(current!==epoch)return;
     render(result);await refreshHistory();message("Review the extracted text before analyzing requirements.");
   }catch(error){message(error.message || "Extraction failed. Retry with the same files.",true);}
-  finally{controls(false);renderTable();}
+  finally{renderTable();}
+  });
 };
-$("reload").onclick=async()=>{
-  if(busy)return;const id=$("history").value || state?.analysis.id;if(!id){message("Choose a saved analysis first.",true);return;}
-  controls(true);
+$("reload").onclick=()=>{
+  void actionQueue.run(async()=>{
+  const id=$("history").value || state?.analysis.id;if(!id){message("Choose a saved analysis first.",true);return;}
   try {render(await api({action:"get",analysisId:id}));message("Saved analysis loaded.");}catch(error){message(error.message,true);}
-  finally{controls(false);renderTable();}
+  finally{renderTable();}
+  });
 };
-$("analyze").onclick=async()=>{
-  if(busy || !state)return;
+$("analyze").onclick=()=>{
+  void actionQueue.run(async()=>{
+  if(!state)return;
   if(!$("reviewed").checked){message("Review the extracted text and confirm before analyzing.",true);return;}
   if(["Completed","Partial"].includes(state.analysis.status)){message("All chunks processed. Review the matrix and extraction warnings.");return;}
-  paused=false;controls(true);$("pause").hidden=false;
+  paused=false;$("pause").hidden=false;
   try {
     while(!paused && !["Completed","Partial"].includes(state.analysis.status)) {
       message("Analyzing chunk "+(state.analysis.processed+1)+" / "+state.analysis.total_chunks+"…");
@@ -177,24 +186,27 @@ $("analyze").onclick=async()=>{
   }catch(error){
     message(error.message || "Analysis failed. Reload saved results before retrying.",true);
     try {if(state && user)render(await api({action:"get",analysisId:state.analysis.id}),false);}catch{}
-  }finally{controls(false);$("pause").hidden=true;renderTable();if(user)refreshHistory().catch(()=>{});}
+  }finally{$("pause").hidden=true;renderTable();if(user)refreshHistory().catch(()=>{});}
+  });
 };
 $("pause").onclick=()=>{paused=true;message("Will pause after the current chunk is saved.");};
-$("edit-form").onsubmit=async event=>{
-  event.preventDefault();if(!editing || busy)return;
+$("edit-form").onsubmit=event=>{
+  event.preventDefault();if(!editing)return;
+  void actionQueue.run(async()=>{
   const changes={requirement:$("edit-requirement").value,category:$("edit-category").value,mandatory:$("edit-mandatory").value,
     status:$("edit-status").value,evidence:$("edit-evidence").value,evidence_reference:$("edit-evidence-reference").value,
     response_owner:$("edit-owner").value,comments:$("edit-comments").value};
   if(changes.status==="Compliant" && (!changes.evidence.trim() || !changes.evidence_reference.trim())) {
     $("edit-error").textContent="Provide company evidence and a verifiable reference before marking Compliant.";return;
   }
-  controls(true);$("save-row").disabled=true;
+  $("save-row").disabled=true;
   try {
     const result=await api({action:"update",analysisId:state.analysis.id,requirementId:editing.id,revision:editing.revision,changes});
     state.requirements=state.requirements.map(r=>r.id===editing.id?result.requirement:r);
     $("edit-dialog").close();editing=null;render(state,false);message("Review saved.");
   }catch(error){$("edit-error").textContent=error.message || "Review could not be saved.";}
-  finally{controls(false);$("save-row").disabled=false;renderTable();}
+  finally{$("save-row").disabled=false;renderTable();}
+  });
 };
 $("cancel-edit").onclick=()=>{$("edit-dialog").close();editing=null;};
 $("close-source").onclick=()=>$("source-dialog").close();
