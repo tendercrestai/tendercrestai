@@ -2,6 +2,7 @@ import {customerFetch} from './customer-request.mjs';
 import {identifyUsage} from './analytics.mjs';
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm';
 import {validateFile} from './rfp-document.mjs';
+import {createActionQueue,formatActivityDate,shortId} from './ui-helpers.mjs';
 const $=id=>document.getElementById(id);
 const node=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e;};
 const PAGE_SIZE=25,INVITE_KEY='tendercrest.kb.pendingInvite';
@@ -30,7 +31,11 @@ async function api(payload){
  if(current!==epoch)throw Error('Account or organization changed.');if(response.status===401)signedOut();if(!response.ok)throw Error(result.error||'Knowledge request failed.');return result;
 }
 function button(text,fn,secondary=false){const b=node('button',text);b.type='button';if(secondary)b.className='secondary';b.onclick=()=>perform(fn);return b;}
-async function perform(fn){if(working)return;working=true;$('workspace').setAttribute('aria-busy','true');$('organizations').disabled=true;try{await fn();}catch(e){message(e.message,true);}finally{working=false;$('organizations').disabled=false;$('workspace').setAttribute('aria-busy','false');}}
+// One action at a time; a click that lands while another action runs is
+// queued (latest wins) instead of dropped, and a slow action reports
+// "Working…" after 800ms unless it already reported its own progress.
+const performQueue=createActionQueue({isBusy:()=>working,setBusy:v=>{working=v;$('workspace').setAttribute('aria-busy',String(v));$('organizations').disabled=v;},notify:t=>message(t),readMessage:()=>$('message').textContent});
+async function perform(fn){await performQueue.run(async()=>{try{await fn();}catch(e){message(e.message,true);}});}
 function requireOrg(){if(!org)throw Error('Choose or create an organization first.');return org;}
 function canAudit(){return ['owner','reviewer'].includes(role);}
 function updateRole(value){
@@ -82,7 +87,7 @@ function renderAnswers(items,container){
   container.append(li);
  }
 }
-function renderEvents(items,container){container.replaceChildren();if(!items.length){empty(container,'No activity matches these filters.');return;}for(const e of items)container.append(node('li',e.created_at+' — '+e.action+(e.revision!=null?' · revision '+e.revision:'')+(e.actor_id?' · actor '+e.actor_id:'')+(e.target_id?' · target '+e.target_id:'')));}
+function renderEvents(items,container){container.replaceChildren();if(!items.length){empty(container,'No activity matches these filters.');return;}for(const e of items)container.append(node('li',formatActivityDate(e.created_at)+' — '+e.action+(e.revision!=null?' · revision '+e.revision:'')+(e.actor_id?' · actor '+shortId(e.actor_id):'')+(e.target_id?' · target '+shortId(e.target_id):'')));}
 function renderHits(items){$('hits').replaceChildren();if(!items.length){empty($('hits'),'No ready source quotations match. Try another query or filter.');return;}for(const c of items){const box=node('div');box.className='hit';const label=node('label'),input=node('input');input.type='checkbox';input.dataset.chunk=c.id;input.checked=citations.has(c.id);input.disabled=role==='viewer';input.onchange=()=>{if(input.checked&&citations.size>=10){input.checked=false;message('Select no more than ten citations.',true);return;}input.checked?citations.add(c.id):citations.delete(c.id);selected();};label.append(input,node('span',citationLabel(c)));box.append(label,node('blockquote',c.content),button('Verify original',()=>viewSource(c.document_id),true));$('hits').append(box);}}
 function renderMatches(items){$('matches').replaceChildren();$('approved-matches-title').hidden=false;for(const a of items){const item=node('article');item.append(node('h4',a.question),node('p',a.answer),node('p','Human-approved revision '+a.revision));for(const c of a.citations||[])item.append(node('p',citationLabel(c)),node('blockquote',c.quote));$('matches').append(item);}if(!items.length)empty($('matches'),'No approved answer matches these sources. Drafts are excluded here.');}
 async function browse(kind,page=pages[kind]){

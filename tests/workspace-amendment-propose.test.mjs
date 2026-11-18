@@ -7,6 +7,7 @@ import {
   amendmentChangeStatusLabels,
   amendmentCounts,
 } from "../assets/amendment-model.mjs";
+import {createActionQueue} from "../assets/ui-helpers.mjs";
 
 // Regression test for the Nov 18, 2026 "propose amendment" outage: after
 // uploading and extracting PEP Amendment 7, the Amendments tab showed the
@@ -164,6 +165,7 @@ async function loadAmendmentsPanel() {
     line("const $=id=>document.getElementById(id),node="),
     line("function message(t,error=false){"),
     line("function throwSafe(t){"),
+    line("const actionQueue=createActionQueue("),
     line("async function run(fn){"),
     line("function button(t,fn,secondary=false){"),
     line("function field(parent,label,type="),
@@ -179,6 +181,7 @@ async function loadAmendmentsPanel() {
     "canWrite", "canReview", "mutate", "render", "api",
     "amendmentKindLabels", "amendmentChangeTypeLabels",
     "amendmentChangeStatusLabels", "amendmentCounts",
+    "createActionQueue",
     body,
   );
   const loaded = factory(
@@ -186,6 +189,7 @@ async function loadAmendmentsPanel() {
     stubs.canWrite, stubs.canReview, stubs.mutate, stubs.render, stubs.api,
     amendmentKindLabels, amendmentChangeTypeLabels,
     amendmentChangeStatusLabels, amendmentCounts,
+    createActionQueue,
   );
   return { ...loaded, calls, registry, view, analysis };
 }

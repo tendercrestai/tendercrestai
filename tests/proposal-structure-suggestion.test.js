@@ -8,11 +8,11 @@ const DOC='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 let segN=0;
 const source=(section,page,quote)=>({document_id:DOC,document:'Fictional RFP',segment_id:'seg-'+(++segN),page,section,quote});
 const reqs=[
- {id:'11111111-1111-4111-8111-111111111111',text:'The vendor must hold current ISO 27001 certification.',mandatory:'Yes',category:'Technical',sources:[source('Section L',2,'The vendor must hold current ISO 27001 certification.')]},
+ {id:'11111111-1111-4111-8111-111111111111',text:'The vendor must meet the technical specification and hold current ISO 27001 certification.',mandatory:'Yes',category:'Technical',sources:[source('Section L',2,'The vendor must meet the technical specification and hold current ISO 27001 certification.')]},
  {id:'22222222-2222-4222-8222-222222222222',text:'The vendor must submit a signed certificate of insurance.',mandatory:'Yes',category:'Attachment',sources:[source('Section M',3,'The vendor must submit a signed certificate of insurance.')]},
  {id:'33333333-3333-4333-8333-333333333333',text:'Submit the completed pricing form by the deadline.',mandatory:'Yes',category:'Submission',sources:[source('Section N',1,'Submit the completed pricing form by the deadline.')]},
  {id:'44444444-4444-4333-8333-444444444444',text:'Proposals must be delivered in triplicate.',mandatory:'Unclear',category:'Submission',sources:[source('Section N',1,'Proposals must be delivered in triplicate.')]},
- {id:'55555555-5555-4333-8333-555555555555',text:'The vendor should describe its sustainability program.',mandatory:'No',category:'Technical',sources:[source('Section O',4,'The vendor should describe its sustainability program.')]},
+ {id:'55555555-5555-4333-8333-555555555555',text:'The vendor should describe its sustainability service program.',mandatory:'No',category:'Technical',sources:[source('Section O',4,'The vendor should describe its sustainability service program.')]},
 ];
 const agileReqs=[
  {id:'66666666-6666-4666-8666-666666666666',text:'Discovery: interview users and map personas before building.',mandatory:'Yes',category:'Technical',sources:[source('Section A',1,'Discovery: interview users and map personas before building.')]},
@@ -67,13 +67,31 @@ test('returns null when no template matches and for an invalid catalogue',()=>{
 
 test('a section matching several groups joins the first group only',()=>{
  const list=[{id:'cccccccc-1111-4ccc-8ccc-cccccccccccc',text:'Submit the pricing form for the technical specification.',mandatory:'Yes',category:'Submission',sources:[source('Section A',1,'Submit the pricing form for the technical specification.')]},
-  {id:'cccccccc-2222-4ccc-8ccc-cccccccccccc',text:'The vendor must hold current ISO 27001 certification.',mandatory:'Yes',category:'Technical',sources:[source('Section B',2,'The vendor must hold current ISO 27001 certification.')]},
-  {id:'cccccccc-3333-4ccc-8ccc-cccccccccccc',text:'Submit the completed cost schedule by Friday.',mandatory:'Yes',category:'Submission',sources:[source('Section C',3,'Submit the completed cost schedule by Friday.')]}];
+  {id:'cccccccc-2222-4ccc-8ccc-cccccccccccc',text:'The vendor must meet the technical specification and hold current ISO 27001 certification.',mandatory:'Yes',category:'Technical',sources:[source('Section B',2,'The vendor must meet the technical specification and hold current ISO 27001 certification.')]},  {id:'cccccccc-3333-4ccc-8ccc-cccccccccccc',text:'Submit the completed cost schedule by Friday.',mandatory:'Yes',category:'Submission',sources:[source('Section C',3,'Submit the completed cost schedule by Friday.')]}];
  const s=importedState(list),sug=core.structureSuggestion(s,realCatalogue());
  assert.ok(sug);assert.equal(sug.patternId,'structure-template-state-local-it');
  const byLabel=Object.fromEntries(sug.groups.map(g=>[g.label,g.sectionIds]));
  // 'pricing' and 'technical' both match, but Requirements response comes first in the template.
  assert.deepEqual(byLabel['Requirements response'],[sectionFor(s,list[0].id).id,sectionFor(s,list[1].id).id]);
+ assert.deepEqual(byLabel['Pricing and cost schedule'],[sectionFor(s,list[2].id).id]);
+});
+
+test('a requirement is never grouped by its category alone',()=>{
+ const list=[
+  {id:'dddddddd-1111-4ddd-8ddd-dddddddddddd',text:'If this contract is completely or partially terminated, the records must be retained for seven years.',mandatory:'Yes',category:'Administrative',sources:[source('Section A',1,'If this contract is completely or partially terminated, the records must be retained for seven years.')]},
+  {id:'dddddddd-2222-4ddd-8ddd-dddddddddddd',text:'The vendor must meet the technical specification and hold current ISO 27001 certification.',mandatory:'Yes',category:'Technical',sources:[source('Section B',2,'The vendor must meet the technical specification and hold current ISO 27001 certification.')]},
+  {id:'dddddddd-3333-4ddd-8ddd-dddddddddddd',text:'Submit the completed pricing form by the deadline.',mandatory:'Yes',category:'Submission',sources:[source('Section C',3,'Submit the completed pricing form by the deadline.')]},
+  {id:'dddddddd-4444-4ddd-8ddd-dddddddddddd',text:'The observatory dome must open and close in under ninety seconds.',mandatory:'Yes',category:'Technical',sources:[source('Section D',4,'The observatory dome must open and close in under ninety seconds.')]},
+ ];
+ const s=importedState(list),sug=core.structureSuggestion(s,realCatalogue());
+ assert.ok(sug);
+ const byLabel=Object.fromEntries(sug.groups.map(g=>[g.label,g.sectionIds]));
+ // The termination clause is Administrative, but its wording is about
+ // termination, not cover letters or bidder forms.
+ assert.deepEqual(byLabel['Cover letter and bidder forms'],[]);
+ // The dome requirement is Technical, but its wording matches no group.
+ assert.ok(!sug.groups.flatMap(g=>g.sectionIds).includes(sectionFor(s,list[3].id).id));
+ assert.deepEqual(byLabel['Requirements response'],[sectionFor(s,list[1].id).id]);
  assert.deepEqual(byLabel['Pricing and cost schedule'],[sectionFor(s,list[2].id).id]);
 });
 

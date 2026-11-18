@@ -144,12 +144,14 @@ function structureSuggestion(state,catalogue){
   }
   if(!templates.length)return null;
   const sectionTexts=sections.map(section=>{
-   // Match on the section title, the linked requirement wording and the
-   // requirement category (Technical, Submission and so on): the template
-   // groups are keyed on those words, and the category is extraction
-   // metadata about the requirement, not bidder text.
+   // Match on the section title and the linked requirement wording only.
+   // The requirement category (Technical, Submission and so on) is
+   // extraction metadata, not bidder text, and the template groups are
+   // keyed on category words such as "administrative": matching on it
+   // claimed unrelated sections for a group, for example a contract
+   // termination clause filed under "Cover letter and bidder forms".
    const linked=(section.requirementIds||[]).map(id=>requirements.find(r=>r.id===id)).filter(Boolean);
-   return suggestionTokens([section.title||'',...linked.flatMap(r=>[r.text||'',r.category||''])].join('\n'));
+   return suggestionTokens([section.title||'',...linked.map(r=>r.text||'')].join('\n'));
   });
   let best=null;
   for(const t of templates){
@@ -207,6 +209,17 @@ function extractAmendmentDates(text){
  return [...found].sort();
 }
 function amendmentDatesRemoved(text){return amendmentNormalize(text).replace(/\b\d{4}-\d{2}-\d{2}\b/g,'').replace(/\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4}\b/g,'').replace(/\s+/g,' ').trim();}
+// A submission deadline is only comparable when it was extracted as an
+// explicit fact on both sides. Dates are pulled out of the fact value
+// (which may read "2026-09-01" or "September 1, 2026") and compared as
+// dates, never as raw strings; a missing fact means no comparison is
+// possible, not an inferred deadline.
+function amendmentDeadlineFromFacts(facts){
+ const fact=(facts||[]).find(f=>f&&f.type==='Submission Deadline');
+ if(!fact||typeof fact.value!=='string')return null;
+ const dates=extractAmendmentDates(fact.value);
+ return dates.length?{value:fact.value.trim(),dates}:null;
+}
 // Same mapping as imported(): the stable ID of a freshly extracted requirement
 // is its content-anchored ID; prior identity is preserved by matching, below.
 function normalizeAnalysisRequirements(w){
@@ -298,6 +311,18 @@ function proposeAmendment(s,input,actor){
  if(!Array.isArray(input.newRequirements)||!input.newRequirements.length||input.newRequirements.length>AMENDMENT_MAX_REQUIREMENTS)kb.fail(400,'Complete a nonempty analysis with at most 500 requirements.');
  if(!Array.isArray(input.documentsCompared)||!input.documentsCompared.length)kb.fail(400,'State which documents were compared.');
  const {changes,notMentioned}=compareRequirements(s.requirements,input.newRequirements,input.kind);
+ // A deadline-only amendment (for example one that only moves the response
+ // deadline) matches no requirement pair, so the pairwise comparison
+ // surfaces nothing. Compare the extracted submission-deadline facts
+ // instead: when both sides state a deadline and they differ, record one
+ // project-level deadline change with no requirement attached. Either
+ // fact missing means no comparison is possible; the deadline is never
+ // inferred from requirement text.
+ const oldDeadline=amendmentDeadlineFromFacts(s.analysis?.facts);
+ const newDeadline=amendmentDeadlineFromFacts(input.amendmentFacts);
+ if(oldDeadline&&newDeadline&&JSON.stringify(oldDeadline.dates)!==JSON.stringify(newDeadline.dates)){
+  changes.push({id:randomUUID(),type:'deadline-changed',status:'proposed',stableId:null,oldRequirementId:null,newRequirementId:null,oldText:'Submission deadline: '+oldDeadline.value,newText:'Submission deadline: '+newDeadline.value,oldSources:[],newSources:Array.isArray(input.deadlineSources)?input.deadlineSources:[],oldMandatory:null,newMandatory:null,oldCategory:null,newCategory:null,similarity:null,matchMethod:'deadline-fact',deadlineChanged:true});
+ }
  if(changes.length>AMENDMENT_MAX_REQUIREMENTS)kb.fail(400,'This amendment proposes more than 500 changes; narrow the supplied documents.');
  const amendment={id:randomUUID(),versionNumber,kind:input.kind,analysisId:input.analysisId||null,sourceDocumentId:input.sourceDocumentId||null,fileIds:Array.isArray(input.fileIds)?input.fileIds:[],documentsCompared:input.documentsCompared,documentsUnprocessed:Array.isArray(input.documentsUnprocessed)?input.documentsUnprocessed:[],status:'open',createdAt:new Date().toISOString(),createdBy:actor||null,changes,notMentioned};
  s.amendments=[...list,amendment];
@@ -320,6 +345,10 @@ function applyAmendmentChange(s,amendment,change,actor){
   s.requirements=[...(s.requirements||[]),n];
   s.sections=[...(s.sections||[]),{id:randomUUID(),title:`${s.requirements.length}. ${change.newText.slice(0,100)}`,requirementIds:[n.id],text:'',revision:0,status:'draft',claims:[],unverified:true,authorId:null,reviewerId:null,dueAt:null,reviewReason:'Added by confirmed amendment version '+version+'.'}];
  }else if(['changed','deadline-changed','instruction-changed','uncertain-match'].includes(change.type)){
+  // A project-level deadline change has no requirement to rewrite: the
+  // decision is recorded by the caller, and the stored deadline fact only
+  // changes when the RFP snapshot itself is re-imported.
+  if(change.type==='deadline-changed'&&!change.oldRequirementId)return;
   const r=(s.requirements||[]).find(x=>x.id===change.oldRequirementId);if(!r)kb.fail(404,'Requirement not found.');
   const newText=change.correctedText||change.newText;
   invalidateRequirement(r,'Wording changed in amendment version '+version+'; review the prior compliance decision.');

@@ -12,3 +12,10 @@ export function proposalFor(s){return [
 ];}
 
 export function bidBreakdown(s){const values={it:[50,80,80,70,70],marketing:[50,90,80,75,75],consulting:[40,80,70,75,70]}[s.id];return ['Eligibility','Technical alignment','Past performance','Delivery readiness','Commercial fit'].map((name,i)=>({name,weight:[30,25,20,15,10][i],score:values[i],explanation:i===0?s.risk:'Illustrative analyst input for this fictional scenario; inspect the supplied sample evidence.'}));}
+
+// Fictional solicitation text built from a demo scenario, for the free
+// tools' "Load the fictional sample" button. Same fictional content as
+// the interactive demo; nothing new is invented here.
+export function sampleSolicitationText(s){
+ return ['Fictional solicitation: '+s.title,'Buyer: '+s.buyer,'Bidder: '+s.company,'',...s.requirements.map(r=>r.source+': '+r.text),'','This is a fictional sample for trying the tool. No real solicitation is used.'].join('\n');
+}

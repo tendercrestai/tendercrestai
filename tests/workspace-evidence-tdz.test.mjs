@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import {truncate, matchEvidenceOutcome, countText} from "../assets/ui-helpers.mjs";
 
 // Regression test for the Nov 18, 2026 Evidence-tab outage: the shipped
 // evidence() renderer in assets/workspace.mjs read `t.coverage` in the
@@ -48,10 +49,11 @@ async function loadEvidence() {
   };
   return new Function("node", "button", "card", "form", "select", "field", "sources",
     "canWrite", "canReview", "mutate", "message", "render", "submit",
+    "truncate", "matchEvidenceOutcome", "countText",
     line + "; return evidence;")(
     stubs.node, stubs.button, stubs.card, stubs.form, stubs.select, stubs.field,
     stubs.sources, stubs.canWrite, stubs.canReview, stubs.mutate, stubs.message,
-    stubs.render, stubs.submit);
+    stubs.render, stubs.submit, truncate, matchEvidenceOutcome, countText);
 }
 
 function collectText(el, out = []) {
