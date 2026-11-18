@@ -141,7 +141,7 @@ function amendmentsPanel(parent,s){
  const f=form(parent,'Add a new solicitation version',async()=>{
    if(!amendmentConfirmed){amendmentConfirmed=true;const yes=node('button','Yes, propose this amendment');yes.type='submit';const no=node('button','Cancel');no.type='button';no.className='secondary';no.onclick=()=>{amendmentConfirmed=false;confirmRow.replaceChildren();};confirmRow.replaceChildren(node('p','Share this owned amendment snapshot and its source files with all current project members? Proposing an amendment flags affected approvals as needing reconfirmation.'),yes,no);return;}
    amendmentConfirmed=false;
-   await mutate('amendmentPropose',{analysisId:analysisId.value.trim(),kind:kind.value,confirmShare:share.checked,versionNumber:null});render();message('Amendment proposed. Review each change below before confirming it.');
+   await mutate('amendmentPropose',{analysisId:analysisId.value.trim(),kind:kind.value,confirmShare:shareBox.checked,versionNumber:null});render();message('Amendment proposed. Review each change below before confirming it.');
   });
   const analysisId=field(f,'Analyzed amendment document — analysis ID (upload and analyze it in the RFP tab first)','text',analysis?.analysis?.id||'');
   const kind=select(f,'What is this upload?',Object.entries(amendmentKindLabels),'supplemental');
