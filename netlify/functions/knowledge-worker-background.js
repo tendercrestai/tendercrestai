@@ -13,8 +13,11 @@ function createHandler(adapters={}) {
  const extract=adapters.extractDocument||extractDocument,embed=adapters.embed||kb.embed;
  return async event=>{
   let config,jobId,lease,claimed=false,errorCode='source_invalid';
+  // Embedding settings are checked inside embed(), after the claim: a
+  // misconfigured provider key must land on the job as a Failed embedding
+  // error (with its reason), not leave the job stuck Pending.
   try {
-   kb.enabled();kb.verifyWorker(event);const p=kb.parse(event,1024);kb.exact(p,['jobId']);jobId=kb.uuid(p.jobId);kb.embeddingSettings();config=kb.configuration();lease=randomUUID();const doc=await kb.rpc(config,'kb_claim_job',{p_job:jobId,p_lease:lease});if(!doc)return kb.reply(200,{processed:false});claimed=true;
+   kb.enabled();kb.verifyWorker(event);const p=kb.parse(event,1024);kb.exact(p,['jobId']);jobId=kb.uuid(p.jobId);config=kb.configuration();lease=randomUUID();const doc=await kb.rpc(config,'kb_claim_job',{p_job:jobId,p_lease:lease});if(!doc)return kb.reply(200,{processed:false});claimed=true;
    const source=await kb.originalBytes(config,doc);errorCode='extraction_failed';const document=await extract(source,{maxText:KB_MAX_TEXT});const chunks=kb.citationChunks(document,{maxChunks:KB_MAX_CHUNKS});errorCode='embedding_failed';
    for(let i=0;i<chunks.length;i+=16){const vectors=await embed(chunks.slice(i,i+16).map(c=>c.content));if(vectors.length!==Math.min(16,chunks.length-i))kb.fail(502,'Invalid embedding batch.');vectors.forEach((v,j)=>{chunks[i+j].embedding=kb.vector(v);});}
    const warnings=document.warnings.slice(0,30).map(w=>w.slice(0,300));if(document.warnings.length>30)warnings[29]='Additional extraction warnings omitted; review the original source.';
@@ -28,9 +31,17 @@ function createHandler(adapters={}) {
    // exhausted quota (429) and a transient provider outage (502); without
    // this the next embedding_failed is undiagnosable from the job record
    // or the logs, which is how the Nov 18 incident stayed unexplained.
-   const providerStatus=typeof e?.status==='number'?e.status:null;
-   const reason=errorCode==='embedding_failed'?(providerStatus===503?'provider_denied':providerStatus===429?'provider_quota':providerStatus===502?'provider_unavailable':'embedding_error'):undefined;
-   console.error(JSON.stringify({event:'knowledge_job_failed',jobId:jobId||null,error:errorCode,...(providerStatus!==null?{providerStatus}:{}),...(reason?{reason}:{})}));
+   // A failure that never reached the provider carries no HTTP status:
+   // embed() attaches transportError (the fetch error's name) when the
+   // request never left, and embeddingSettings() attaches configError
+   // when the stored key cannot be sent. Either must not be misread as
+   // a provider 502/503, which is how the Nov 18 incident stayed
+   // unexplained.
+   const transportError=typeof e?.transportError==='string'?e.transportError:undefined;
+   const configError=typeof e?.configError==='string'?e.configError:undefined;
+   const providerStatus=typeof e?.status==='number'&&!transportError&&!configError?e.status:null;
+   const reason=errorCode==='embedding_failed'?(configError?'embedding_not_configured':transportError?'embedding_transport':providerStatus===503?'provider_denied':providerStatus===429?'provider_quota':providerStatus===502?'provider_unavailable':'embedding_error'):undefined;
+   console.error(JSON.stringify({event:'knowledge_job_failed',jobId:jobId||null,error:errorCode,...(providerStatus!==null?{providerStatus}:{}),...(transportError?{transportError}:{}),...(reason?{reason}:{})}));
    return kb.reply(e.status||503,{error:e.status?e.message:'Background processing failed. Inspect the saved job before retrying.'});
   }
  };

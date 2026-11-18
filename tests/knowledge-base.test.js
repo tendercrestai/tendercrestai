@@ -101,3 +101,51 @@ test('worker failure log separates a denied embedding key from quota and outage'
   }
  }finally{console.error=originalError;}
 });
+
+test('embedding settings reject a provider key that cannot be sent in a header',()=>{
+ // Nov 18, 2026: every knowledge document failed with embedding_failed in
+ // ~1.26s and no request ever reached OpenAI. The stored provider key
+ // carried a character Node's fetch refuses in a header value (a BOM, a
+ // zero-width space, NUL/DEL, a stray CR/LF), invisible in any visual
+ // check of the stored value. Settings must reject such a value outright
+ // instead of letting the retry loop burn ~1.25s and blame the provider.
+ for(const bad of ['private\u200Bembedding-key','\u200Bprivate-embedding-key','private-embedding-key\0','private-embedding-key\u007F','private\nembedding-key','private\rembedding-key','private\uFEFFembedding-key']){
+  process.env.KB_EMBEDDING_API_KEY=bad;
+  assert.throws(()=>kb.embeddingSettings(),/not configured/);
+ }
+ // Surrounding whitespace (including a pasted BOM at either edge) is
+ // trimmed, so a key that is only dirty at the edges still works.
+ for(const dirty of ['  private-embedding-key  ','\uFEFFprivate-embedding-key','private-embedding-key\uFEFF','\nprivate-embedding-key\n']){
+  process.env.KB_EMBEDDING_API_KEY=dirty;
+  assert.equal(kb.embeddingSettings().key,'private-embedding-key');
+ }
+ process.env.KB_EMBEDDING_API_KEY='private-embedding-key';
+ assert.equal(kb.embeddingSettings().key,'private-embedding-key');
+});
+
+test('worker failure log names a pre-network embedding throw instead of blaming the provider',async()=>{
+ const errors=[];const originalError=console.error;console.error=(...args)=>{errors.push(args.join(' '));};
+ const logged=()=>errors.map(line=>{try{return JSON.parse(line);}catch{return null;}}).find(entry=>entry&&entry.event==='knowledge_job_failed');
+ try{
+  // The fetch throws synchronously (as Node's fetch does on an unsendable
+  // header value), before any provider request leaves: the log must carry
+  // the throw's name and the transport reason, not a provider 502.
+  const throwing=async()=>{throw Object.assign(new Error('fetch failed'),{name:'TypeError'});};
+  const r=await worker.createHandler({embed:inputs=>kb.embed(inputs,throwing,{retryDelays:[0,0]})})(event({jobId:JOB},{'x-kb-worker-secret':'x'.repeat(48)}));
+  assert.equal(r.statusCode,502);
+  assert.ok(rpcCalls().some(c=>c.url.endsWith('kb_fail_job')&&JSON.parse(c.options.body).p_error==='embedding_failed'));
+  assert.deepEqual(logged(),{event:'knowledge_job_failed',jobId:JOB,error:'embedding_failed',transportError:'TypeError',reason:'embedding_transport'});
+ }finally{console.error=originalError;}
+});
+
+test('worker records a misconfigured embedding key as a failed job with its reason',async()=>{
+ process.env.KB_EMBEDDING_API_KEY='private\uFEFFembedding-key';
+ const errors=[];const originalError=console.error;console.error=(...args)=>{errors.push(args.join(' '));};
+ const logged=()=>errors.map(line=>{try{return JSON.parse(line);}catch{return null;}}).find(entry=>entry&&entry.event==='knowledge_job_failed');
+ try{
+  const r=await worker.createHandler()(event({jobId:JOB},{'x-kb-worker-secret':'x'.repeat(48)}));
+  assert.equal(r.statusCode,503);
+  assert.ok(rpcCalls().some(c=>c.url.endsWith('kb_fail_job')&&JSON.parse(c.options.body).p_error==='embedding_failed'));
+  assert.deepEqual(logged(),{event:'knowledge_job_failed',jobId:JOB,error:'embedding_failed',reason:'embedding_not_configured'});
+ }finally{console.error=originalError;}
+});
