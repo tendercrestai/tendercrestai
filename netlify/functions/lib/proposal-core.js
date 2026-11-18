@@ -212,13 +212,56 @@ function amendmentDatesRemoved(text){return amendmentNormalize(text).replace(/\b
 // A submission deadline is only comparable when it was extracted as an
 // explicit fact on both sides. Dates are pulled out of the fact value
 // (which may read "2026-09-01" or "September 1, 2026") and compared as
-// dates, never as raw strings; a missing fact means no comparison is
-// possible, not an inferred deadline.
+// dates, never as raw strings; a missing fact means the fact comparison
+// cannot run, and the timetable fallback below gets its turn.
 function amendmentDeadlineFromFacts(facts){
  const fact=(facts||[]).find(f=>f&&f.type==='Submission Deadline');
  if(!fact||typeof fact.value!=='string')return null;
  const dates=extractAmendmentDates(fact.value);
  return dates.length?{value:fact.value.trim(),dates}:null;
+}
+// Timetable fallback: short amendment notices often extract no Submission
+// Deadline fact at all, so read the response-due row of the procurement
+// timetable straight from the analysis segment text. The row is anchored
+// on the response-submission label ("Electronic Responses", "Quotes Due",
+// "Bid Opening") and the first date within a short window after the label
+// is the deadline; every other timetable row (questions due, intent to
+// bid, contract start) carries a different label and never matches, and a
+// date that follows another row's event label belongs to that row, not to
+// the response row. A missing label, or no date nearby, means no
+// comparison is possible — the deadline is never inferred from
+// requirement text.
+const AMENDMENT_DEADLINE_LABELS=[/electronic responses/i,/quotes?\s+due/i,/bid opening/i];
+const AMENDMENT_MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function firstAmendmentDate(text){
+ const src=String(text||'');let best=null;
+ const consider=(idx,iso)=>{if(best===null||idx<best.idx)best={idx,iso};};
+ for(const m of src.matchAll(/\b(\d{4})-(\d{2})-(\d{2})\b/g)){try{date(m[0]);consider(m.index,m[0]);}catch{/* Not a valid calendar date. */}}
+ for(const m of src.matchAll(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})\b/gi)){const iso=`${m[3]}-${String(AMENDMENT_MONTHS[m[1].toLowerCase()]).padStart(2,'0')}-${String(Number(m[2])).padStart(2,'0')}`;try{date(iso);consider(m.index,iso);}catch{/* Not a valid calendar date. */}}
+ return best;
+}
+// A date belongs to another timetable row when another row's event label
+// sits between the response label and that date (for example the contract
+// start row following a dateless response row); such a date is never the
+// response deadline.
+const AMENDMENT_OTHER_ROW=/written questions|notice of intent|contract start|announcement of intent|rfr issued/i;
+function amendmentDeadlineFromTimetable(segments){
+ const list=(segments||[]).filter(s=>s&&typeof s.text==='string'&&s.text.trim());
+ if(!list.length)return null;
+ let joined='',spans=[];
+ for(const s of list){const start=joined.length;joined+=(joined?'\n':'')+s.text;spans.push({start,end:joined.length,segment:s});}
+ for(const label of AMENDMENT_DEADLINE_LABELS){
+  for(const m of joined.matchAll(new RegExp(label.source,'gi'))){
+   const window=joined.slice(m.index,m.index+m[0].length+400);
+   const found=firstAmendmentDate(window);
+   if(!found)continue;
+   if(AMENDMENT_OTHER_ROW.test(window.slice(m[0].length,found.idx)))continue;
+   const iso=found.iso;const [y,mo,d]=iso.split('-').map(Number);
+   const span=spans.find(x=>m.index>=x.start&&m.index<x.end)||spans[0];
+   return {value:AMENDMENT_MONTH_NAMES[mo-1]+' '+d+', '+y,dates:[iso],source:{document:span.segment.document||'Source unavailable',section:span.segment.section||null,page:span.segment.page??null,quote:window.replace(/\s+/g,' ').trim().slice(0,300)}};
+  }
+ }
+ return null;
 }
 // Same mapping as imported(): the stable ID of a freshly extracted requirement
 // is its content-anchored ID; prior identity is preserved by matching, below.
@@ -314,14 +357,22 @@ function proposeAmendment(s,input,actor){
  // A deadline-only amendment (for example one that only moves the response
  // deadline) matches no requirement pair, so the pairwise comparison
  // surfaces nothing. Compare the extracted submission-deadline facts
- // instead: when both sides state a deadline and they differ, record one
- // project-level deadline change with no requirement attached. Either
- // fact missing means no comparison is possible; the deadline is never
- // inferred from requirement text.
+ // first: when both sides state a deadline and they differ, record one
+ // project-level deadline change with no requirement attached. When the
+ // fact comparison cannot run because a fact is missing on either side,
+ // fall back to the response-due row of the procurement timetable in the
+ // analysis text; facts still win whenever both sides state one. The
+ // deadline is never inferred from requirement text.
  const oldDeadline=amendmentDeadlineFromFacts(s.analysis?.facts);
  const newDeadline=amendmentDeadlineFromFacts(input.amendmentFacts);
  if(oldDeadline&&newDeadline&&JSON.stringify(oldDeadline.dates)!==JSON.stringify(newDeadline.dates)){
   changes.push({id:randomUUID(),type:'deadline-changed',status:'proposed',stableId:null,oldRequirementId:null,newRequirementId:null,oldText:'Submission deadline: '+oldDeadline.value,newText:'Submission deadline: '+newDeadline.value,oldSources:[],newSources:Array.isArray(input.deadlineSources)?input.deadlineSources:[],oldMandatory:null,newMandatory:null,oldCategory:null,newCategory:null,similarity:null,matchMethod:'deadline-fact',deadlineChanged:true});
+ }else if(!(oldDeadline&&newDeadline)){
+  const oldText=amendmentDeadlineFromTimetable(input.oldAnalysisTextSegments);
+  const newText=amendmentDeadlineFromTimetable(input.amendmentTextSegments);
+  if(oldText&&newText&&JSON.stringify(oldText.dates)!==JSON.stringify(newText.dates)){
+   changes.push({id:randomUUID(),type:'deadline-changed',status:'proposed',stableId:null,oldRequirementId:null,newRequirementId:null,oldText:'Submission deadline: '+oldText.value,newText:'Submission deadline: '+newText.value,oldSources:oldText.source?[oldText.source]:[],newSources:newText.source?[newText.source]:[],oldMandatory:null,newMandatory:null,oldCategory:null,newCategory:null,similarity:null,matchMethod:'deadline-text',deadlineChanged:true});
+  }
  }
  if(changes.length>AMENDMENT_MAX_REQUIREMENTS)kb.fail(400,'This amendment proposes more than 500 changes; narrow the supplied documents.');
  const amendment={id:randomUUID(),versionNumber,kind:input.kind,analysisId:input.analysisId||null,sourceDocumentId:input.sourceDocumentId||null,fileIds:Array.isArray(input.fileIds)?input.fileIds:[],documentsCompared:input.documentsCompared,documentsUnprocessed:Array.isArray(input.documentsUnprocessed)?input.documentsUnprocessed:[],status:'open',createdAt:new Date().toISOString(),createdBy:actor||null,changes,notMentioned};
@@ -637,4 +688,4 @@ function apply(s,action,p,user,{reviewer=false,members=[],evidenceEpoch=null}={}
  if(action==='saveSection'||action==='acceptDraft'){const section=s.sections.find(x=>x.id===p.sectionId);if(section&&beforeSectionText.get(section.id)!==section.text)for(const reqId of section.requirementIds)invalidateResponseApproval(s,reqId,user,'Response text changed after approval; previous approval is preserved in history.');}
  s.finalApproval=null;if(!['bidDecision','comment','dismissStructureSuggestion'].includes(action)){if(s.assessment)s.assessment.stale=true;if(s.decision)s.decision.stale=true;}return s;
 }
-module.exports={invalidateRequirement,expired,excluded,procedural,initial,imported,apply,refresh,candidateFlags,draftSection,readiness,assessment,activeEvidence,explicitLimits,contentHash,hash,text,date,words,stableRequirementId,contentFingerprint,defaultTrace,ensureTrace,suggestCoverage,evidenceSuggested,invalidateResponseApproval,markCoverageReconfirmation,traceSummary,unresolvedItems,responseHash,responseRevision,COVERAGES,READINESS_STATUSES,READINESS_KINDS,READINESS_MANUAL_LIMIT,READINESS_SCOPE_NOTE,readinessState,readinessItems,readinessSummary,readinessView,readinessItemUnresolved,factorCoverage,structureSuggestion,AMENDMENT_KINDS,AMENDMENT_CHANGE_TYPES,AMENDMENT_CHANGE_STATUSES,AMENDMENT_MAX_PER_PROJECT,AMENDMENT_MAX_REQUIREMENTS,AMENDMENT_MATCH_THRESHOLD,AMENDMENT_UNCERTAIN_THRESHOLD,AMENDMENT_SCOPE_NOTE,amendmentsState,amendmentRemoved,amendmentNormalize,amendmentSimilarity,extractAmendmentDates,normalizeAnalysisRequirements,amendmentSourceRefs,compareRequirements,amendmentSummary,amendmentAffectedWork,amendmentView,proposeAmendment,DRAFT_LANGUAGES,normalizeDraftLanguage};
+module.exports={invalidateRequirement,expired,excluded,procedural,initial,imported,apply,refresh,candidateFlags,draftSection,readiness,assessment,activeEvidence,explicitLimits,contentHash,hash,text,date,words,stableRequirementId,contentFingerprint,defaultTrace,ensureTrace,suggestCoverage,evidenceSuggested,invalidateResponseApproval,markCoverageReconfirmation,traceSummary,unresolvedItems,responseHash,responseRevision,COVERAGES,READINESS_STATUSES,READINESS_KINDS,READINESS_MANUAL_LIMIT,READINESS_SCOPE_NOTE,readinessState,readinessItems,readinessSummary,readinessView,readinessItemUnresolved,factorCoverage,structureSuggestion,AMENDMENT_KINDS,AMENDMENT_CHANGE_TYPES,AMENDMENT_CHANGE_STATUSES,AMENDMENT_MAX_PER_PROJECT,AMENDMENT_MAX_REQUIREMENTS,AMENDMENT_MATCH_THRESHOLD,AMENDMENT_UNCERTAIN_THRESHOLD,AMENDMENT_SCOPE_NOTE,amendmentsState,amendmentRemoved,amendmentNormalize,amendmentSimilarity,extractAmendmentDates,normalizeAnalysisRequirements,amendmentSourceRefs,compareRequirements,amendmentSummary,amendmentAffectedWork,amendmentView,proposeAmendment,amendmentDeadlineFromTimetable,DRAFT_LANGUAGES,normalizeDraftLanguage};

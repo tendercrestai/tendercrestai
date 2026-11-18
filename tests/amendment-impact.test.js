@@ -95,6 +95,60 @@ test('same deadline, or a missing deadline fact on either side, proposes no chan
   assert.equal(amendmentOf(propose(importedState(),v1Reqs(),'supplemental',{amendmentFacts:deadlineFacts('December 31, 2026')})).changes.length,0);
 });
 
+// --- Timetable fallback: short amendment notices often extract no
+// Submission Deadline fact at all, so the response-due row of the
+// procurement timetable is read from the analysis text instead. The
+// label anchors the row, so earlier timetable dates (questions due,
+// intent to bid) are never mistaken for the deadline.
+const TIMETABLE_OLD='SECTION 3. PROCUREMENT TIMETABLE\nEVENT DATE\nWritten Questions due January 16, 2026, by 5:00 pm\nNotice of Intent to Bid January 30, 2026\nElectronic Responses Due in the portal (Note: the portal calls this the Bid Opening Date) February 13, 2026, by 5:00 pm\nContract Start Date (Estimated) July 1, 2026';
+const TIMETABLE_NEW=TIMETABLE_OLD.replace('February 13, 2026','December 31, 2026');
+const TIMETABLE_SEP=TIMETABLE_OLD.replace('February 13, 2026','September 1, 2026');
+const textSegments=(text)=>[{text,document:'Fictional RFP',section:'Section 3',page:6}];
+const proposeText=(s,oldText,newText,extra={})=>propose(s,v1Reqs(),'supplemental',{amendmentTextSegments:textSegments(newText),oldAnalysisTextSegments:textSegments(oldText),...extra});
+
+test('timetable fallback surfaces the deadline move when both facts are missing',()=>{
+  const s=proposeText(importedState(),TIMETABLE_OLD,TIMETABLE_NEW);
+  const a=amendmentOf(s);
+  assert.equal(a.changes.length,1);
+  const c=a.changes[0];
+  assert.equal(c.type,'deadline-changed');
+  assert.equal(c.matchMethod,'deadline-text');
+  assert.equal(c.oldRequirementId,null);
+  assert.equal(c.oldText,'Submission deadline: February 13, 2026');
+  assert.equal(c.newText,'Submission deadline: December 31, 2026');
+  assert.equal(c.newSources[0].document,'Fictional RFP');
+  assert.ok(c.newSources[0].quote.includes('December 31, 2026'));
+});
+
+test('timetable fallback reads the intermediate step too',()=>{
+  const s=proposeText(importedState(),TIMETABLE_OLD,TIMETABLE_SEP);
+  const c=amendmentOf(s).changes[0];
+  assert.equal(c.type,'deadline-changed');
+  assert.equal(c.oldText,'Submission deadline: February 13, 2026');
+  assert.equal(c.newText,'Submission deadline: September 1, 2026');
+});
+
+test('timetable fallback proposes nothing when the dates agree, or the row is absent',()=>{
+  assert.equal(amendmentOf(proposeText(importedState(),TIMETABLE_OLD,TIMETABLE_OLD)).changes.length,0);
+  const noRow='SECTION 3. PROCUREMENT TIMETABLE\nEVENT DATE\nWritten Questions due January 16, 2026, by 5:00 pm\nNotice of Intent to Bid January 30, 2026\nContract Start Date (Estimated) July 1, 2026';
+  assert.equal(amendmentOf(proposeText(importedState(),TIMETABLE_OLD,noRow)).changes.length,0);
+  assert.equal(amendmentOf(proposeText(importedState(),noRow,TIMETABLE_NEW)).changes.length,0);
+});
+
+test('a response-due label with no date nearby proposes nothing',()=>{
+  const noDate='SECTION 3. PROCUREMENT TIMETABLE\nElectronic Responses Due in the portal (see the timetable for the date)\nContract Start Date (Estimated) July 1, 2026';
+  assert.equal(amendmentOf(proposeText(importedState(),TIMETABLE_OLD,noDate)).changes.length,0);
+});
+
+test('facts win over timetable text when both sides state a deadline',()=>{
+  const s=proposeText(stateWithDeadline('September 1, 2026'),TIMETABLE_OLD,TIMETABLE_NEW,{amendmentFacts:deadlineFacts('December 31, 2026')});
+  const c=amendmentOf(s).changes[0];
+  assert.equal(c.type,'deadline-changed');
+  assert.equal(c.matchMethod,'deadline-fact');
+  assert.equal(c.oldText,'Submission deadline: September 1, 2026');
+  assert.equal(c.newText,'Submission deadline: December 31, 2026');
+});
+
 test('confirming a project-level deadline change resolves it without touching requirements',()=>{
   let s=propose(stateWithDeadline('September 1, 2026'),v1Reqs(),'supplemental',{amendmentFacts:deadlineFacts('December 31, 2026')});
   const a=amendmentOf(s),c=a.changes[0];
