@@ -93,8 +93,22 @@ function createHandler(adapters={}){return async event=>{
    // a document missing from the analysis entirely cannot be named, and the
    // report says so instead of pretending the comparison was complete.
    const documentsUnprocessed=w.analysis.status==='Partial'?w.analysis.documents.filter(d=>!(d.segments&&d.segments.length)).map(d=>({id:d.id,name:d.name,reason:'No extracted segments in this analysis.'})):[];
+   // Timetable fallback for the deadline: short amendment notices often
+   // extract no Submission Deadline fact, so pass the analysis segment
+   // text through on both sides and let the core read the response-due
+   // row when the fact comparison cannot run. The project's stored
+   // analysis is fetched the same way; a failed fetch only disables the
+   // fallback, and proposing never fails on it.
+   const amendmentTextSegments=(w.analysis.documents||[]).flatMap(d=>(d.segments||[]).map(s=>({...s,document:d.name})));
+   let oldAnalysisTextSegments=null;
+   try{
+    if(p.state.analysis&&p.state.analysis.id){
+     const prior=await (adapters.compliance||require('./compliance').handler)({...event,body:JSON.stringify({action:'get',analysisId:kb.uuid(p.state.analysis.id)})});
+     if(prior.statusCode===200){const pw=JSON.parse(prior.body);oldAnalysisTextSegments=(pw.analysis.documents||[]).flatMap(d=>(d.segments||[]).map(s=>({...s,document:d.name})));}
+    }
+   }catch{/* Text fallback unavailable; the fact comparison still runs. */}
    const fileIds=[];for(const doc of w.analysis.documents){const src=await kb.verifyDocument(config,token,user,doc.id,true);const file=await S.putFile(config,p,{name:doc.name,mime:src.mime_type||src.mime||kb.MIME[src.extension],bytes:src.bytes,kind:'source',sourceDocumentId:doc.id});fileIds.push(file.id);}
-   const state=core.proposeAmendment(p.state,{kind:data.kind,versionNumber:data.versionNumber??null,analysisId:w.analysis.id,sourceDocumentId:w.analysis.documents[0]?.id||null,fileIds,documentsCompared,documentsUnprocessed,newRequirements,amendmentFacts:w.analysis.facts||[],deadlineSources},user.id);
+   const state=core.proposeAmendment(p.state,{kind:data.kind,versionNumber:data.versionNumber??null,analysisId:w.analysis.id,sourceDocumentId:w.analysis.documents[0]?.id||null,fileIds,documentsCompared,documentsUnprocessed,newRequirements,amendmentFacts:w.analysis.facts||[],deadlineSources,amendmentTextSegments,oldAnalysisTextSegments},user.id);
    const amendment=state.amendments[state.amendments.length-1];
    const saved=await S.commit(config,user,p,state,'amendment.proposed',{amendmentId:amendment.id,versionNumber:amendment.versionNumber,kind:data.kind});
    return kb.reply(200,await S.workspace(config,user,saved));
