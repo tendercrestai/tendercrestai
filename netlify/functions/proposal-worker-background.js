@@ -4,8 +4,26 @@ const S=require('./lib/proposal-service');
 // Anything else (provider messages, export internals) is classified by job
 // kind, so source text and secrets can never leak into the jobs table.
 const KNOWN_ERRORS=new Set(['revision_changed','attachment_unavailable','attachment_source_changed','attachment_integrity']);
+// Exact messages from the draft writer, mapped to the code the UI shows.
+// A timeout, a refused provider call, an invalid model output and a missing
+// provider configuration are different failures; collapsing them all into
+// 'draft_failed' hid which one was happening in production.
+const DRAFT_ERRORS={
+ 'Writing service timed out.':'draft_timeout',
+ 'Writing service failed. Saved text is unchanged.':'draft_provider_unavailable',
+ 'Writing output failed validation.':'draft_output_invalid',
+ 'Existing AI provider configuration is unavailable.':'draft_config_unavailable',
+ 'Selected section exceeds AI input capacity. Reduce sources or edit manually.':'draft_input_too_large',
+};
 function errorClass(error,kind){
  if(error&&typeof error.message==='string'&&KNOWN_ERRORS.has(error.message))return error.message;
+ if(error&&typeof error.message==='string'&&Object.hasOwn(DRAFT_ERRORS,error.message))return DRAFT_ERRORS[error.message];
+ // The admit RPC's budget exception reaches the worker as a 429: database()
+ // rewrites the Postgres P0001 into 'Knowledge usage or retry limit reached.'
+ // The admit call is the only step inside a draft job that can raise a 429,
+ // so a 429 here means the workspace AI budget for the day is reached, not a
+ // provider failure.
+ if(kind==='draft'&&error&&error.status===429)return 'draft_budget_reached';
  if(kind==='export')return 'export_failed';
  if(kind==='draft')return 'draft_failed';
  return 'job_failed';
@@ -24,7 +42,7 @@ async function run(config,id){
   const saved=await S.rpc(config,'finish',{p_job:job.id,p_lease:lease,p_result:result,p_error:null});return {saved};
  }catch(e){
   const code=errorClass(e,job.kind);
-  console.error(JSON.stringify({event:'proposal_job_failed',jobId:job.id,kind:job.kind,error:code}));
+  console.error(JSON.stringify({event:'proposal_job_failed',jobId:job.id,kind:job.kind,error:code,status:e&&e.status||null}));
   try{
    await S.rpc(config,'finish',{p_job:job.id,p_lease:lease,p_result:null,p_error:code});
   }catch{
