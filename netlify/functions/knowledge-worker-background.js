@@ -23,7 +23,14 @@ function createHandler(adapters={}) {
    if(claimed){try{await kb.rpc(config,'kb_fail_job',{p_job:jobId,p_lease:lease,p_error:errorCode});}catch{console.error(JSON.stringify({event:'knowledge_job_fail_failed',jobId:jobId||null,error:errorCode}));}}
    // Structured failure log: job id + sanitized error class only, never
    // source text or secrets (errorCode is one of three allowlisted codes).
-   console.error(JSON.stringify({event:'knowledge_job_failed',jobId:jobId||null,error:errorCode}));
+   // providerStatus is the HTTP status of the failing step (a number only).
+   // The bare errorCode cannot separate a denied provider key (503) from an
+   // exhausted quota (429) and a transient provider outage (502); without
+   // this the next embedding_failed is undiagnosable from the job record
+   // or the logs, which is how the Nov 18 incident stayed unexplained.
+   const providerStatus=typeof e?.status==='number'?e.status:null;
+   const reason=errorCode==='embedding_failed'?(providerStatus===503?'provider_denied':providerStatus===429?'provider_quota':providerStatus===502?'provider_unavailable':'embedding_error'):undefined;
+   console.error(JSON.stringify({event:'knowledge_job_failed',jobId:jobId||null,error:errorCode,...(providerStatus!==null?{providerStatus}:{}),...(reason?{reason}:{})}));
    return kb.reply(e.status||503,{error:e.status?e.message:'Background processing failed. Inspect the saved job before retrying.'});
   }
  };

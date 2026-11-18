@@ -82,3 +82,22 @@ test('worker extracts knowledge documents with the raised limits',async()=>{
   assert.equal(worker.KB_MAX_TEXT,700000);assert.equal(worker.KB_MAX_CHUNKS,500);
   assert.ok(rpcCalls().some(c=>c.url.endsWith('kb_finish_job')));
 });
+
+test('worker failure log separates a denied embedding key from quota and outage',async()=>{
+ // Nov 18, 2026: every knowledge document failed with the bare code
+ // embedding_failed, and the job record and the logs could not say whether
+ // the provider denied the key, the quota was exhausted, or the provider
+ // was down. The worker must log the provider failure class.
+ const errors=[];const originalError=console.error;console.error=(...args)=>{errors.push(args.join(' '));};
+ const logged=()=>errors.map(line=>{try{return JSON.parse(line);}catch{return null;}}).find(entry=>entry&&entry.event==='knowledge_job_failed');
+ try{
+  for(const [status,reason] of [[503,'provider_denied'],[429,'provider_quota'],[502,'provider_unavailable']]){
+   errors.length=0;
+   const failure=Object.assign(new Error('Embedding provider failure.'),{status});
+   const r=await worker.createHandler({embed:async()=>{throw failure;}})(event({jobId:JOB},{'x-kb-worker-secret':'x'.repeat(48)}));
+   assert.equal(r.statusCode,status);
+   assert.ok(rpcCalls().some(c=>c.url.endsWith('kb_fail_job')&&JSON.parse(c.options.body).p_error==='embedding_failed'));
+   assert.deepEqual(logged(),{event:'knowledge_job_failed',jobId:JOB,error:'embedding_failed',providerStatus:status,reason});
+  }
+ }finally{console.error=originalError;}
+});
