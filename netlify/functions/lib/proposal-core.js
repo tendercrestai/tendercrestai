@@ -546,7 +546,7 @@ function apply(s,action,p,user,{reviewer=false,members=[],evidenceEpoch=null}={}
   requireReviewer();const e=s.evidence.find(x=>x.id===p.evidenceId);if(!e)kb.fail(404,'Evidence mapping not found.');if(!['accepted','rejected'].includes(p.decision)||!['supported','partially supported','missing evidence','needs review'].includes(p.support))kb.fail(400,'Invalid evidence decision.');if(e.stale)kb.fail(409,'Rematch changed evidence first.');if(p.decision==='accepted'&&expired(e))kb.fail(400,'Replace the explicitly expired source before accepting evidence.');if(p.decision==='accepted'&&e.conflicts?.length){if(p.overrideConflict!==true)kb.fail(400,'Review the contradictory sources and explicitly record a resolution before acceptance.');e.conflictResolution={reason:text(p.reason,3000),actor:user,createdAt:new Date().toISOString()};}e.decision=p.decision;e.reason=text(p.reason,3000);e.reviewedBy=user;const r=s.requirements.find(r=>r.id===e.requirementId);r.support=p.support;r.status='Needs Review';
  }
  else if(action==='reviewRequirement'){
-  requireReviewer();const r=s.requirements.find(x=>x.id===p.requirementId);if(!r)kb.fail(404,'Requirement not found.');if(!['Compliant','Partial','Non-Compliant','Needs Review'].includes(p.status))kb.fail(400,'Invalid compliance decision.');if(r.reviewerId&&r.reviewerId!==user)kb.fail(403,'The assigned reviewer must decide this requirement.');if(p.disposition&&!['applicable','not applicable','extraction error'].includes(p.disposition))kb.fail(400,'Invalid requirement disposition.');r.disposition=p.disposition||'applicable';if(p.status==='Compliant'&&!excluded({...r,reviewReason:p.reason,reviewedBy:user})&&!procedural(r)&&(r.support!=='supported'||(!procedural(r)&&!activeEvidence(s,r.id).length)))kb.fail(400,'Supported current evidence is required; matching text alone is insufficient.');if(procedural(r)&&p.status==='Compliant')r.support='supported';r.status=p.status;r.reviewReason=text(p.reason,3000);r.reviewedBy=user;
+  requireReviewer();const r=s.requirements.find(x=>x.id===p.requirementId);if(!r)kb.fail(404,'Requirement not found.');if(!['Compliant','Partial','Non-Compliant','Needs Review'].includes(p.status))kb.fail(400,'Invalid compliance decision.');if(r.reviewerId&&r.reviewerId!==user)kb.fail(403,'The assigned reviewer must decide this requirement.');if(p.disposition&&!['applicable','not applicable','extraction error'].includes(p.disposition))kb.fail(400,'Invalid requirement disposition.');r.disposition=p.disposition||'applicable';if(r.disposition!=='extraction error')delete r.duplicateOf;if(p.status==='Compliant'&&!excluded({...r,reviewReason:p.reason,reviewedBy:user})&&!procedural(r)&&(r.support!=='supported'||(!procedural(r)&&!activeEvidence(s,r.id).length)))kb.fail(400,'Supported current evidence is required; matching text alone is insufficient.');if(procedural(r)&&p.status==='Compliant')r.support='supported';r.status=p.status;r.reviewReason=text(p.reason,3000);r.reviewedBy=user;
  }
  else if(action==='assign'){
   const item=p.sectionId?findSection():s.requirements.find(x=>x.id===p.requirementId);if(!item)kb.fail(404,'Assignment target not found.');for(const [key,roles] of [['authorId',['manager','author']],['reviewerId',['manager','reviewer']]]){const id=p[key]||null;if(id&&!members.some(m=>m.user_id===id&&roles.includes(m.role)))kb.fail(400,'Choose an authorized current project member.');item[key]=id;}item.dueAt=date(p.dueAt);item.assignmentVersion=(item.assignmentVersion||0)+1;
@@ -718,6 +718,40 @@ function apply(s,action,p,user,{reviewer=false,members=[],evidenceEpoch=null}={}
   const suggestion=s.structureSuggestion;
   if(!suggestion||suggestion.status!=='suggested')kb.fail(409,'No suggested section order is waiting for a decision.');
   s.structureSuggestion={...suggestion,status:'dismissed',dismissedBy:user,dismissedAt:new Date().toISOString()};
+ }
+ else if(action==='mergeDuplicate'){
+  // Reviewer-only merge of two near-identical requirements (sweep finding
+  // #20, Nov 18, 2026). Nothing is deleted: the non-keeper is marked a
+  // linked duplicate of the keeper (disposition 'extraction error' with a
+  // recorded reason), so readiness, audit and trace counts drop it via
+  // excluded(), and its evidence and section links move to the keeper. No
+  // auto-merge at import; a human picks the keeper in the workspace. The
+  // link lives in the project state JSON, so no migration is needed. A
+  // reviewer can un-merge by changing the duplicate's disposition back in
+  // reviewRequirement, which clears duplicateOf (evidence stays with the
+  // keeper; re-merge if the links must move back).
+  requireReviewer();
+  const keeper=s.requirements.find(x=>x.id===p.keeperId),dup=s.requirements.find(x=>x.id===p.duplicateId);
+  if(!keeper||!dup)kb.fail(404,'Requirement not found.');
+  if(keeper.id===dup.id)kb.fail(400,'Choose two different requirements to merge.');
+  if(dup.duplicateOf)kb.fail(409,'This requirement was already merged as a duplicate.');
+  if(keeper.duplicateOf)kb.fail(409,'The kept requirement is itself a duplicate; keep the original instead.');
+  const reason=text(p.reason,1000);
+  const keeperStable=keeper.stableId||stableRequirementId(keeper);
+  dup.duplicateOf=keeperStable;dup.disposition='extraction error';dup.reviewReason='Duplicate of '+keeperStable+' (merged by reviewer: '+reason+')';dup.reviewedBy=user;dup.status='Needs Review';
+  for(const e of s.evidence.filter(e=>e.requirementId===dup.id)){
+    if(s.evidence.some(x=>x.requirementId===keeper.id&&x.answerId===e.answerId&&x.revision===e.revision&&x.decision!=='rejected'))continue;
+    e.requirementId=keeper.id;
+  }
+  for(const section of s.sections){
+    const hadDup=section.requirementIds.includes(dup.id);
+    section.requirementIds=[...new Set(section.requirementIds.map(id=>id===dup.id?keeper.id:id))];
+    for(const c of section.claims||[])if(c.requirementId===dup.id)c.requirementId=keeper.id;
+    if(hadDup){section.status='changes requested';section.unverified=true;}
+  }
+  evidenceSuggested(s,keeper.id,user);
+  traceHistoryPush(ensureTrace(dup),{action:'duplicate-merged',actor:user,keeperStableId:keeperStable,reason,requirementRevision:dup.revision});
+  traceHistoryPush(ensureTrace(keeper),{action:'duplicate-merged-into',actor:user,duplicateStableId:dup.stableId||stableRequirementId(dup),reason,requirementRevision:keeper.revision});
  }
  else if(action==='settings'){s.title=text(p.title,200);s.company={name:text(p.company,200),accent:/^#[a-f0-9]{6}$/i.test(p.accent)?p.accent:'#1d4ed8'};if(p.draftLanguage!==undefined)s.draftLanguage=normalizeDraftLanguage(p.draftLanguage);}
  else if(action==='bidDecision'){if(!['pursue','review','pass'].includes(p.decision)||!s.assessment||s.assessment.stale)kb.fail(400,'Run a current assessment before deciding.');s.decision={value:p.decision,reason:text(p.reason,3000),actor:user,assessmentHash:s.assessment.inputHash,createdAt:new Date().toISOString()};}

@@ -21,6 +21,22 @@ test('public config contains only public settings and boolean feature flags',asy
 test('project search paginates through the caller JWT instead of privileged global rows',async()=>{const originalDatabase=S.kb.database;try{let path,options;S.kb.database=async(c,p,o)=>{path=p;options=o;return Array.from({length:51},(_,i)=>({id:String(i),title:'Fictional'}));};const response=await createHandler()(event({action:'list',page:1,query:'Fictional'}));assert.equal(response.statusCode,200);const result=JSON.parse(response.body);assert.equal(result.projects.length,50);assert.equal(result.hasMore,true);assert.ok(path.includes('offset=50'));assert.equal(options.token,'test');assert.notEqual(options.service,true);}finally{S.kb.database=originalDatabase;}});
 test('saved record browsing is project-scoped and notifications remain current-user only',async()=>{role='viewer';let path;S.db=async(c,p)=>{path=decodeURIComponent(p);return [];};const response=await run({action:'browse',kind:'notifications',page:2});assert.equal(response.statusCode,200);assert.ok(path.includes('project_id=eq.'+id));assert.ok(path.includes('user_id=eq.'+id));assert.ok(path.includes('offset=100'));assert.equal((await run({action:'browse',kind:'cc_billing_bindings',page:0})).statusCode,400);});
 
+test('reviewer mergeDuplicate commits as evidence.reviewed with keeper and duplicate ids',async()=>{
+  p.state.requirements=[{id:'req-keeper',text:'Joint venture partners must submit a joint venture agreement.',mandatory:'Yes',category:'Eligibility',status:'Needs Review',support:'needs review',sources:[]},{id:'req-dup',text:'Joint venture partners must submit a joint venture agreement today.',mandatory:'Yes',category:'Eligibility',status:'Needs Review',support:'needs review',sources:[]}];
+  p.state.sections=[{id:other,title:'Joint venture',requirementIds:['req-dup'],text:'',revision:0,status:'draft',claims:[],unverified:true}];
+  const r=await run({action:'mergeDuplicate',revision:4,evidenceEpoch:0,keeperId:'req-keeper',duplicateId:'req-dup',reason:'Same obligation.'});
+  assert.equal(r.statusCode,200);
+  assert.ok(calls.includes('evidence.reviewed'));
+  const saved=JSON.parse(r.body).project.state;
+  assert.equal(saved.requirements.find(x=>x.id==='req-dup').duplicateOf,saved.requirements.find(x=>x.id==='req-keeper').stableId);
+  assert.equal(saved.sections[0].requirementIds[0],'req-keeper');
+});
+test('viewer cannot merge duplicates',async()=>{
+  role='viewer';
+  const r=await run({action:'mergeDuplicate',revision:4,evidenceEpoch:0,keeperId:'req-keeper',duplicateId:'req-dup',reason:'Same.'});
+  assert.equal(r.statusCode,403);
+});
+
 test('draft preview reads the job evidence epoch, so a fresh preview is not flagged stale',async()=>{
  let path;S.db=async(c,p)=>{path=decodeURIComponent(p);return [{id, kind:'draft', revision:4, evidence_epoch:0, status:'Completed', attempts:1, result:{sectionId:other, text:'Fictional preview'}, error_code:null}];};
  const response=await run({action:'job',jobId:id});

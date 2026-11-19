@@ -183,6 +183,37 @@ test("submission deadlines must parse as real dates; form noise is dropped, not 
     assert.equal(ai.validDeadline(value),expected,value);
   }
 });
+test("fragment section labels and fragment quotes are flagged, never silently trusted",()=>{
+  // Live sweep examples (Nov 18, 2026): the same "physical page 8 · 33 if-"
+  // section label rode on dozens of unrelated requirements, and numbered
+  // form lines became section labels. The citation check flags those
+  // instead of attaching them as if they were real sections.
+  assert.equal(ai.sourceNeedsReview({section:"Section L",quote:row().quote},row().quote),null);
+  assert.equal(ai.sourceNeedsReview({section:"33 if-",quote:row().quote},row().quote),"fragment-section");
+  assert.equal(ai.sourceNeedsReview({section:"1. One (1) PDF copy of the invoice billed according to contract line items and rates.",quote:row().quote},row().quote),"fragment-section");
+  assert.equal(ai.sourceNeedsReview({section:"section of the System for Award Management (SAM) and its other data in SAM is current.",quote:row().quote},row().quote),"fragment-section");
+  assert.equal(ai.sourceNeedsReview({section:"Section L",quote:"31."},row().quote),"fragment-quote");
+  assert.equal(ai.sourceNeedsReview({section:"Section L",quote:"Ship number."},"The vendor must provide three references."),"quote-mismatch");
+  assert.equal(ai.sourceNeedsReview({section:"Section L",quote:row().quote},"The vendor must provide three references today."),null);
+  assert.equal(ai.sourceNeedsReview(null,row().quote),null);
+  assert.equal(ai.sourceNeedsReview({section:"Section L",quote:""},row().quote),null);
+  assert.equal(ai.sectionLooksLikeFragment("Section L"),false);
+  assert.equal(ai.sectionLooksLikeFragment("Appendix A"),false);
+  assert.equal(ai.sectionLooksLikeFragment("33 if-"),true);
+  assert.equal(ai.quoteLooksLikeFragment("31."),true);
+  assert.equal(ai.quoteLooksLikeFragment(row().quote),false);
+  assert.equal(ai.citationMatch("Ship number.","The vendor must provide three references."),false);
+  assert.equal(ai.citationMatch(row().quote,row().quote),true);
+});
+test("validateOutput marks a requirement whose section label is a fragment",()=>{
+  const frag=[{...segments[0],section:"33 if-",text:"The vendor must provide three references. 33 if-"}];
+  assert.equal(ai.validateOutput(output([row()]),frag,docs).requirements[0].sourceNeedsReview,"fragment-section");
+  const clean=ai.validateOutput(output([row()]),segments,docs).requirements[0];
+  assert.equal(clean.sourceNeedsReview,null);
+  // Exact duplicates keep the flag when either copy is flagged.
+  const merged=ai.deduplicate([clean,{...clean,sourceNeedsReview:"fragment-section"}]);
+  assert.equal(merged[0].sourceNeedsReview,"fragment-section");
+});
 test("server-derived deadline facts drop form noise and keep real dates",()=>{
   const garbled=[{id:"s1",document_id:"doc",page:1,section:"Section A",text:"Due date: OFFER ADDENDA ADDENDA 140FS226Q0154 See Schedule See Schedule FWS SAT 2. The vendor must provide three references."}];
   const dated=[{id:"s1",document_id:"doc",page:1,section:"Section A",text:"Due date: August 15, 2026. The vendor must provide three references."}];

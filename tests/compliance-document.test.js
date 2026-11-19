@@ -35,6 +35,25 @@ test("invalid UTF-8, binary TXT, broken PDF and malformed DOCX fail closed",asyn
     await assert.rejects(extractDocument({...source(extension),bytes}),/extracted safely/);
   }
 });
+test("numbered form lines and running text are not section headings",()=>{
+  // Sweep finding #18 (Nov 18, 2026): the old loose heading pattern matched
+  // numbered list items ("1. One (1) PDF copy of the invoice ...") and
+  // running text containing "section" ("section of the System for Award
+  // Management ..."), so whole form lines became section labels that then
+  // rode on dozens of unrelated citations.
+  const {looksLikeHeading}=require("../netlify/functions/lib/compliance-document");
+  for(const h of ["Section L","Section 4.2","SECTION 4.2","2. Submission Instructions","A.1 General Requirements","Vendor Qualifications","Scope of Work","3.2.1 Delivery Schedule"])assert.equal(looksLikeHeading(h),true,h);
+  for(const f of ["1. One (1) PDF copy of the invoice billed according to contract line items and rates.","33. SHIP NUMBER 34. VOUCHER NUMBER 35. AMOUNT VERIFIED 36. PAYMENT 37. CHECK NUMBER","section of the System for Award Management (SAM) and its other data in SAM is current.","33 if-","33. If this contract is completely or partially terminated for the convenience of the government.","10. The vendor shall provide three references.",""])assert.equal(looksLikeHeading(f),false,f);
+  const text=["Section L","The vendor must provide three references.","1. One (1) PDF copy of the invoice billed according to contract line items and rates.","33. SHIP NUMBER 34. VOUCHER NUMBER 35. AMOUNT VERIFIED 36. PAYMENT 37. CHECK NUMBER","section of the System for Award Management (SAM) and its other data in SAM is current.","2. Submission Instructions","The vendor must submit the proposal by the deadline.","33. If this contract is completely or partially terminated for the convenience of the government."].join("\n");
+  const segments=segmentsFor(id,[{page:8,text}]);
+  const sections=[...new Set(segments.map(s=>s.section))];
+  assert.ok(sections.includes("Section L"));
+  assert.ok(sections.includes("2. Submission Instructions"));
+  assert.ok(!sections.some(s=>s&&s.startsWith("1. One (1) PDF")));
+  assert.ok(!sections.some(s=>s&&s.startsWith("33. SHIP")));
+  assert.ok(!sections.some(s=>s&&s.toLowerCase().startsWith("section of")));
+  assert.ok(!sections.some(s=>s&&s.startsWith("33. If this contract")));
+});
 test("large extraction is bounded and chunking retains all segments and references",async()=>{
   const segments=segmentsFor(id,[{page:4,text:"Section M\n"+"Requirement must be tested.\n".repeat(1000)}]);
   const docs=[{id,segments}], chunks=chunkDocuments(docs);

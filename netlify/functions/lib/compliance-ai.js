@@ -1,5 +1,6 @@
 const { createHash } = require("node:crypto");
 const { RequestError } = require("./rfp-security");
+const { looksLikeHeading } = require("./compliance-document");
 const CATEGORIES = ["Technical", "Legal", "Financial", "Administrative", "Eligibility", "Submission", "Attachment", "Evaluation", "Service Level", "Other"];
 const FACTS = ["Solicitation Number", "Title", "Issuing Organization", "Submission Deadline", "Deadline Timezone", "Scope of Work", "Eligibility", "Technical Requirements", "Pricing", "Submission Instructions", "Required Attachments", "Evaluation Criteria", "Contract Terms", "Special Conditions"];
 const str = { type: "string", minLength: 1, maxLength: 3000 };
@@ -52,7 +53,7 @@ function sourceUnits(segment) {
   const flush = () => { if (pending) units.push(pending); pending = ""; };
   for (const raw of segment.text.split(/\n+/)) {
     const line = raw.trim(); if (!line) { flush(); continue; }
-    const heading = line === segment.section || /^(?:section\s+[A-Z0-9]+\b|vendor qualifications$|commercial conditions$|submission instructions$|evaluation criteria$|service level requirements$)/i.test(line);
+    const heading = line === segment.section || looksLikeHeading(line);
     const keyValue = /^[A-Za-z][A-Za-z /_-]{0,60}:\s*/.test(line);
     if (heading || keyValue) { flush(); units.push(line); continue; }
     if (/^(?:[-•*]|\d+[.)])\s+/.test(line) || /[.!?;:]$/.test(pending)) flush();
@@ -163,6 +164,49 @@ function sourceFor(row, segments, documents) {
   return { document_id: doc.id, document: doc.name, segment_id: segment.id,
     page: segment.page, section: segment.section, quote: row.quote };
 }
+// Citation match check (sweep finding #18, Nov 18, 2026): the model selects
+// server-owned excerpts, so a requirement's text IS its source quote, but the
+// cited SECTION label can be a fragment of running text (a numbered form
+// line, or "section of ..." matched by the old loose heading pattern) that
+// then rides on dozens of unrelated requirements. A citation needs review
+// when its section label is not a heading, its quote has no distinctive
+// wording, or the quote shares no distinctive word with the requirement
+// text. The check is deterministic (no model call) and flags instead of
+// dropping: the requirement stays, marked for a person to re-point.
+// Returns a reason code, or null when the citation looks fine. The same
+// logic is mirrored in assets/ui-helpers.mjs for already-stored data, where
+// the server flag cannot reach without a migration.
+const SOURCE_STOPWORDS = new Set("the and for with that this from shall must will should vendor bidder proposal contract required require provide submit include ensure offeror contractor government services service work requirements requirement section federal state date time form forms page number item items each per all any not are is be been has have had its their such than then when where which who these those into under over between through after before during without within upon about out up down may might can could would also more other same new one two using used use make made part applicable accordance pursuant including following above below listed list table note notes".split(" "));
+function distinctiveWords(text) {
+  return [...new Set(String(text || "").toLowerCase().match(/[a-z][a-z-]{2,}/g) || [])].filter(w => !SOURCE_STOPWORDS.has(w));
+}
+function citationMatch(quote, requirementText) {
+  const quoteWords = distinctiveWords(quote), textWords = distinctiveWords(requirementText);
+  if (!quoteWords.length || !textWords.length) return true;
+  const textSet = new Set(textWords);
+  if (quoteWords.some(w => textSet.has(w))) return true;
+  const norm = s => normalize(s).toLowerCase();
+  return norm(quote).includes(norm(requirementText)) || norm(requirementText).includes(norm(quote));
+}
+function sectionLooksLikeFragment(section) {
+  if (section === null || section === undefined || section === "") return false;
+  const text = String(section).trim();
+  if (!text) return false;
+  if (looksLikeHeading(text)) return false;
+  if (/^\d+(?:\.\d+)*[.)]?\s+\S/.test(text)) return true;
+  if (/^section\s+of\b/i.test(text)) return true;
+  return distinctiveWords(text).length === 0;
+}
+function quoteLooksLikeFragment(quote) {
+  return typeof quote === "string" && quote.trim().length > 0 && distinctiveWords(quote).length === 0;
+}
+function sourceNeedsReview(source, requirementText) {
+  if (!source || typeof source.quote !== "string" || !source.quote.trim()) return null;
+  if (sectionLooksLikeFragment(source.section)) return "fragment-section";
+  if (quoteLooksLikeFragment(source.quote)) return "fragment-quote";
+  if (!citationMatch(source.quote, requirementText)) return "quote-mismatch";
+  return null;
+}
 function validateOutput(output, segments, documents) {
   if (!exactKeys(output, ["requirements", "facts"]) ||
       !Array.isArray(output.requirements) || output.requirements.length > 80 ||
@@ -202,7 +246,8 @@ function validateOutput(output, segments, documents) {
       ? "Yes" : row.mandatory === "Yes" ? "Unclear" : row.mandatory;
     return { requirement: row.quote, fingerprint: fingerprint(row.quote),
       category: row.category, mandatory, evaluation_weight: row.weight,
-      sources: [source], uncertain: ambiguous, status: "Needs Review",
+      sources: [source], sourceNeedsReview: sourceNeedsReview(source, row.quote),
+      uncertain: ambiguous, status: "Needs Review",
       evidence: "", evidence_reference: "", response_owner: "", comments: "",
       recommendation: row.category === "Attachment" ? "Verify the required attachment is present and current."
         : "Provide source-backed company evidence and have a reviewer assess this requirement." };
@@ -225,6 +270,7 @@ function deduplicate(rows) {
     else {
       previous.sources.push(...row.sources);
       previous.duplicate_count++;
+      previous.sourceNeedsReview = previous.sourceNeedsReview || row.sourceNeedsReview;
       if (previous.mandatory !== row.mandatory || previous.evaluation_weight !== row.evaluation_weight) {
         previous.uncertain = true; previous.mandatory = "Unclear";
       }
@@ -281,4 +327,4 @@ async function analyzeChunk(segments, documents, fetcher = fetch) {
     estimatedCostUSD: validated.estimatedCostUSD }));
   return validated;
 }
-module.exports = { schema, SYSTEM, validateOutput, deduplicate, fingerprint, normalize, similarPairs, SIMILAR_PAIRS_MAX_ROWS, analyzeChunk, excerptCatalog, resolveReferences, usageTokens, estimateCostUSD, modelPrices, validDeadline, FACTS, CATEGORIES };
+module.exports = { schema, SYSTEM, validateOutput, deduplicate, fingerprint, normalize, similarPairs, SIMILAR_PAIRS_MAX_ROWS, analyzeChunk, excerptCatalog, resolveReferences, usageTokens, estimateCostUSD, modelPrices, validDeadline, FACTS, CATEGORIES, distinctiveWords, citationMatch, sectionLooksLikeFragment, quoteLooksLikeFragment, sourceNeedsReview };
