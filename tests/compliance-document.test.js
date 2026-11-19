@@ -60,14 +60,27 @@ test("large extraction is bounded and chunking retains all segments and referenc
   assert.deepEqual(chunks.flat(),segments);assert.ok(chunks.length>1);
   assert.ok(chunks.every(c=>c.reduce((n,s)=>n+s.text.length,0)<=10000));
   assert.ok(segments.every(s=>s.page===4 && /Section M/.test(s.section)));
-  assert.throws(()=>chunkDocuments([{segments:[{text:"x".repeat(100001)}]}]),/100,000/);
-  await assert.rejects(extractDocument({...source("txt"),bytes:Buffer.from("x".repeat(100001))}),/100,000/);
+  assert.throws(()=>chunkDocuments([{segments:[{text:"x".repeat(300001)}]}]),/300,000/);
+  await assert.rejects(extractDocument({...source("txt"),bytes:Buffer.from("x".repeat(300001))}),/300,000/);
 });
-test("knowledge extraction accepts a raised cap; the compliance default stays 100,000",async()=>{
-  const big=Buffer.from("x".repeat(150000));
-  await assert.rejects(extractDocument({...source("txt"),bytes:big}),/100,000/);
-  const doc=await extractDocument({...source("txt"),bytes:big},{maxText:200000});
+test("knowledge extraction accepts a raised cap; the compliance default stays 300,000",async()=>{
+  const big=Buffer.from("x".repeat(350000));
+  await assert.rejects(extractDocument({...source("txt"),bytes:big}),/300,000/);
+  const doc=await extractDocument({...source("txt"),bytes:big},{maxText:400000});
   assert.ok(doc.segments.length>1);
-  assert.ok(doc.segments.reduce((n,s)=>n+s.text.length,0)>=140000);
-  await assert.rejects(extractDocument({...source("txt"),bytes:Buffer.from("x".repeat(150001))},{maxText:150000}),/150,000/);
+  assert.ok(doc.segments.reduce((n,s)=>n+s.text.length,0)>=340000);
+  await assert.rejects(extractDocument({...source("txt"),bytes:Buffer.from("x".repeat(350001))},{maxText:350000}),/350,000/);
+});
+test("RFP import cap is 300,000 characters with up to 32 chunks",async()=>{
+  // Nov 18, 2026: the cap rose from 100,000 characters / 16 chunks to
+  // 300,000 / 32, covering roughly a 100-page RFP. The 500-requirement
+  // import ceiling is a separate pre-existing bound, unchanged.
+  const justUnder=await extractDocument({...source("txt"),bytes:Buffer.from("x".repeat(299999))});
+  assert.ok(justUnder.segments.reduce((n,s)=>n+s.text.length,0)>=299000);
+  await assert.rejects(extractDocument({...source("txt"),bytes:Buffer.from("x".repeat(300001))}),e=>e.status===413&&/300,000/.test(e.message));
+  // 17 chunks of ~9,000 characters: previously over the 16-chunk bound.
+  const seventeen=Array.from({length:17},()=>({text:"y".repeat(9000)}));
+  assert.equal(chunkDocuments([{segments:seventeen}]).length,17);
+  const thirtyThree=Array.from({length:33},()=>({text:"y".repeat(9000)}));
+  assert.throws(()=>chunkDocuments([{segments:thirtyThree}]),/supported analysis size/);
 });

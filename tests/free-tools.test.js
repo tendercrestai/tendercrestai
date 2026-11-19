@@ -2,7 +2,15 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),F=require
 process.env.ANALYTICS_SIGNING_SECRET='test-only-signing-secret-at-least-32-characters';
 test('anonymous result tokens cannot be guessed, altered, or Unicode substituted',()=>{const id='11111111-1111-4111-8111-111111111111';assert.equal(F.verify(F.sign(id)),id);for(const t of ['bad',F.sign(id)+'x',id+'.'+'é'.repeat(64)])assert.throws(()=>F.verify(t),e=>e.status===401);});
 test('SAM URL validation blocks foreign URLs, credentials, and malformed notices',()=>{const id='a'.repeat(32);assert.equal(S.noticeId('https://sam.gov/opp/'+id+'/view'),id);assert.equal(S.noticeId(id),id);for(const v of ['https://evil.invalid/opp/'+id+'/view','file:///etc/passwd','https://sam.gov.evil.invalid/opp/'+id+'/view','not-a-notice','https://user:pass@sam.gov/opp/'+id+'/view','https://sam.gov:8443/opp/'+id+'/view'])assert.throws(()=>S.noticeId(v));});
-test('existing source parser reused with section references and safe document rejection',async()=>{const p=await F.prepare({text:'SECTION C REQUIREMENTS\nThe contractor shall provide weekly reports.\nThe contractor must retain records.',title:'Fictional fixture'});assert.ok(p.documents[0].segments[0].section);assert.ok(p.chunks.length);await assert.rejects(F.prepare({text:'x'.repeat(100001)}),e=>e.status===413);await assert.rejects(F.prepare({file:{extension:'exe',name:'bad.exe',data:'AAAA'}}));});
+test('existing source parser reused with section references and safe document rejection',async()=>{const p=await F.prepare({text:'SECTION C REQUIREMENTS\nThe contractor shall provide weekly reports.\nThe contractor must retain records.',title:'Fictional fixture'});assert.ok(p.documents[0].segments[0].section);assert.ok(p.chunks.length);await assert.rejects(F.prepare({text:'x'.repeat(300001)}),e=>e.status===413&&/300,000/.test(e.message));await assert.rejects(F.prepare({file:{extension:'exe',name:'bad.exe',data:'AAAA'}}));});
+test('pasted-text cap follows the raised parser limit',async()=>{
+ // Nov 18, 2026: the RFP import cap rose from 100,000 to 300,000
+ // characters; the free-tool paste cap reuses the parser limit, so it moves
+ // with it. Text that used to fail the old cap is now accepted.
+ const p=await F.prepare({text:'x'.repeat(150000),title:'Fictional fixture'});
+ assert.ok(p.chunks.length);
+ await assert.rejects(F.prepare({text:'x'.repeat(300001)}),e=>e.status===413&&/300,000/.test(e.message));
+});
 test('SAM notices are source data with canonical source links, never fabricated rows',()=>{assert.equal(S.normalize({noticeId:'bad'}),null);const n=S.normalize({noticeId:'a'.repeat(32),title:'Fictional fixture',active:'Yes'});assert.equal(n.url,'https://sam.gov/opp/'+'a'.repeat(32)+'/view');assert.equal(n.deadline,null);});
 test('disabled public handlers fail closed and never read/write or call providers',async()=>{delete process.env.FREE_TOOLS_ENABLED;const h=require('../netlify/functions/free-tools').handler;const r=await h({httpMethod:'POST',body:JSON.stringify({action:'start'})});assert.equal(r.statusCode,503);const o=await require('../netlify/functions/opportunities').handler({httpMethod:'POST',body:'{"action":"search"}'});assert.equal(o.statusCode,503);});
 test('matrix mail persists acceptance, reuses idempotency keys, and limits preview recipients',async()=>{

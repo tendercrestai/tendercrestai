@@ -48,10 +48,10 @@ test("metrics, search, filters and sorting use saved reviews; partial and missin
   assert.ok(alerts(workspace).some(x=>x.includes("missing company evidence")));
   assert.ok(sourceLabel({...source,page:null,section:null}).includes("Page unavailable"));
 });
-test("proposal handoff transfers source text only, within existing 100k limit",()=>{
+test("proposal handoff transfers source text only, within existing 300k limit",()=>{
   assert.equal(proposalText(workspace.analysis),source.quote);
   assert.ok(!proposalText(workspace.analysis).includes(row.requirement));
-  assert.throws(()=>proposalText({documents:[{segments:[{text:"x".repeat(100001)}]}]}),/limit/);
+  assert.throws(()=>proposalText({documents:[{segments:[{text:"x".repeat(300001)}]}]}),/limit/);
 });
 test("browser deadline check matches the server rule: form noise is not a date",()=>{
   assert.equal(validDeadline("OFFER ADDENDA ADDENDA 140FS226Q0154 See Schedule See Schedule FWS SAT 2..."),false);

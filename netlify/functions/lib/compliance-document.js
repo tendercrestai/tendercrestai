@@ -1,6 +1,7 @@
 const { inflateRawSync } = require("node:zlib");
 const { RequestError } = require("./rfp-security");
-const MAX_TEXT = 100000;
+const MAX_TEXT = 300000;
+const MAX_CHUNKS = 32;
 const clean = text => text.replace(/\r\n?/g, "\n").trim();
 
 // Use the same browser archive expansion validation, plus bounded inflation
@@ -125,7 +126,7 @@ async function extractDocument(source, options = {}) {
   const { bytes, extension, metadata } = source;
   // Knowledge documents may be much larger than a free-tool RFP: the caller
   // may raise the cap (the knowledge worker does, for long winning
-  // proposals). The compliance/free-tool paths keep the 100,000 default,
+  // proposals). The compliance/free-tool paths keep the 300,000 default,
   // which bounds AI analysis cost. chunkDocuments enforces its own bound.
   const maxText = Number.isSafeInteger(options.maxText) && options.maxText > 0 ? options.maxText : MAX_TEXT;
   const warnings = [], pages = [];
@@ -187,12 +188,12 @@ function chunkDocuments(documents) {
   let current = [], length = 0, total = 0;
   for (const document of documents) for (const segment of document.segments) {
     total += segment.text.length;
-    if (total > MAX_TEXT) throw new RequestError(413, "Combined extracted text exceeds 100,000 characters.");
+    if (total > MAX_TEXT) throw new RequestError(413, "Combined extracted text exceeds " + MAX_TEXT.toLocaleString("en-US") + " characters.");
     if (length + segment.text.length > 10000 && current.length) { chunks.push(current); current = []; length = 0; }
     current.push(segment); length += segment.text.length;
   }
   if (current.length) chunks.push(current);
-  if (!chunks.length || chunks.length > 16) throw new RequestError(413, "Document set exceeds the supported analysis size.");
+  if (!chunks.length || chunks.length > MAX_CHUNKS) throw new RequestError(413, "Document set exceeds the supported analysis size.");
   return chunks;
 }
-module.exports = { extractDocument, segmentsFor, chunkDocuments, docxText, looksLikeHeading, headingTitleOk };
+module.exports = { extractDocument, segmentsFor, chunkDocuments, docxText, looksLikeHeading, headingTitleOk, MAX_TEXT, MAX_CHUNKS };

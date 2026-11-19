@@ -23,6 +23,7 @@ test('each draft-writer failure maps to its own stored code',()=>{
   ['Writing output failed validation.','draft_output_invalid'],
   ['Existing AI provider configuration is unavailable.','draft_config_unavailable'],
   ['Selected section exceeds AI input capacity. Reduce sources or edit manually.','draft_input_too_large'],
+  ['No approved, current evidence for this section yet.','draft_no_evidence'],
  ];
  for(const [message,code] of cases)assert.equal(errorClass(err(message), 'draft'),code);
 });

@@ -46,3 +46,23 @@ test("free-tool quota is 5 per IP / 25 shared in JS, SQL, and user-facing copy",
     "latest ft_bidcheck_start (" + latest.file + ") matches the JS admit params"
   );
 });
+
+test("free-tool quota copy says five, not three, on the tool pages, MCP, and docs", async () => {
+  // Nov 18, 2026: PR #104 raised the quota from 3 per IP / 10 shared to
+  // 5 / 25, but the descriptive copy still said three. The shared 25 is
+  // deliberately not shown in descriptive copy.
+  const shredder = await read("shredder.html");
+  assert.match(shredder, /Five anonymous shreds per IP per UTC day/);
+  assert.match(shredder, /limited to five shreds per IP per UTC day/);
+  assert.ok(!shredder.includes("Three anonymous shreds"), "no stale shredder quota copy");
+  assert.ok(!shredder.includes("three shreds"), "no stale shredder quota copy");
+  const bidCheck = await read("bid-check.html");
+  assert.match(bidCheck, /five anonymous uses per IP per UTC day/);
+  assert.ok(!bidCheck.includes("three anonymous uses"), "no stale bid-check quota copy");
+  const mcp = await read("netlify/functions/lib/mcp-tools.js");
+  assert.match(mcp, /Limited to 5 shreds per day/);
+  assert.ok(!mcp.includes("Limited to 3 shreds"), "no stale MCP quota copy");
+  const docs = await read("docs/mcp.md");
+  assert.match(docs, /5 shreds per IP per UTC day/);
+  assert.ok(!docs.includes("3 shreds per IP"), "no stale MCP docs quota copy");
+});

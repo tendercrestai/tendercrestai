@@ -2,7 +2,7 @@ import { validateDocx } from "./docx-validation.mjs";
 export { validateDocx } from "./docx-validation.mjs";
 
 export const MAX_BYTES = 10 * 1024 * 1024;
-export const MAX_TEXT = 100000;
+export const MAX_TEXT = 300000;
 
 export const MIME = Object.freeze({
   pdf: "application/pdf",

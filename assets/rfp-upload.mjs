@@ -163,7 +163,7 @@ function count() {
   const length = $("review-text").value.trim().length;
 
   $("text-count").textContent =
-    length.toLocaleString() + " / 100,000 characters" +
+    length.toLocaleString() + " / 300,000 characters" +
     (
       length > MAX_TEXT
         ? " — shorten the text before submitting."
@@ -291,7 +291,7 @@ $("upload-form").addEventListener("submit", async event => {
       payload.rfpText.length > MAX_TEXT
     ) {
       throw new Error(
-        "Review between 1 and 100,000 characters before submitting."
+        "Review between 1 and 300,000 characters before submitting."
       );
     }
 
