@@ -278,6 +278,122 @@ export function blockerSearchText(blocker, requirements, sections) {
   if (section) return [label, section.status].filter(Boolean).join(" ");
   return label;
 }
+
+// --- Source citation review (sweep finding #18) --------------------------
+// Mirror of the server check in netlify/functions/lib/compliance-ai.js (and
+// looksLikeHeading in compliance-document.js, which is CommonJS, so the
+// browser cannot import it). Keep the two in sync. A citation needs review
+// when its section label is a fragment of running text rather than a
+// heading, its quote has no distinctive wording, or the quote shares no
+// distinctive word with the requirement text. The flag is computed from the
+// stored sources, so it works for already-stored data, not only new
+// imports; the server attaches the same verdict at extraction time.
+const SOURCE_STOPWORDS = new Set("the and for with that this from shall must will should vendor bidder proposal contract required require provide submit include ensure offeror contractor government services service work requirements requirement section federal state date time form forms page number item items each per all any not are is be been has have had its their such than then when where which who these those into under over between through after before during without within upon about out up down may might can could would also more other same new one two using used use make made part applicable accordance pursuant including following above below listed list table note notes".split(" "));
+export function distinctiveWords(text) {
+  return [...new Set(String(text || "").toLowerCase().match(/[a-z][a-z-]{2,}/g) || [])].filter((w) => !SOURCE_STOPWORDS.has(w));
+}
+const HEADING_CONNECTORS = new Set(["and", "or", "of", "for", "the", "to", "in", "on", "with", "by", "per", "a", "an", "from", "at"]);
+const HEADING_KEYWORDS = ["scope of work", "evaluation criteria", "submission instructions", "vendor qualifications", "commercial conditions", "technical specifications", "service level requirements"];
+function headingTitleOk(rest) {
+  const words = String(rest || "").split(/\s+/).filter(Boolean);
+  const content = words.map((w) => w.replace(/[^A-Za-z]/g, "")).filter((w) => w.length >= 3);
+  if (!content.length) return false;
+  return content.every((w) => HEADING_CONNECTORS.has(w.toLowerCase()) || /^[A-Z]/.test(w));
+}
+export function looksLikeHeading(line) {
+  const text = String(line || "").trim();
+  if (!text || text.length > 80) return false;
+  if (/^(?:[Ss]ection|SECTION)\s+(?:[A-Z]\.?|[0-9]+(?:\.[0-9]+)*)\b/.test(text)) return true;
+  if (/^[A-Z]\.[0-9]+\b/.test(text)) return headingTitleOk(text.replace(/^[A-Z]\.[0-9]+\s*/, ""));
+  const numbered = text.match(/^\d+(?:\.\d+)*[.)]?\s+(.+)$/);
+  if (numbered) return headingTitleOk(numbered[1]);
+  const lower = text.toLowerCase();
+  for (const keyword of HEADING_KEYWORDS) {
+    if (lower.startsWith(keyword)) {
+      const rest = text.slice(keyword.length).replace(/^[:.\-–—\s]+/, "");
+      return rest ? headingTitleOk(rest) : true;
+    }
+  }
+  return false;
+}
+export function citationMatch(quote, requirementText) {
+  const quoteWords = distinctiveWords(quote), textWords = distinctiveWords(requirementText);
+  if (!quoteWords.length || !textWords.length) return true;
+  const textSet = new Set(textWords);
+  if (quoteWords.some((w) => textSet.has(w))) return true;
+  const norm = (s) => String(s || "").replace(/\s+/g, " ").trim().toLowerCase();
+  return norm(quote).includes(norm(requirementText)) || norm(requirementText).includes(norm(quote));
+}
+export function sectionLooksLikeFragment(section) {
+  if (section === null || section === undefined || section === "") return false;
+  const text = String(section).trim();
+  if (!text) return false;
+  if (looksLikeHeading(text)) return false;
+  if (/^\d+(?:\.\d+)*[.)]?\s+\S/.test(text)) return true;
+  if (/^section\s+of\b/i.test(text)) return true;
+  return distinctiveWords(text).length === 0;
+}
+export function quoteLooksLikeFragment(quote) {
+  return typeof quote === "string" && quote.trim().length > 0 && distinctiveWords(quote).length === 0;
+}
+export function sourceNeedsReview(source, requirementText) {
+  if (!source || typeof source.quote !== "string" || !source.quote.trim()) return null;
+  if (sectionLooksLikeFragment(source.section)) return "fragment-section";
+  if (quoteLooksLikeFragment(source.quote)) return "fragment-quote";
+  if (!citationMatch(source.quote, requirementText)) return "quote-mismatch";
+  return null;
+}
+export function sourceReviewNote(reason) {
+  return {
+    "fragment-section": "Source needs review: the cited section label looks like a fragment of the source document, not a section heading. Check the original document.",
+    "fragment-quote": "Source needs review: the cited quote is a fragment with no complete wording. Check the original document.",
+    "quote-mismatch": "Source needs review: the cited quote shares no distinctive wording with the requirement. Check the original document.",
+  }[reason] || "Source needs review: check the original document.";
+}
+export function requirementSourceNeedsReview(requirement, allRequirements) {
+  const notes = [];
+  if (typeof requirement.sourceNeedsReview === "string" && requirement.sourceNeedsReview) notes.push(sourceReviewNote(requirement.sourceNeedsReview));
+  for (const source of requirement.sources || []) {
+    const reason = sourceNeedsReview(source, requirement.text);
+    if (reason) notes.push(sourceReviewNote(reason));
+  }
+  // A fragment section label cited by many requirements is the sweep's
+  // shared-source pattern: the same "physical page 8 · 33 if-" rode on
+  // dozens of unrelated requirements. Legitimate sections are shared too,
+  // so this fires only for labels that already look like fragments.
+  const labels = [...new Set((requirement.sources || []).map((s) => s.section).filter((s) => typeof s === "string" && s.trim() && sectionLooksLikeFragment(s)))];
+  for (const label of labels) {
+    const count = (allRequirements || []).filter((r) => (r.sources || []).some((s) => s.section === label)).length;
+    if (count >= 3) notes.push("This section label is cited by " + count + " requirements. Check the original document and re-point the source.");
+  }
+  return [...new Set(notes)];
+}
+// Mirror of excluded() in netlify/functions/lib/proposal-core.js: a
+// requirement a reviewer marked not applicable or an extraction error, with
+// a recorded reason.
+export function excludedRequirement(r) {
+  return !!r && ["not applicable", "extraction error"].includes(r.disposition) && !!r.reviewReason && !!r.reviewedBy;
+}
+// Reviewer merge candidates (sweep finding #20): the workspace view already
+// carries similarPairs from similarPairs() (Jaccard >= 0.8). Keep only pairs
+// both sides of which are still live requirements in this project, neither
+// already merged nor excluded, and de-duplicate reversed pairs.
+export function mergeablePairs(pairs, requirements) {
+  const byId = new Map((requirements || []).map((r) => [r.id, r]));
+  const seen = new Set(), out = [];
+  for (const pair of pairs || []) {
+    if (!Array.isArray(pair) || pair.length !== 2) continue;
+    const a = byId.get(pair[0]), b = byId.get(pair[1]);
+    if (!a || !b || a.id === b.id) continue;
+    if (a.duplicateOf || b.duplicateOf) continue;
+    if (excludedRequirement(a) || excludedRequirement(b)) continue;
+    const key = [a.id, b.id].sort().join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push([a, b]);
+  }
+  return out;
+}
 export function findingEntityLabel(finding, requirements, sections) {
   if (finding?.requirementId) {
     const r = (requirements || []).find((x) => x.id === finding.requirementId);

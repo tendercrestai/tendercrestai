@@ -51,6 +51,41 @@ async function docxText(bytes) {
   return { text: clean(text), unsupported };
 }
 
+// Section headings are short title-case lines: a section code ("Section L",
+// "Section 4.2"), a clause number ("2. Submission Instructions"), or a known
+// section phrase. The old loose pattern also matched numbered list items
+// ("1. One (1) PDF copy of the invoice ...") and running text containing the
+// word "section" ("section of the System for Award Management ..."), so whole
+// form lines became section labels that then rode on dozens of citations
+// (sweep finding #18, Nov 18, 2026). A heading title may only contain
+// capitalized words, numbers and a small set of lowercase connectors, and it
+// needs at least one real title word; anything else is body text, not a
+// heading.
+const HEADING_CONNECTORS = new Set(["and", "or", "of", "for", "the", "to", "in", "on", "with", "by", "per", "a", "an", "from", "at"]);
+const HEADING_KEYWORDS = ["scope of work", "evaluation criteria", "submission instructions", "vendor qualifications", "commercial conditions", "technical specifications", "service level requirements"];
+function headingTitleOk(rest) {
+  const words = String(rest || "").split(/\s+/).filter(Boolean);
+  const content = words.map(w => w.replace(/[^A-Za-z]/g, "")).filter(w => w.length >= 3);
+  if (!content.length) return false;
+  return content.every(w => HEADING_CONNECTORS.has(w.toLowerCase()) || /^[A-Z]/.test(w));
+}
+function looksLikeHeading(line) {
+  const text = String(line || "").trim();
+  if (!text || text.length > 80) return false;
+  if (/^(?:[Ss]ection|SECTION)\s+(?:[A-Z]\.?|[0-9]+(?:\.[0-9]+)*)\b/.test(text)) return true;
+  if (/^[A-Z]\.[0-9]+\b/.test(text)) return headingTitleOk(text.replace(/^[A-Z]\.[0-9]+\s*/, ""));
+  const numbered = text.match(/^\d+(?:\.\d+)*[.)]?\s+(.+)$/);
+  if (numbered) return headingTitleOk(numbered[1]);
+  const lower = text.toLowerCase();
+  for (const keyword of HEADING_KEYWORDS) {
+    if (lower.startsWith(keyword)) {
+      const rest = text.slice(keyword.length).replace(/^[:.\-–—\s]+/, "");
+      return rest ? headingTitleOk(rest) : true;
+    }
+  }
+  return false;
+}
+
 function segmentsFor(documentId, pages) {
   const segments = [];
   let section = null;
@@ -66,7 +101,7 @@ function segmentsFor(documentId, pages) {
     }
     let position = 0;
     for (const line of text.split("\n")) {
-      const heading = /^(?:section\s+[A-Z0-9]+\b|[A-Z]\.[0-9]+\b|\d+(?:\.\d+)*[.)]?\s+[A-Z]|scope of work\b|evaluation criteria\b|submission instructions\b|vendor qualifications\b|commercial conditions\b|technical specifications\b|service.level requirements\b)/i.test(line.trim());
+      const heading = looksLikeHeading(line.trim());
       if (heading || value.length + line.length > 8000) {
         flush();
         if (heading) section = line.trim().slice(0, 300);
@@ -160,4 +195,4 @@ function chunkDocuments(documents) {
   if (!chunks.length || chunks.length > 16) throw new RequestError(413, "Document set exceeds the supported analysis size.");
   return chunks;
 }
-module.exports = { extractDocument, segmentsFor, chunkDocuments, docxText };
+module.exports = { extractDocument, segmentsFor, chunkDocuments, docxText, looksLikeHeading, headingTitleOk };

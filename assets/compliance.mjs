@@ -5,7 +5,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import { validateFile } from "./rfp-document.mjs";
 import { statuses, categories, metrics, sourceLabel, filterRows, alerts, stableRequirementId, validDeadline } from "./compliance-model.mjs";
 import { csv, xlsx } from "./compliance-export.mjs";
-import { createActionQueue, truncate, shortId } from "./ui-helpers.mjs";
+import { createActionQueue, truncate, shortId, sourceNeedsReview, sourceReviewNote } from "./ui-helpers.mjs";
 const $ = id => document.getElementById(id);
 const el = (tag, text, className) => { const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n; };
 let supabase, user, state, editing, busy=false, paused=false, epoch=0;
@@ -52,6 +52,8 @@ function viewSource(row) {
   const host=$("source-content");host.replaceChildren();
   for(const source of row.sources) {
     host.append(el("h3",sourceLabel(source)),el("blockquote",source.quote));
+    const reason=sourceNeedsReview(source,row.requirement);
+    if(reason)host.append(el("p",sourceReviewNote(reason)));
     const segment=state.analysis.documents.find(d=>d.id===source.document_id)?.segments.find(s=>s.id===source.segment_id);
     const details=el("details");details.append(el("summary","Surrounding extracted text"),el("pre",segment?.text || "Source unavailable"));
     host.append(details);
@@ -100,7 +102,7 @@ function renderTable() {
     const edit=el("button","Edit "+label);edit.type="button";edit.disabled=busy;edit.onclick=()=>openEdit(row);id.append(edit,el("small",stableRequirementId(row)));tr.append(id);
     for(const text of [row.requirement,row.category,row.mandatory]) tr.append(el("td",text));
     const source=el("td");
-    for(const s of row.sources) source.append(el("p",sourceLabel(s)));
+    for(const s of row.sources){source.append(el("p",sourceLabel(s)));const reason=sourceNeedsReview(s,row.requirement);if(reason)source.append(el("p",sourceReviewNote(reason)));}
     const verify=el("button","Verify source");verify.type="button";verify.onclick=()=>viewSource(row);source.append(verify);tr.append(source);
     for(const text of [row.evaluation_weight || "Not provided",row.status,
       row.evidence ? row.evidence+" · "+row.evidence_reference : "Evidence missing",
