@@ -55,12 +55,12 @@ async function loadEvidence() {
     "canWrite", "canReview", "mutate", "message", "render", "submit",
     "truncate", "matchEvidenceOutcome", "countText",
     "searchListItems", "paginateList", "appendPager",
-    "evListQuery", "evListCoverage", "evListPage",
+    "evListQuery", "evListCoverage", "evListPage", "lastMatchOutcome",
     line + "; return evidence;")(
     stubs.node, stubs.button, stubs.card, stubs.form, stubs.select, stubs.field,
     stubs.sources, stubs.canWrite, stubs.canReview, stubs.mutate, stubs.message,
     stubs.render, stubs.submit, truncate, matchEvidenceOutcome, countText,
-    searchListItems, paginateList, stubs.appendPager, "", "", 0);
+    searchListItems, paginateList, stubs.appendPager, "", "", 0, null);
 }
 
 function collectText(el, out = []) {

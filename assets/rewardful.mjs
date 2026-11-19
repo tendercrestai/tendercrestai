@@ -34,7 +34,11 @@ function init(){
  const actions=element('div');actions.style.cssText='display:flex;gap:12px;flex-wrap:wrap';
  for(const [label,yes]of [['Allow Rewardful attribution',true],['Decline Rewardful attribution',false]]){const b=element('button',label);b.type='button';b.style.cssText='font:inherit;padding:10px 14px;border:1px solid #64748b;border-radius:6px;cursor:pointer';if(yes&&(privacy()||!safeURL()))b.disabled=true;b.onclick=()=>{if(!setRewardfulConsent(yes)){status.textContent='Your choice could not be saved. Rewardful stays disabled; check your browser storage settings.';return;}panel.hidden=true;};actions.append(b);}
  panel.append(actions);(document.querySelector('main')||document.body).prepend(panel);
- const settings=element('button','Rewardful attribution settings');settings.type='button';settings.style.cssText='font:inherit;display:inline-block;width:auto;background:transparent;padding:8px;border:1px solid currentColor;border-radius:6px;margin:8px;color:inherit;cursor:pointer';settings.onclick=()=>{panel.hidden=false;panel.querySelector('button').focus();};(document.querySelector('footer')||document.body).append(settings);
+ // The three consent settings buttons (analytics, advertising, Rewardful)
+// used to land as separate buttons in the footer flow. Group them under
+// one labeled "Privacy choices" container instead.
+function privacyChoices(){let c=document.getElementById('privacy-choices');if(!c){c=document.createElement('div');c.id='privacy-choices';const label=document.createElement('span');label.textContent='Privacy choices: ';c.append(label);(document.querySelector('footer')||document.body).append(c);}return c;}
+const settings=element('button','Rewardful attribution settings');settings.type='button';settings.style.cssText='font:inherit;display:inline-block;width:auto;background:transparent;padding:8px;border:1px solid currentColor;border-radius:6px;margin:8px;color:inherit;cursor:pointer';settings.onclick=()=>{panel.hidden=false;panel.querySelector('button').focus();};privacyChoices().append(settings);
  const saved=read(KEY);panel.hidden=privacy()||!safeURL()||!!(saved&&saved.expires>Date.now());load();
  window.addEventListener('storage',event=>{if(event.key===KEY){if(loaded&&!allowed()){token=null;location.reload();}else if(allowed())load();}});
 }

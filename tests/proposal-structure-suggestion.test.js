@@ -65,13 +65,14 @@ test('returns null when no template matches and for an invalid catalogue',()=>{
  assert.equal(core.structureSuggestion(null,realCatalogue()),null);
 });
 
-test('a section matching several groups joins the first group only',()=>{
+test('a section matching several groups joins its best-matching group',()=>{
  const list=[{id:'cccccccc-1111-4ccc-8ccc-cccccccccccc',text:'Submit the pricing form for the technical specification.',mandatory:'Yes',category:'Submission',sources:[source('Section A',1,'Submit the pricing form for the technical specification.')]},
   {id:'cccccccc-2222-4ccc-8ccc-cccccccccccc',text:'The vendor must meet the technical specification and hold current ISO 27001 certification.',mandatory:'Yes',category:'Technical',sources:[source('Section B',2,'The vendor must meet the technical specification and hold current ISO 27001 certification.')]},  {id:'cccccccc-3333-4ccc-8ccc-cccccccccccc',text:'Submit the completed cost schedule by Friday.',mandatory:'Yes',category:'Submission',sources:[source('Section C',3,'Submit the completed cost schedule by Friday.')]}];
  const s=importedState(list),sug=core.structureSuggestion(s,realCatalogue());
  assert.ok(sug);assert.equal(sug.patternId,'structure-template-state-local-it');
  const byLabel=Object.fromEntries(sug.groups.map(g=>[g.label,g.sectionIds]));
- // 'pricing' and 'technical' both match, but Requirements response comes first in the template.
+ // 'pricing' matches once, but 'technical' and 'specification' both match
+ // Requirements response, so the best-matching group wins, not the first.
  assert.deepEqual(byLabel['Requirements response'],[sectionFor(s,list[0].id).id,sectionFor(s,list[1].id).id]);
  assert.deepEqual(byLabel['Pricing and cost schedule'],[sectionFor(s,list[2].id).id]);
 });

@@ -144,3 +144,25 @@ test('SAM detail keeps the not-found message when the API returns nothing',async
   await assert.rejects(S.detail(c,e,id),e=>e.status===404&&/not returned by the API/.test(e.message));
  }finally{global.fetch=saved.fetch;kb.rpc=saved.rpc;if(saved.key===undefined)delete process.env.SAM_GOV_API_KEY;else process.env.SAM_GOV_API_KEY=saved.key;}
 });
+test('quota reports the shared shred and bid-check budget before a start',async()=>{
+ const saved={fetch:global.fetch,env:{...process.env}};
+ Object.assign(process.env,{FREE_TOOLS_ENABLED:'true',SUPABASE_URL:'https://database.invalid',SUPABASE_PUBLISHABLE_KEY:'public-fixture',SUPABASE_SERVICE_ROLE_KEY:'service-fixture'});
+ const seen=[];
+ global.fetch=async(url)=>{
+  const u=new URL(String(url));seen.push(u.pathname+u.search);
+  if(u.pathname==='/rest/v1/ft_rates'){
+   const key=u.searchParams.get('key')||'';
+   return new Response(JSON.stringify(key==='eq.global'?[{n:7}]:[{n:2}]),{status:200,headers:{'Content-Type':'application/json'}});
+  }
+  return new Response('[]',{status:200});
+ };
+ try{
+  const r=await require('../netlify/functions/free-tools').handler({httpMethod:'POST',headers:{'x-nf-client-connection-ip':'203.0.113.9'},body:JSON.stringify({action:'quota'})});
+  assert.equal(r.statusCode,200);
+  const d=JSON.parse(r.body);
+  assert.equal(d.used,2);assert.equal(d.limit,3);assert.equal(d.remaining,1);
+  assert.match(d.resetsAt,/midnight UTC/);
+  assert.ok(seen.some(x=>x.includes('ft_rates')&&x.includes('kind=eq.shred')));
+  assert.ok(seen.some(x=>x.includes('key=eq.global')));
+ }finally{global.fetch=saved.fetch;process.env=saved.env;}
+});

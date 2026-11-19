@@ -12,7 +12,7 @@
 // same flag elsewhere (for example the workspace autosave) share one
 // source of truth instead of a second flag that can disagree with it.
 export function createActionQueue({isBusy, setBusy, notify, readMessage, delayMs = 800}) {
-  let pending = null, timer = null, running = false;
+  let pending = null, timer = null, running = false, showedWorking = false;
   function drain() {
     if (isBusy() || !pending) return;
     const next = pending; pending = null;
@@ -24,14 +24,22 @@ export function createActionQueue({isBusy, setBusy, notify, readMessage, delayMs
     setBusy(true);
     const startText = readMessage ? readMessage() : null;
     if (timer) clearTimeout(timer);
+    showedWorking = false;
     timer = setTimeout(() => {
-      if (isBusy() && (!readMessage || readMessage() === startText)) notify("Working…");
+      if (isBusy() && (!readMessage || readMessage() === startText)) { showedWorking = true; notify("Working…"); }
     }, delayMs);
     try { await fn(); }
     finally {
       clearTimeout(timer);
       running = false;
       setBusy(false);
+      // A "Working…" banner that is never cleared leaves the last action
+      // looking stuck and covers content. Restore the message that was
+      // showing before the slow action, but only when nothing else has
+      // reported progress since (an action that set its own message keeps
+      // it, and a queued action's own message is not clobbered).
+      if (showedWorking && readMessage && readMessage() === "Working…") notify(startText ?? "");
+      showedWorking = false;
       drain();
     }
   }
@@ -45,6 +53,33 @@ export function createActionQueue({isBusy, setBusy, notify, readMessage, delayMs
 export function truncate(text, max) {
   const value = String(text ?? "");
   return value.length > max ? value.slice(0, max) + "…" : value;
+}
+// Word-boundary truncation: never cut a word in half, so agency names and
+// titles end on a whole word. Falls back to a hard cut for one long word.
+export function truncateWord(text, max) {
+  const value = String(text ?? "");
+  if (value.length <= max) return value;
+  const cut = value.lastIndexOf(" ", max);
+  if (cut <= 0) return value.slice(0, max) + "…";
+  return value.slice(0, cut) + "…";
+}
+// SAM.gov agency paths are dot-joined ALL-CAPS hierarchies
+// ("DEPT OF DEFENSE.DEPT OF THE ARMY..."). Show the most specific segment
+// (the last one) in readable title case.
+const SMALL_WORDS = new Set(["of", "the", "and", "for", "to", "in", "on", "at", "by"]);
+export function formatAgencyName(value) {
+  const raw = String(value || "").split(".").map((s) => s.trim()).filter(Boolean).pop() || "";
+  if (!raw) return "Agency not supplied";
+  const words = raw.toLowerCase().split(/\s+/).map((w, i) =>
+    (i > 0 && SMALL_WORDS.has(w)) ? w : w.charAt(0).toUpperCase() + w.slice(1));
+  return truncateWord(words.join(" "), 120);
+}
+// Opportunities feed count line: say how many are on this page, how many
+// exist in total, and the page size, so "8 on page 1" is never confused
+// with "25 per page".
+export function opportunityCountLine(shown, total, page, pageSize = 25) {
+  const totalText = Number.isSafeInteger(total) ? " of " + total : "";
+  return shown + totalText + " open opportunities · page " + (page + 1) + " (" + pageSize + " per page)";
 }
 
 // --- Draft preview with no draftable evidence (sweep finding #4) ---------
@@ -109,6 +144,28 @@ export function formatActivityDate(iso) {
 export function shortId(id) {
   const value = String(id || "");
   return value.length > 8 ? value.slice(0, 8) + "…" : value;
+}
+// Prefer a member's display name over a truncated ID in activity, approval
+// and reviewer lines. Unknown IDs still show as a short ID, never invented.
+export function memberLabel(members, userId) {
+  const found = (members || []).find((m) => m.user_id === userId);
+  return (found && (found.label || found.email)) || shortId(userId);
+}
+// --- Submission checklist breakdown (final sweep finding #6) -------------
+// The server classifies readiness blockers (proposal-core.js readiness())
+// and ships the counts with the view; this renders the split ("313 items:
+// 151 requirement items, 162 section items") so a long checklist explains
+// itself instead of showing one unexplained total.
+export function blockerBreakdownLine(counts) {
+  const c = counts || {};
+  const total = c.total || 0;
+  if (!total) return "";
+  const parts = [];
+  if (c.requirements) parts.push(countText(c.requirements, "requirement item", "requirement items"));
+  if (c.attachments) parts.push(countText(c.attachments, "attachment item", "attachment items"));
+  if (c.sections) parts.push(countText(c.sections, "section item", "section items"));
+  if (c.other) parts.push(countText(c.other, "other item", "other items"));
+  return total + " items: " + parts.join(", ") + ".";
 }
 
 // --- Counts and factor labels (sweep finding #16) ------------------------

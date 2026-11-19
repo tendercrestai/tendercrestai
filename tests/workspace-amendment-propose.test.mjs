@@ -257,11 +257,15 @@ test("propose amendment: Yes button submits amendmentPropose on second submit", 
   assert.match(registry.message.textContent, /Amendment proposed/);
 });
 
-test("propose amendment: confirmShare tracks the consent checkbox, not the label", async () => {
+test("propose amendment: consent gate blocks an unticked propose, payload follows the tick", async () => {
   // The Nov 18 defect: the handler read `share.checked` off the <label>,
   // which has no checked state, so confirmShare was never true. The fix
   // reads the checkbox itself, so the payload must follow its tick.
-  const { amendmentsPanel, calls } = await loadAmendmentsPanel();
+  // Sweep #36 adds the gate: the submit is disabled until an analysis ID
+  // is entered and the consent box is ticked, and the handler throws
+  // otherwise, so an unticked propose stops at the gate with no confirm
+  // and no mutate call instead of submitting with confirmShare false.
+  const { amendmentsPanel, calls, registry } = await loadAmendmentsPanel();
   const parent = makeEl("div");
   amendmentsPanel(parent, {});
   const form = collectTag(parent, "FORM")[0];
@@ -270,20 +274,32 @@ test("propose amendment: confirmShare tracks the consent checkbox, not the label
   analysisInput.value = "38b4d138-a0d4-462b-a660-3ec985970bcb";
   collectTag(form, "SELECT")[0].value = "supplemental";
   const shareBox = inputs.find((i) => i.type === "checkbox");
-  // Unticked: the payload must carry false, not a constant true.
+  // Unticked: the gate stops the propose, no confirm, no mutate.
   shareBox.checked = false;
+  findButton(parent, "Propose amendment for review").click();
+  await flush();
+  assert.equal(findButton(parent, "Yes, propose this amendment"), null, "no confirm may appear before consent");
+  assert.equal(calls.mutate.length, 0, "an unticked propose must not submit");
+  assert.match(registry.message.textContent, /Choose an analyzed amendment document and confirm sharing first/);
+  // Ticked: the confirm appears and the payload carries the tick.
+  shareBox.checked = true;
   findButton(parent, "Propose amendment for review").click();
   await flush();
   findButton(parent, "Yes, propose this amendment").click();
   await flush();
   assert.equal(calls.mutate.length, 1);
-  assert.equal(calls.mutate[0].payload.confirmShare, false);
+  assert.equal(calls.mutate[0].payload.confirmShare, true);
 });
 
 test("propose amendment: Cancel clears the confirm without submitting", async () => {
   const { amendmentsPanel, calls } = await loadAmendmentsPanel();
   const parent = makeEl("div");
   amendmentsPanel(parent, {});
+  // The consent gate (#36) must be satisfied before the confirm can appear.
+  const form = collectTag(parent, "FORM")[0];
+  const inputs = collectTag(form, "INPUT");
+  inputs.find((i) => i.type === "text").value = "38b4d138-a0d4-462b-a660-3ec985970bcb";
+  inputs.find((i) => i.type === "checkbox").checked = true;
   findButton(parent, "Propose amendment for review").click();
   await flush();
   const cancelBtn = findButton(parent, "Cancel");

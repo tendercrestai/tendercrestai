@@ -76,11 +76,22 @@ function readinessSummary(s){
  const plural=(n,one,many)=>n+' '+ (n===1?one:many);
  const summary={total:items.length,unresolved:unresolved.length,done:items.filter(i=>i.status==='done').length,notApplicable:items.filter(i=>i.status==='not-applicable').length,
   mandatoryUnresolved:unresolved.filter(i=>i.mandatory!=='No').length,
+  nonMandatoryUnresolved:unresolved.filter(i=>i.mandatory==='No').length,
   documentsMissing:unresolved.filter(i=>i.kind==='document'||i.kind==='form').length,
   responsesAwaitingApproval:unresolved.filter(i=>i.responseReviewPending).length,
-  evidenceGaps:unresolved.filter(i=>i.evidenceGap).length,byOwner:{}};
+  evidenceGaps:unresolved.filter(i=>i.evidenceGap).length,
+  evidenceGapsMissing:unresolved.filter(i=>i.evidenceGap&&i.coverage==='missing-evidence').length,
+  evidenceGapsUnassessed:unresolved.filter(i=>i.evidenceGap&&i.coverage==='not-assessed').length,byOwner:{}};
  for(const i of unresolved){const k=i.owner||'unassigned';summary.byOwner[k]=(summary.byOwner[k]||0)+1;}
- summary.lines=[plural(summary.mandatoryUnresolved,'mandatory or unclear item unresolved','mandatory or unclear items unresolved')+'.',plural(summary.documentsMissing,'required document missing','required documents missing')+'.',plural(summary.responsesAwaitingApproval,'response awaiting approval','responses awaiting approval')+'.',plural(summary.evidenceGaps,'evidence gap','evidence gaps')+'.'];
+ // The Evidence tab counts only coverage "missing-evidence", while the
+ // readiness "evidence gaps" line counts missing AND not-yet-assessed, so
+ // the two numbers disagree until the split is shown. The mandatory line
+ // counts mandatory-or-unclear items only, so non-mandatory unresolved
+ // items need their own line, and one item can appear in several lines at
+ // once (it can need evidence, a response approval, and a document).
+ summary.lines=[plural(summary.mandatoryUnresolved,'mandatory or unclear item unresolved','mandatory or unclear items unresolved')+'.',plural(summary.documentsMissing,'required document missing','required documents missing')+'.',plural(summary.responsesAwaitingApproval,'response awaiting approval','responses awaiting approval')+'.',plural(summary.evidenceGaps,'evidence gap','evidence gaps')+' ('+summary.evidenceGapsMissing+' confirmed missing, '+summary.evidenceGapsUnassessed+' not yet assessed).'];
+ if(summary.nonMandatoryUnresolved)summary.lines.push(plural(summary.nonMandatoryUnresolved,'non-mandatory item also unresolved','non-mandatory items also unresolved')+'.');
+ summary.lines.push('One item can appear in several lines above: it can need evidence, a response approval, and a document at the same time.');
  return summary;
 }
 function readinessView(s){return {items:readinessItems(s),summary:readinessSummary(s),scopeNote:READINESS_SCOPE_NOTE,factorCoverage:factorCoverage(s)};}
@@ -96,7 +107,7 @@ function readinessView(s){return {items:readinessItems(s),summary:readinessSumma
 // blocker, a summary line or an export: it is a count shown next to them,
 // not an input to them. When the RFP carries no evaluation factors the
 // percentage is null, never a fabricated 100%.
-const FACTOR_COVERAGE_NOTE='Advisory only: this counts drafted response text against the buyer\u2019s evaluation factors. It is not a compliance verdict and does not change readiness or exports.';
+const FACTOR_COVERAGE_NOTE='Advisory only: this counts drafted response text against the buyer\u2019s evaluation factors. A factor counts as covered when at least one section mapped to it has drafted response text; approval is separate. It is not a compliance verdict and does not change readiness or exports.';
 function draftedResponseText(text){
  if(typeof text!=='string')return false;
  return text.replace(/\[(?:NEEDS INPUT|NEEDS REVIEW)[^\]]*\]/gi,'').trim().length>0;
@@ -157,9 +168,22 @@ function structureSuggestion(state,catalogue){
   for(const t of templates){
    const groups=(t.groups||[]).map(g=>({label:g.label,keywords:Array.isArray(g.keywords)?g.keywords.map(k=>String(k).toLowerCase()):[],sectionIds:[]}));
    const assigned=new Set();
+   // Assign each section to its BEST-matching group, not the first group
+   // sharing a word: first-match filed a section under an early group on
+   // one shared word even when a later group matched it better. The group
+   // with the most keyword hits wins; ties keep the template's first group.
+   // Short requirement texts legitimately match on a single distinctive
+   // keyword ("pricing form"), so one hit is enough to join. Sections
+   // matching no group stay unmatched instead of being forced in.
    sections.forEach((section,i)=>{
     if(assigned.has(section.id))return;
-    for(const g of groups){if(g.keywords.some(k=>sectionTexts[i].has(k))){g.sectionIds.push(section.id);assigned.add(section.id);break;}}
+    let bestGroup=null,bestHits=0;
+    for(const g of groups){
+     if(!g.keywords.length)continue;
+     let hits=0;for(const k of g.keywords)if(sectionTexts[i].has(k))hits++;
+     if(hits>bestHits){bestGroup=g;bestHits=hits;}
+    }
+    if(bestGroup){bestGroup.sectionIds.push(section.id);assigned.add(section.id);}
    });
    const matchedGroups=groups.filter(g=>g.sectionIds.length).length;
    if(matchedGroups<2)continue;
@@ -482,7 +506,23 @@ function readiness(s,epoch,rendered){
   else if(!rendered||rendered.contentHash!==contentHash(s)||rendered.evidenceEpoch!==epoch)blockers.push('Render the saved proposal to measure PDF pages: '+limit.requirementId);
   else if(rendered.pages>limit.limit)blockers.push(`Rendered PDF page limit exceeded: ${rendered.pages}/${limit.limit}`);
  }
- if(s.assessment?.stale)blockers.push('Bid assessment is stale.');return {ready:blockers.length===0,blockers:[...new Set(blockers)],wordCount:wc,pageCount:rendered?.contentHash===contentHash(s)?rendered.pages:null,pageCountScope:'Rendered PDF only; DOCX pagination is not measured.'};
+ if(s.assessment?.stale)blockers.push('Bid assessment is stale.');
+ const unique=[...new Set(blockers)];
+ return {ready:unique.length===0,blockers:unique,blockerCounts:countBlockers(unique),wordCount:wc,pageCount:rendered?.contentHash===contentHash(s)?rendered.pages:null,pageCountScope:'Rendered PDF only; DOCX pagination is not measured.'};}
+// The checklist total alone ("313 items") explains nothing. Classify each
+// blocker by its kind so the UI can show the split; the prefixes are the
+// blocker strings pushed above.
+function countBlockers(blockers){
+ const counts={requirements:0,attachments:0,sections:0,other:0,total:0};
+ for(const b of blockers||[]){
+  counts.total++;
+  const text=String(b||'');
+  if(text.startsWith('Mandatory/unclear requirement needs'))counts.requirements++;
+  else if(text.startsWith('Required attachment missing'))counts.attachments++;
+  else if(text.startsWith('Section needs content')||text.startsWith('Generated claim references'))counts.sections++;
+  else counts.other++;
+ }
+ return counts;
 }
 function assessment(s,epoch){
  const factors=[];let numerator=0,denominator=0,known=0;for(const key of Object.keys(s.weights)){const w=s.weights[key];if(!Number.isInteger(w)||w<0||w>100)kb.fail(400,'Weights must be whole numbers from 0 to 100.');denominator+=w;let input=s.bidInputs[key]||{value:'unknown',reason:'No verified input supplied.'};if(input.sources?.some(id=>!s.evidence.some(e=>e.id===id&&e.decision==='accepted'&&!e.stale&&!expired(e)&&(!e.conflicts?.length||!!e.conflictResolution))))input={value:'unknown',reason:'Referenced evidence changed or is no longer eligible.'};if(['yes','partial'].includes(input.value)&&!input.sources?.length&&!input.explicitInput)input={value:'unknown',reason:'Supply eligible evidence or explicitly record this as a human input.'};if(!['yes','partial','no','unknown'].includes(input.value))kb.fail(400,'Invalid bid factor.');const score={yes:100,partial:50,no:0,unknown:0}[input.value];numerator+=w*score;if(input.value!=='unknown')known+=w;factors.push({key,weight:w,value:input.value,score,reason:input.reason||'No rationale supplied.',sources:input.sources||[],assumption:input.assumption===true});}

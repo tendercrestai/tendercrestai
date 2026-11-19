@@ -1,6 +1,19 @@
 const kb=require('./lib/knowledge-base'),F=require('./lib/free-tools'),B=require('./lib/bid-check'),crypto=require('node:crypto');
 exports.handler=async event=>{let action='shred';try{const p=kb.parse(event,2900000);action=p.action||'shred';if(!F.enabled())kb.fail(503,'Free tools are not available on this deployment yet.');const c=kb.configuration();
  if(p.action==='event'){kb.exact(p,['action','name','consent','id']);if(p.consent!==true||!['shred_started','shred_completed','shred_email_gate','bidcheck_completed'].includes(p.name))kb.fail(400,'Usage consent is required.');kb.uuid(p.id);await kb.rpc(c,'ft_admit',{p_ip:F.ip(event),p_kind:'event',p_limit:50,p_global:1000});await F.db(c,'ft_events',{method:'POST',body:{id:p.id,name:p.name}});return kb.reply(200,{saved:true});}
+ if(p.action==='quota'){kb.exact(p,['action']);
+  // Advance warning for the shared free-tool budget: the shredder and the
+  // bid checker share one 'shred' bucket (3 uses per IP per UTC day, 10
+  // shared across all users). Reading today's ft_rates row consumes no
+  // admission; the client shows the remaining count before the user starts
+  // so the 429 never arrives as a surprise. No migration: ft_rates already
+  // stores (day, kind, key, n) and F.ip returns the same key ft_admit uses.
+  const day=new Date().toISOString().slice(0,10);
+  const [mine,shared]=await Promise.all([
+   F.db(c,'ft_rates?day=eq.'+day+'&kind=eq.shred&key=eq.'+encodeURIComponent(F.ip(event))+'&select=n'),
+   F.db(c,'ft_rates?day=eq.'+day+'&kind=eq.shred&key=eq.global&select=n')]);
+  const used=(mine[0]&&mine[0].n)||0,sharedUsed=(shared[0]&&shared[0].n)||0,limit=3,sharedLimit=10;
+  return kb.reply(200,{used,limit,remaining:Math.max(0,Math.min(limit-used,sharedLimit-sharedUsed)),resetsAt:'midnight UTC'});}
  if(p.action==='bid-start'){
   kb.exact(p,['action','text','file','title','source','processingConsent','answers']);
   if(p.processingConsent!==true)kb.fail(400,'Confirm source processing first.');

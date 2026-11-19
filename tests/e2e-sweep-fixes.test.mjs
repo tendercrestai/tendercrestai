@@ -199,9 +199,13 @@ test('footer settings buttons carry their own small outlined style on every page
 });
 
 test('sticky status banners are height-capped so they cannot cover content below', async () => {
+  // The cap is 96px, not 56px: a one-line message plus padding sat right at
+  // the old cap and grew its own nested scrollbar (final E2E sweep #5).
+  // 96px still bounds the banner, and the sticky tabs sit at the same 96px
+  // so a tall banner never overlaps them.
   for (const file of ['assets/workspace.css', 'assets/knowledge.css', 'assets/compliance.css']) {
     const css = await read(file);
-    assert.match(css, /#message\{[^}]*max-height:56px;overflow:auto/, file);
+    assert.match(css, /#message\{[^}]*max-height:96px;overflow:auto/, file);
   }
 });
 
