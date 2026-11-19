@@ -4,9 +4,9 @@ Routes: `/tools/shredder`, `/opportunities`. This branch stacks on comparison PR
 
 ## Reuse and limits
 
-Uses the existing compliance document extractor, source-verified AI analyzer and CSV exporter. Text up to 100,000 characters (existing parser limit), PDF/DOCX up to 2 MB. Basic numbered requirements and five review flags are anonymous. Flags indicate missing response/evidence for human review, not proven violations. No company evidence is supplied to this tool.
+Uses the existing compliance document extractor, source-verified AI analyzer and CSV exporter. Text up to 300,000 characters (existing parser limit), PDF/DOCX up to 2 MB. Basic numbered requirements and five review flags are anonymous. Flags indicate missing response/evidence for human review, not proven violations. No company evidence is supplied to this tool.
 
-Daily UTC admission: 3 shreds/IP and 10 shared pilot shreds; 16 AI calls/IP and 24 shared; 10 uncached SAM queries/IP and 50 shared; 3 matrix leads/IP and 10 shared. These conservative caps protect the shared AI account, but do not replace provider billing controls. Incomplete/failed jobs can consume allowance. Source-validation rejection retries once per chunk, with each attempt counted against AI limits; rejected output is never published. No paid allowance changes.
+Daily UTC admission: 5 shreds/IP and 25 shared shreds; 16 AI calls/IP and 24 shared; 10 uncached SAM queries/IP and 50 shared; 3 matrix leads/IP and 10 shared. These conservative caps protect the shared AI account, but do not replace provider billing controls. Incomplete/failed jobs can consume allowance. Source-validation rejection retries once per chunk, with each attempt counted against AI limits; rejected output is never published. No paid allowance changes.
 
 ## Isolated deployment only
 
