@@ -28,6 +28,16 @@ export function filterReadinessItems(items, filters = {}) {
     (!filters.category || i.category === filters.category) &&
     (!filters.status || i.status === filters.status));
 }
+
+// Required forms: the mandatory (or unclear) form-kind items from the same
+// readiness list, mandatory first, then by title. No new data model: the
+// items, their statuses, owners and due dates all come from readinessView.
+export function requiredForms(items) {
+  const rank = { Yes: 0, Unclear: 1 };
+  return items
+    .filter(i => i.kind === "form" && i.mandatory !== "No")
+    .sort((a, b) => (rank[a.mandatory] ?? 2) - (rank[b.mandatory] ?? 2) || String(a.title || "").localeCompare(String(b.title || "")));
+}
 export function sourceLabel(ref) {
   return (ref.document || "Source unavailable") + " · " + (ref.section || "Section unavailable") +
     " · " + (ref.page === null || ref.page === undefined ? "Page unavailable" : "PDF page " + ref.page);

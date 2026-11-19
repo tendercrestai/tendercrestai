@@ -78,7 +78,7 @@ async function loadHarness() {
   };
   const fn = new Function("$", "node", "card", "button", "api", "message",
     "render", "history", "location", "window",
-    "let view=null,lastOpenedId=null,projectQuery='',analysis=null;\n"
+    "let view=null,lastOpenedId=null,projectQuery='',orgFilter='',myOrgs=[],analysis=null;\n"
     + projectsLine + "\n" + openLine + "\n" + showProjectsLine + "\n" + deleteLine + "\n"
     + "return {projects,open,showProjects,deleteProject,getView:()=>view,getLastOpenedId:()=>lastOpenedId};")(
     $, stubs.node, stubs.card, stubs.button, stubs.api, stubs.message,
