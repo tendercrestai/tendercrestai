@@ -279,8 +279,8 @@ function deduplicate(rows) {
   return [...merged.values()];
 }
 // Duplicate hint for the review UI only. The pair scan is O(n^2), so the input is
-// capped: a max-size analysis (16 chunks x up to 80 requirements) would otherwise
-// run ~820k pair comparisons on every workspace load. Similarity semantics are
+// capped: a max-size analysis (32 chunks x up to 80 requirements) would otherwise
+// run ~3.3M pair comparisons on every workspace load. Similarity semantics are
 // unchanged; pairs past the cap are simply not reported. The Jaccard union is
 // derived from the intersection size instead of building a union Set per pair.
 const SIMILAR_PAIRS_MAX_ROWS = 500;

@@ -66,7 +66,7 @@ and weights must be explicitly quoted scoring data. Validation reduces
 hallucination/injection impact but cannot prove correct semantic interpretation.
 
 Each chunk contains at most 10,000 extracted characters; combined source text
-is bounded at 100,000 characters / 16 chunks. Maximum output is 8,000 tokens per
+is bounded at 300,000 characters / 32 chunks. Maximum output is 8,000 tokens per
 call. RPC row locks and lease tokens prevent concurrent dispatch/saving by a
 stale worker. A 90-second lease permits bounded recovery after a function dies.
 Three attempts per chunk, three new analyses per user/UTC day, 144 actual
