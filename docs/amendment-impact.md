@@ -84,8 +84,8 @@ States, per the production-steps rule:
 
 ## Limits and estimated incremental operating cost
 
-- At most 50 solicitation versions per project; at most 500 requirements
-  per amendment; at most 500 proposed changes per amendment.
+- At most 50 solicitation versions per project; at most 1000 requirements
+  per amendment; at most 1000 proposed changes per amendment.
 - **Estimated incremental cost: $0/month.** The comparison is deterministic
   CPU inside the existing Netlify functions; no model call, no new paid
   service, no new storage beyond the existing JSONB state and the `pw_files`
@@ -94,8 +94,8 @@ States, per the production-steps rule:
   50 active workspaces, 10 proposals per workspace per month, 40
   requirements per proposal, amendments on 1 in 5 proposals — about 100
   amendments/month, each a bounded in-memory comparison (stable-ID match
-  first, then at most 500 x 500 token-set comparisons). Documents are never
-  silently truncated: the extraction pipeline's 500-requirement limit still
+  first, then at most 1000 x 1000 token-set comparisons). Documents are never
+  silently truncated: the extraction pipeline's 1000-requirement limit still
   applies and is reported as an error, not a silent cut.
 - Combined ceiling for Capabilities 1 + 2 + 3 is $100/month incremental;
   Capabilities 1 and 2 are $0/month, so the combined total stays $0/month.

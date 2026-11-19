@@ -229,7 +229,7 @@ function structureSuggestion(state,catalogue){
 const AMENDMENT_KINDS=['replacement','supplemental'];
 const AMENDMENT_CHANGE_TYPES=['added','changed','deadline-changed','instruction-changed','potentially-removed','uncertain-match'];
 const AMENDMENT_CHANGE_STATUSES=['proposed','confirmed','corrected','rejected'];
-const AMENDMENT_MAX_PER_PROJECT=50,AMENDMENT_MAX_REQUIREMENTS=500;
+const AMENDMENT_MAX_PER_PROJECT=50,AMENDMENT_MAX_REQUIREMENTS=1000;
 const AMENDMENT_MATCH_THRESHOLD=0.5,AMENDMENT_UNCERTAIN_THRESHOLD=0.25;
 const AMENDMENT_SCOPE_NOTE='Amendment comparison is deterministic text matching on the supplied documents. Every proposed change is a suggestion until a person confirms or corrects it; nothing is silently overwritten, and no requirement, response, deadline or evidence link is deleted by proposing an amendment. Absence from a supplemental amendment does not mean a requirement was removed.';
 function amendmentsState(s){const list=(s&&Array.isArray(s.amendments))?s.amendments:[];return list;}
@@ -302,7 +302,7 @@ function amendmentDeadlineFromTimetable(segments){
 // Same mapping as imported(): the stable ID of a freshly extracted requirement
 // is its content-anchored ID; prior identity is preserved by matching, below.
 function normalizeAnalysisRequirements(w){
- if(!w||!Array.isArray(w.requirements)||!w.requirements.length||w.requirements.length>AMENDMENT_MAX_REQUIREMENTS)kb.fail(400,'Complete a nonempty analysis with at most 500 requirements.');
+ if(!w||!Array.isArray(w.requirements)||!w.requirements.length||w.requirements.length>AMENDMENT_MAX_REQUIREMENTS)kb.fail(400,'Complete a nonempty analysis with at most 1000 requirements.');
  return w.requirements.map(r=>({id:r.id,stableId:stableRequirementId(r),text:r.requirement,originalText:r.original_requirement||r.requirement,mandatory:r.mandatory,category:r.category,evaluationWeight:r.evaluation_weight||null,sources:Array.isArray(r.sources)?r.sources:[],fingerprint:r.fingerprint||null}));
 }
 function amendmentSourceRefs(r){return (r.sources||[]).map(src=>({document:src.document||src.document_name||'Source unavailable',section:src.section||null,page:src.page??null,quote:src.quote||''}));}
@@ -387,7 +387,7 @@ function proposeAmendment(s,input,actor){
  if(!AMENDMENT_KINDS.includes(input.kind))kb.fail(400,'Choose replacement or supplemental.');
  const versionNumber=input.versionNumber??(list.reduce((m,a)=>Math.max(m,a.versionNumber||0),0)+1);
  if(!Number.isSafeInteger(versionNumber)||versionNumber<1||list.some(a=>a.versionNumber===versionNumber))kb.fail(400,'Choose an unused positive version number.');
- if(!Array.isArray(input.newRequirements)||!input.newRequirements.length||input.newRequirements.length>AMENDMENT_MAX_REQUIREMENTS)kb.fail(400,'Complete a nonempty analysis with at most 500 requirements.');
+ if(!Array.isArray(input.newRequirements)||!input.newRequirements.length||input.newRequirements.length>AMENDMENT_MAX_REQUIREMENTS)kb.fail(400,'Complete a nonempty analysis with at most 1000 requirements.');
  if(!Array.isArray(input.documentsCompared)||!input.documentsCompared.length)kb.fail(400,'State which documents were compared.');
  const {changes,notMentioned}=compareRequirements(s.requirements,input.newRequirements,input.kind);
  // A deadline-only amendment (for example one that only moves the response
@@ -410,7 +410,7 @@ function proposeAmendment(s,input,actor){
    changes.push({id:randomUUID(),type:'deadline-changed',status:'proposed',stableId:null,oldRequirementId:null,newRequirementId:null,oldText:'Submission deadline: '+oldText.value,newText:'Submission deadline: '+newText.value,oldSources:oldText.source?[oldText.source]:[],newSources:newText.source?[newText.source]:[],oldMandatory:null,newMandatory:null,oldCategory:null,newCategory:null,similarity:null,matchMethod:'deadline-text',deadlineChanged:true});
   }
  }
- if(changes.length>AMENDMENT_MAX_REQUIREMENTS)kb.fail(400,'This amendment proposes more than 500 changes; narrow the supplied documents.');
+ if(changes.length>AMENDMENT_MAX_REQUIREMENTS)kb.fail(400,'This amendment proposes more than 1000 changes; narrow the supplied documents.');
  const amendment={id:randomUUID(),versionNumber,kind:input.kind,analysisId:input.analysisId||null,sourceDocumentId:input.sourceDocumentId||null,fileIds:Array.isArray(input.fileIds)?input.fileIds:[],documentsCompared:input.documentsCompared,documentsUnprocessed:Array.isArray(input.documentsUnprocessed)?input.documentsUnprocessed:[],status:'open',createdAt:new Date().toISOString(),createdBy:actor||null,changes,notMentioned};
  s.amendments=[...list,amendment];
  // Deterministic detections flag affected approvals now; uncertain matches do
@@ -472,7 +472,7 @@ function candidateFlags(e,all,today=new Date().toISOString().slice(0,10)){
 }
 function imported(s,workspace,amendment=false){
  s=clone(s);if(s.requirements.length&&!amendment)kb.fail(409,'Use Import amendment to replace the reviewed RFP snapshot.');
- if(!['Completed','Partial'].includes(workspace.analysis.status)||!workspace.requirements.length||workspace.requirements.length>500)kb.fail(400,'Complete a nonempty analysis with at most 500 requirements.');
+ if(!['Completed','Partial'].includes(workspace.analysis.status)||!workspace.requirements.length||workspace.requirements.length>AMENDMENT_MAX_REQUIREMENTS)kb.fail(400,'Complete a nonempty analysis with at most 1000 requirements.');
  const previousAnalysisId=s.analysis?.id||null;const previousRequirements=clone(s.requirements),previousSections=clone(s.sections),old=new Map(s.requirements.map(r=>[r.id,r]));const normalized=t=>t.replace(/\s+/g,' ').trim().toLowerCase();const prior=r=>old.get(r.id)||((previousRequirements.filter(x=>normalized(x.text)===normalized(r.requirement)).length===1)&&previousRequirements.find(x=>normalized(x.text)===normalized(r.requirement)))||null;
  s.requirements=workspace.requirements.map(r=>({id:prior(r)?.id||r.id,stableId:prior(r)?.stableId||stableRequirementId(r),analysisRequirementId:r.id,fingerprint:r.fingerprint,originalText:r.original_requirement||r.requirement,revision:prior(r)&&amendment?(prior(r).revision??0)+1:(r.revision??0),text:r.requirement,mandatory:r.mandatory,category:r.category,evaluationWeight:r.evaluation_weight||null,sources:r.sources,status:'Needs Review',reviewReason:'',support:'needs review',trace:prior(r)&&amendment?ensureTrace(prior(r)):defaultTrace(),authorId:prior(r)?.authorId||null,reviewerId:prior(r)?.reviewerId||null,dueAt:prior(r)?.dueAt||null}));
  if(amendment)for(const r of s.requirements){const prev=previousRequirements.find(x=>x.id===r.id);if(prev&&prev.text!==r.text){const t=ensureTrace(r);t.needsReconfirmation=true;if(t.responseApproval.status==='approved')t.responseApproval.status='needs-reconfirmation';traceHistoryPush(t,{action:'requirement-amended',actor:null,reason:'Requirement wording changed in an amendment; prior review needs reconfirmation.',requirementRevision:r.revision});}}
