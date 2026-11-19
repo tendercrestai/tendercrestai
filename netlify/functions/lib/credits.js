@@ -64,7 +64,7 @@ async function history(company, root, headers) {
   for (let i = 0; i < ids.length; i += 40) {
     const batch = ids.slice(i, i + 40);
     const query = new URLSearchParams({ filterByFormula: 'OR(' + batch.map(id => "RECORD_ID()='" + id + "'").join(',') + ')' });
-    for (const field of ['Created Date', 'Pipeline Status', 'Credit Reservation ID']) query.append('fields[]', field);
+    for (const field of ['Created Date', 'Pipeline Status', 'Credit Reservation ID', 'Proposal Name']) query.append('fields[]', field);
     let offset;
     do {
       if (offset) query.set('offset', offset);
@@ -89,6 +89,81 @@ async function history(company, root, headers) {
   }
   found.missingIds = missingIds;
   return found;
+}
+
+// Usage history ledger: one entry per proposal credit, newest first.
+// Sources, in priority order per credit:
+//  - proposal_credit_reservations (Postgres, the authoritative credit record
+//    since Oct 13, 2026): status reserved/queued/uncertain/released.
+//  - the linked Airtable Proposals Pipeline row: its Proposal Name labels
+//    the job; its Pipeline Status labels legacy rows without a marker.
+// A credit is listed once: a reservation and its Airtable row (matched by
+// record_id, or by the reservation marker) merge into one entry. Legacy
+// Airtable rows without a marker are listed from Airtable alone. No counts
+// are invented: entries come only from rows that exist, and a deleted linked
+// record is reported as missingLinkedRecords instead of breaking the page.
+const LEDGER_PAGE_SIZE = 20;
+const LEDGER_MAX_ROWS = 1000;
+const LEDGER_EFFECTS = {
+  reserved: { effect: 'held', status: 'Credit held — in progress' },
+  queued: { effect: 'used', status: 'Credit used' },
+  uncertain: { effect: 'held', status: 'Credit held — outcome being verified' },
+  released: { effect: 'released', status: 'Credit released' }
+};
+function ledgerTime(value) { const at = Date.parse(value || ''); return Number.isFinite(at) ? at : 0; }
+function mergeLedgerEntries({ reservations = [], submissions = [], uploads = [], pipelineRows = [], period = null }) {
+  const subsById = new Map(submissions.map(s => [s.id, s]));
+  const uploadsById = new Map(uploads.map(u => [u.id, u]));
+  const pipeById = new Map(pipelineRows.map(r => [r.id, r]));
+  const pipeByMarker = new Map();
+  for (const row of pipelineRows) { const marker = row.fields?.['Credit Reservation ID']; if (typeof marker === 'string' && marker) pipeByMarker.set(marker, row); }
+  const inPeriod = date => period ? ledgerTime(date) >= Date.parse(period.start) && ledgerTime(date) < Date.parse(period.end) : null;
+  const entries = [];
+  const seenPipe = new Set();
+  for (const res of reservations) {
+    const sub = subsById.get(res.submission_id);
+    const pipe = (res.record_id && pipeById.get(res.record_id)) || pipeByMarker.get(res.submission_id);
+    if (pipe) seenPipe.add(pipe.id);
+    const upload = sub?.document_id ? uploadsById.get(sub.document_id) : null;
+    const name = pipe?.fields?.['Proposal Name'] || upload?.file_name || null;
+    const mapping = LEDGER_EFFECTS[res.status] || { effect: 'held', status: 'Credit held' };
+    entries.push({ date: res.reserved_at || null, label: name || 'Proposal submission', reference: typeof res.submission_id === 'string' ? res.submission_id.slice(0, 8) : '', effect: mapping.effect, status: mapping.status, inCurrentPeriod: inPeriod(res.reserved_at), submissionId: res.submission_id || null });
+  }
+  for (const row of pipelineRows) {
+    if (seenPipe.has(row.id)) continue;
+    const fields = row.fields || {};
+    const failed = FAILED.has(fields['Pipeline Status']);
+    const date = fields['Created Date'] || row.createdTime || null;
+    entries.push({ date, label: fields['Proposal Name'] || 'Proposal submission', reference: typeof row.id === 'string' ? row.id.slice(0, 8) : '', effect: failed ? 'failed' : 'used', status: failed ? 'Failed — no credit used' : 'Credit used', inCurrentPeriod: inPeriod(date), submissionId: typeof fields['Credit Reservation ID'] === 'string' ? fields['Credit Reservation ID'] : null });
+  }
+  entries.sort((a, b) => ledgerTime(b.date) - ledgerTime(a.date) || String(a.reference).localeCompare(String(b.reference)));
+  return entries;
+}
+async function ledger(config, company, user, root, headers, page = 0, now = Date.now()) {
+  if (!/^rec[A-Za-z0-9]+$/.test(company.id || '')) throw new RequestError(503, 'Your billing account needs review.');
+  if (!Number.isSafeInteger(page) || page < 0 || page > 1000) throw new RequestError(400, 'Invalid ledger page.');
+  // History stays readable when the plan is inactive or expired: the period
+  // only marks which entries fall in the current billing period, and an
+  // unusable period means no entry is marked rather than an error page.
+  let period = null;
+  try { const ent = entitlement(company, now); period = { start: ent.start, end: ent.end }; } catch { period = null; }
+  const serviceHeaders = { apikey: config.serviceKey, Authorization: 'Bearer ' + config.serviceKey };
+  const read = async path => {
+    const r = await fetch(config.url + '/rest/v1/' + path, { headers: serviceHeaders, signal: AbortSignal.timeout(10000) });
+    if (!r.ok) throw new RequestError(503, 'Usage history is temporarily unavailable.');
+    const rows = await r.json();
+    if (!Array.isArray(rows)) throw new RequestError(503, 'Usage history needs review.');
+    return rows;
+  };
+  const reservations = await read('proposal_credit_reservations?company_id=eq.' + company.id + '&select=submission_id,user_id,company_id,status,record_id,reserved_at&order=reserved_at.desc&limit=' + LEDGER_MAX_ROWS);
+  const submissionIds = [...new Set(reservations.map(r => r.submission_id).filter(id => typeof id === 'string' && id))];
+  const submissions = submissionIds.length ? await read('rfp_submissions?id=in.(' + submissionIds.join(',') + ')&user_id=eq.' + user.id + '&select=id,document_id,status,created_at') : [];
+  const documentIds = [...new Set(submissions.map(s => s.document_id).filter(id => typeof id === 'string' && id))];
+  const uploads = documentIds.length ? await read('rfp_uploads?id=in.(' + documentIds.join(',') + ')&user_id=eq.' + user.id + '&select=id,file_name') : [];
+  const pipelineRows = await history(company, root, headers);
+  const entries = mergeLedgerEntries({ reservations, submissions, uploads, pipelineRows, period });
+  const start = page * LEDGER_PAGE_SIZE;
+  return { entries: entries.slice(start, start + LEDGER_PAGE_SIZE), page, hasMore: start + LEDGER_PAGE_SIZE < entries.length, total: entries.length, ...(pipelineRows.missingIds?.length ? { missingLinkedRecords: pipelineRows.missingIds.length } : {}) };
 }
 
 async function reserve(config, user, submissionId, company, root, headers) {
@@ -225,4 +300,4 @@ async function summary(config,company,root,headers,now=Date.now()) {
   summaryCache.set(cacheKey,{at:now,value});
   return value;
 }
-module.exports = { entitlement, monthlyPeriod, reserve, finish, rpc, summary, reconcileUncertain, clearUsageCache };
+module.exports = { entitlement, monthlyPeriod, reserve, finish, rpc, summary, reconcileUncertain, clearUsageCache, ledger, mergeLedgerEntries, LEDGER_PAGE_SIZE };

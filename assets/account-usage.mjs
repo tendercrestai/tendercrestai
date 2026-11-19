@@ -21,6 +21,29 @@ export function createAccountUsage(container,getSession){
     if(!usage.remaining)container.append(node('p','Your proposal allowance has been reached.'));
     container.append(node('p','This balance covers the emailed AI-draft service. Workspace editing and exports do not use these credits.'));
     container.append(node('p','Checked '+new Intl.DateTimeFormat(undefined,{timeStyle:'short'}).format(new Date(usage.asOf))+'. Pending proposals count toward usage; failed proposals are excluded.'));
+    container.append(node('h3','Usage history'),node('p','Review proposal credits by job or project.'));
+    const ledgerStatus=node('p','Loading your usage history…');ledgerStatus.setAttribute('role','status');const ledgerList=node('div');container.append(ledgerStatus,ledgerList);
+    let ledgerPage=0,ledgerLoading=false;const ledgerButton=node('button','View the complete ledger');ledgerButton.type='button';ledgerButton.className='secondary';
+    const ledgerDate=value=>{const at=Date.parse(value||'');return Number.isFinite(at)?new Date(at).toLocaleString():null;};
+    const ledgerRef=id=>{const v=String(id||'');return v.length>8?v.slice(0,8)+'…':v;};
+    async function loadLedger(page){
+     if(ledgerLoading)return;ledgerLoading=true;ledgerButton.disabled=true;
+     try{
+      const {data:sessionData,error:sessionError}=await getSession();if(sessionError||!sessionData.session||sessionData.session.user.id!==user.id)throw Error('Please sign in again to view your usage history.');
+      const r=await fetch('/.netlify/functions/account-ledger?page='+page,{headers:{Authorization:'Bearer '+sessionData.session.access_token},cache:'no-store',signal:AbortSignal.timeout(20000)});
+      const d=await r.json();if(!r.ok)throw Error(d.error||'Usage history is temporarily unavailable.');if(run!==epoch)return;
+      if(page===0){ledgerList.replaceChildren();if(d.missingLinkedRecords)ledgerList.append(node('p',d.missingLinkedRecords+' linked proposal record(s) could not be found. The entries below count the records that exist.'));}
+      if(!d.entries.length&&page===0)ledgerStatus.textContent='No proposal credits have been used yet.';
+      else ledgerStatus.textContent=d.total+' proposal credit '+(d.total===1?'entry':'entries')+' in your usage history.';
+      for(const e of d.entries){const row=node('article');row.append(node('p',[ledgerDate(e.date),e.label,e.status,e.inCurrentPeriod===false?'(earlier billing period)':null,e.reference?'reference '+ledgerRef(e.reference):null].filter(Boolean).join(' · ')));ledgerList.append(row);}
+      ledgerPage=page;
+      if(d.hasMore){ledgerButton.disabled=false;if(!ledgerButton.parentNode)container.append(ledgerButton);}
+      else ledgerButton.remove();
+     }catch(e){if(run!==epoch)return;ledgerStatus.textContent=e.message||'Usage history is temporarily unavailable.';ledgerButton.disabled=false;}
+     finally{ledgerLoading=false;}
+    }
+    ledgerButton.onclick=()=>{void loadLedger(ledgerPage+1);};
+    void loadLedger(0);
    }
   }catch(e){if(run!==epoch)return;container.replaceChildren(node('h3','Proposal allowance'),node('p',e.message||'Your allowance is temporarily unavailable.'));}
   if(run===epoch)container.append(refresh);
