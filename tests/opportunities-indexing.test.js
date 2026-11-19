@@ -19,6 +19,8 @@ function visibleFaq(html) {
 for (const [page, expected] of [
   ['opportunities.html', ['Is searching federal opportunities free?', 'How current are the results?', 'What is a NAICS code?', 'What does a set-aside mean?', 'Can I shred a solicitation I find here?']],
   ['nyc-opportunities.html', ['Is searching NYC notices free?', 'What is City Record Online?', 'Does a listed deadline mean the bid is still open?', 'How fresh is this feed?', 'Can I shred a NYC notice?']],
+  ['grants-opportunities.html', ['Is searching federal grants free?', 'Are these grants or contracts?', "Why don't results show award amounts?", 'How fresh is this feed?', 'Can I shred a grant?']],
+  ['bonfire-opportunities.html', ['Is searching Utah notices free?', 'What is Bonfire?', 'Does a listed close date mean the bid is still open?', 'Why do some notices say the close date is not stated?', 'Can I shred a Utah notice?']],
 ]) {
   test(page + ' carries indexable guide copy and a visible FAQ matching its FAQPage JSON-LD', () => {
     const html = read(page);
@@ -40,8 +42,24 @@ test('NYC opportunities page states its source, freshness and limits', () => {
   const html = read('nyc-opportunities.html');
   for (const text of ['City Record Online', 'NYC Open Data', 'refreshes about once an hour', 'up to 24 hours with a warning', 'Attachments are not imported']) assert.ok(html.includes(text), text);
 });
+test('grants opportunities page labels the lane as grants, not contracts, and states its limits', () => {
+  const html = read('grants-opportunities.html');
+  for (const text of ['Grants.gov', 'grants, not contracts', 'cached for up to one hour', 'Attachments are not imported', 'not award amounts or eligibility']) assert.ok(html.includes(text), text);
+});
+test('Utah opportunities page states its source, close-date reading and value limit', () => {
+  const html = read('bonfire-opportunities.html');
+  for (const text of ['Bonfire', 'close date not stated', 'cached for up to one hour', 'Attachments are not imported', 'No estimated value is published by this feed']) assert.ok(html.includes(text), text);
+});
+test('shredder offers all four opportunity providers and maps each to its detail endpoint', () => {
+  const shredder = read('shredder.html');
+  for (const value of ['value="sam"', 'value="nyc"', 'value="grants"', 'value="bonfire"']) assert.ok(shredder.includes(value), value);
+  const client = read('assets/free-tools.mjs');
+  for (const path of ["sam:'opportunities'", "nyc:'nyc-opportunities'", "grants:'grants-opportunities'", "bonfire:'bonfire-opportunities'"]) assert.ok(client.includes(path), path);
+});
 test('sitemap lists both opportunity feeds', () => {
   const sitemap = read('sitemap.xml');
   assert.ok(sitemap.includes('<loc>https://www.tendercrestai.com/opportunities</loc>'), 'federal feed in sitemap');
   assert.ok(sitemap.includes('<loc>https://www.tendercrestai.com/opportunities/nyc</loc>'), 'NYC feed in sitemap');
+  assert.ok(sitemap.includes('<loc>https://www.tendercrestai.com/opportunities/grants</loc><lastmod>2026-11-19</lastmod>'), 'grants feed in sitemap');
+  assert.ok(sitemap.includes('<loc>https://www.tendercrestai.com/opportunities/utah</loc><lastmod>2026-11-19</lastmod>'), 'Utah feed in sitemap');
 });
