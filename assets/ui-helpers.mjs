@@ -200,6 +200,27 @@ export function readableBlocker(blocker, requirements, sections) {
   if (section) return text.replace(id, sectionLabel(section));
   return text;
 }
+// Checklist search text (PR #99 follow-up): the search must match what the
+// checklist shows, plus the status words a user would search for. A blocker
+// for a requirement with no evidence is found by "Missing evidence" even
+// though those words are not in the blocker sentence itself; the same
+// applies to the other coverage states, the mandatory value, the compliance
+// status and the category. Unknown IDs search on the raw text only.
+const COVERAGE_LABELS = {"missing-evidence": "Missing evidence", "not-assessed": "Not assessed", supported: "Supported", "partially-supported": "Partially supported"};
+export function blockerSearchText(blocker, requirements, sections) {
+  const label = readableBlocker(blocker, requirements, sections);
+  const match = String(blocker || "").match(UUID_PATTERN);
+  if (!match) return label;
+  const id = match[0];
+  const requirement = (requirements || []).find((r) => r.id === id);
+  if (requirement) {
+    const coverage = (requirement.trace || {}).coverage;
+    return [label, requirement.mandatory, requirement.status, requirement.category, COVERAGE_LABELS[coverage] || ""].filter(Boolean).join(" ");
+  }
+  const section = (sections || []).find((x) => x.id === id);
+  if (section) return [label, section.status].filter(Boolean).join(" ");
+  return label;
+}
 export function findingEntityLabel(finding, requirements, sections) {
   if (finding?.requirementId) {
     const r = (requirements || []).find((x) => x.id === finding.requirementId);
