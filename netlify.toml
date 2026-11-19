@@ -205,6 +205,14 @@
   from = "/opportunities/nyc"
   to = "/nyc-opportunities.html"
   status = 200
+[[redirects]]
+  from = "/opportunities/grants"
+  to = "/grants-opportunities.html"
+  status = 200
+[[redirects]]
+  from = "/opportunities/utah"
+  to = "/bonfire-opportunities.html"
+  status = 200
   force = true
 
 [functions."nyc-opportunities"]

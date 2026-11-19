@@ -1,0 +1,15 @@
+import {api,node}from './free-tools.mjs';
+const $=id=>document.getElementById(id);
+let page=0,data=null,run=0;
+function sourceDate(value){const d=new Date(value||'');return Number.isNaN(d.getTime())?String(value||'Not supplied'):d.toLocaleString();}
+function closeLine(item){return item.deadline?('Close date: '+sourceDate(item.deadline)+' · Verify the exact closing time on the source.'):'Close date not stated.';}
+function render(){
+ const box=$('grants-notices');box.replaceChildren();const rows=[...(data?.items||[])];
+ rows.sort((a,b)=>$('grants-sort').value==='deadline'?(a.deadline||'9999').localeCompare(b.deadline||'9999'):b.posted.localeCompare(a.posted));
+ if(!rows.length)box.append(node('p','No federal grant opportunities match this page and keyword. Try another keyword or page.'));
+ for(const item of rows){const card=node('article');card.className='notice-card';card.append(node('p','Federal Grants · Grants.gov'),node('h2',item.title),node('p',item.agency),node('p','Opportunity number: '+item.number),node('p','Status: '+(item.status==='forecasted'?'Forecasted — announced, not yet open':'Posted — open now')),node('p','Posted: '+sourceDate(item.posted)),node('p',closeLine(item)));const original=node('a','View original grant on Grants.gov');original.href=item.url;original.target='_blank';original.rel='noopener noreferrer';const shred=node('a','Shred this');shred.className='button secondary';shred.href='/tools/shredder?provider=grants&notice='+encodeURIComponent(item.id);const actions=node('div');actions.className='actions';actions.append(original,shred);card.append(actions);box.append(card);}
+ $('grants-previous').disabled=page===0;$('grants-next').disabled=page>=9||data?.total===null||(page+1)*25>=(data?.total||0);
+ $('grants-source-status').textContent=(data?.notice||'')+' Checked: '+(data?.checkedAt?new Date(data.checkedAt).toLocaleString():'not available')+(data?.cached?' · Cached response.':'')+(data?.total!==null&&data?.total!==undefined?' Total matching grants: '+data.total+'.':'')+' These are grants, not contracts.';
+}
+async function search(){const current=++run;$('grants-status').textContent='Loading federal grant opportunities…';try{const d=await api({action:'search',keyword:$('grants-keyword').value.trim(),page},'grants-opportunities');if(current!==run)return;data=d;$('grants-status').textContent=d.items.length+' federal grant opportunities on page '+(page+1);render();}catch(error){if(current!==run)return;data=null;$('grants-notices').replaceChildren();$('grants-status').textContent=error.message;$('grants-source-status').textContent='No live grants data is shown. Use the official source, search federal contract opportunities, or paste a funding opportunity into the free shredder.';$('grants-previous').disabled=true;$('grants-next').disabled=true;}}
+$('grants-form').onsubmit=e=>{e.preventDefault();page=0;void search();};$('grants-sort').onchange=render;$('grants-previous').onclick=()=>{page--;void search();};$('grants-next').onclick=()=>{page++;void search();};void search();
