@@ -1,6 +1,6 @@
 export function proposalText(analysis) {
   const text = analysis.documents.map(d => d.segments.map(s => s.text).join("\n\n")).join("\n\n");
-  if (!text || text.length > 100000) throw new Error("Combined source text exceeds the proposal workflow limit. Select the relevant text manually.");
+  if (!text || text.length > 300000) throw new Error("Combined source text exceeds the proposal workflow limit. Select the relevant text manually.");
   return text;
 }
 export async function loadComplianceHandoff(supabase, id) {

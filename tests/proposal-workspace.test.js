@@ -38,3 +38,44 @@ test('direct amendment import is recorded as an applied amendment version',()=>{
 test('initial import records no amendment entry',()=>{const s=C.initial('Fictional library response','Cedar Archive Services');const w={analysis:{id:R,status:'Completed',documents:[],warnings:[],facts:[],fingerprint:'fictional'},requirements:[{id:'new-server-uuid',revision:0,requirement:'Current certification required',mandatory:'Yes',category:'Eligibility',sources:[] }]};const next=C.imported(s,w,false);assert.deepEqual(next.amendments,[]);});
 test('direct amendment import bumps the version number and stops at the 50-version cap',()=>{const s=evidence(fixture());const w={analysis:{id:R,status:'Completed',documents:[],warnings:[],facts:[],fingerprint:'fictional'},requirements:[{id:'new-server-uuid',revision:0,requirement:s.requirements[0].text,mandatory:'Yes',category:'Eligibility',sources:s.requirements[0].sources}]};s.amendments=[{id:'prior',versionNumber:2,kind:'replacement',status:'applied',changes:[],notMentioned:[]}];const next=C.imported(s,w,true);assert.equal(next.amendments.length,2);assert.equal(next.amendments[1].versionNumber,3);const capped=evidence(fixture());capped.amendments=Array.from({length:50},(_,i)=>({id:'a'+i,versionNumber:i+1,kind:'replacement',status:'applied',changes:[],notMentioned:[]}));const cappedNext=C.imported(capped,w,true);assert.equal(cappedNext.amendments.length,50);});
 test('amendment impact report names a directly applied import',()=>{const s=evidence(fixture());const w={analysis:{id:R,status:'Completed',documents:[{id:U,name:'Fictional RFP',segments:[{id:'seg-1'}]}],warnings:[],facts:[],fingerprint:'fictional'},requirements:[{id:'new-server-uuid',revision:0,requirement:s.requirements[0].text,mandatory:'Yes',category:'Eligibility',sources:s.requirements[0].sources}]};const next=C.imported(s,w,true);const report=E.amendmentImpactReportText({id:U,revision:1,state:next});assert.match(report,/Applied directly by import/);assert.match(report,/Fictional RFP/);});
+
+test('re-matching evidence keeps accepted mappings and replaces suggestions',()=>{
+ const s=C.initial('Fictional library response','Cedar Archive Services');
+ s.evidence=[
+  {id:'keep-1',answerId:'a1',revision:1,requirementId:'req-eligibility',text:'Accepted fact.',decision:'accepted',stale:false},
+  {id:'keep-2',answerId:'a2',revision:1,requirementId:'req-eligibility',text:'Stale accepted fact.',decision:'accepted',stale:true},
+  {id:'old-1',answerId:'a3',revision:1,requirementId:'req-eligibility',text:'Old suggestion.',decision:'suggested',stale:false},
+  {id:'other-1',answerId:'a9',revision:1,requirementId:'req-other',text:'Other requirement.',decision:'suggested',stale:false},
+ ];
+ const ranked=[{answerId:'a1',revision:1,text:'Accepted fact.',citations:[]},{answerId:'a4',revision:2,text:'Fresh suggestion.',citations:[]}];
+ const kept=C.mergeSuggestedEvidence(s,'req-eligibility',ranked);
+ assert.equal(kept,1);
+ assert.equal(s.evidence.find(e=>e.id==='keep-1').decision,'accepted');
+ assert.ok(!s.evidence.some(e=>e.id==='keep-2'),'stale accepted mapping is dropped');
+ assert.ok(!s.evidence.some(e=>e.id==='old-1'),'old suggestion is replaced');
+ assert.ok(s.evidence.some(e=>e.id==='other-1'),'other requirements are untouched');
+ const fresh=s.evidence.filter(e=>e.requirementId==='req-eligibility'&&e.decision==='suggested');
+ assert.equal(fresh.length,1);assert.equal(fresh[0].answerId,'a4');assert.equal(fresh[0].revision,2);
+ assert.equal(s.evidence.filter(e=>e.answerId==='a1'&&e.revision===1).length,1,'no duplicate of the kept answer revision');
+});
+test('re-matching with no accepted mappings drops everything and returns zero',()=>{
+ const s=C.initial('Fictional library response','Cedar Archive Services');
+ s.evidence=[{id:'old-1',answerId:'a3',revision:1,requirementId:'req-eligibility',text:'Old suggestion.',decision:'suggested',stale:false}];
+ const kept=C.mergeSuggestedEvidence(s,'req-eligibility',[{answerId:'a5',revision:1,text:'Fresh suggestion.',citations:[]}]);
+ assert.equal(kept,0);
+ assert.equal(s.evidence.length,1);assert.equal(s.evidence[0].answerId,'a5');assert.equal(s.evidence[0].decision,'suggested');
+});
+test('draftSection names the gap reason: procedural, no-evidence, mixed, or none',()=>{
+ // Procedural-only: the live REQ-88A1B2C107BA case (SF-1449 submission instruction).
+ const proc=fixture();proc.requirements[0].category='Submission';proc.requirements[0].text='submit their quotation on Standard Form 1449 (SF-1449)';
+ const dProc=C.draftSection(proc,R);assert.equal(dProc.gapReason,'procedural');assert.match(dProc.text,/NEEDS INPUT/);
+ // No-evidence-only: the default fixture has no evidence.
+ const dNone=C.draftSection(fixture(),R);assert.equal(dNone.gapReason,'no-evidence');
+ // Mixed: one procedural requirement and one with no evidence.
+ const mixed=fixture();mixed.requirements[0].category='Submission';mixed.requirements[0].text='submit their quotation on Standard Form 1449 (SF-1449)';
+ mixed.requirements.push({id:'req-plain',text:'Current certification required',mandatory:'Yes',category:'Eligibility',status:'Needs Review',support:'needs review',sources:[]});
+ mixed.sections[0].requirementIds=['req-eligibility','req-plain'];
+ const dMixed=C.draftSection(mixed,R);assert.equal(dMixed.gapReason,'mixed');
+ // Evidence-backed: no gaps at all.
+ const backed=evidence(fixture());const dBacked=C.draftSection(backed,R);assert.deepEqual(dBacked.gaps,[]);assert.equal(dBacked.gapReason,null);
+});

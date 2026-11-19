@@ -32,3 +32,18 @@ test('a refused provider call fails as provider unavailable, still without a sil
 test('an invalid model output fails as a validation error, distinct from a provider error',()=>configured(async()=>{
  await assert.rejects(()=>W.write(state(),'s','clarify',async()=>output({text:'',evidenceIds:[]})),e=>e.status===502&&e.message==='Writing output failed validation.');
 }));
+// Nov 18, 2026: regenerate with no approved, current evidence built a schema
+// the model could never satisfy (evidenceIds required but no enum), so the
+// preview failed as a confusing validation error after a provider call. It
+// now fails fast before any provider call; clarify/shorten/expand work on
+// existing text and do not need evidence.
+test('regenerate with no active evidence fails fast before any provider call',()=>configured(async()=>{
+ let calls=0;const s=state();s.evidence=[];
+ await assert.rejects(()=>W.write(s,'s','regenerate',async()=>{calls++;return output({text:'Draft',evidenceIds:[]});}),e=>e.status===400&&e.message==='No approved, current evidence for this section yet.');
+ assert.equal(calls,0);
+}));
+test('clarify with no active evidence does not hit the regenerate fail-fast',()=>configured(async()=>{
+ let calls=0;const s=state();s.evidence=[];
+ const r=await W.write(s,'s','clarify',async()=>{calls++;return output({text:'Draft response needing review',evidenceIds:[]});});
+ assert.equal(calls,1);assert.equal(r.text,'Draft response needing review');
+}));

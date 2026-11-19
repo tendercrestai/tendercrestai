@@ -111,7 +111,7 @@ revocation follow Supabase. Redirect URIs must be `https`, or loopback
 
 ## Limits
 
-- Shredder: 3 shreds per IP per UTC day, same as the web shredder.
+- Shredder: 5 shreds per IP per UTC day, same as the web shredder.
 - SAM.gov search: 10 searches per day, same as the web feed.
 - MCP clients connect from shared provider IPs, so the per-IP budget is
   shared across that provider's users. This is inherent to unauthenticated

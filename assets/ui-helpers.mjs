@@ -84,11 +84,20 @@ export function opportunityCountLine(shown, total, page, pageSize = 25) {
 
 // --- Draft preview with no draftable evidence (sweep finding #4) ---------
 // A preview whose text is only [NEEDS INPUT:...] / [NEEDS REVIEW:...]
-// placeholders means no requirement had approved, current evidence.
+// placeholders has no usable draft text, but that alone does not say why:
+// procedural requirements (submission instructions) are never drafted from
+// evidence, so the reason comes from the job result's gapReason, not from
+// the placeholder text. draftNoTextMessage names the reason; without a
+// gapReason (old jobs) it keeps the previous no-evidence wording.
 const PLACEHOLDER = /\[NEEDS (?:INPUT|REVIEW)[^\]]*\]/g;
 export function isNeedsInputOnly(text) {
   const value = String(text ?? "").replace(PLACEHOLDER, "").trim();
   return value.length === 0;
+}
+export function draftNoTextMessage(reason) {
+  if (reason === "procedural") return "No draft text was generated because this section\u2019s requirements are submission instructions. Describe how they are satisfied directly in Proposal Studio; evidence does not draft these.";
+  if (reason === "mixed") return "No draft text was generated because some of this section\u2019s requirements are submission instructions and the rest have no approved, current evidence yet. Describe the instructions directly in Proposal Studio and approve evidence for the others, then generate a new preview.";
+  return "No draft text was generated because none of this section\u2019s requirements has approved, current evidence yet.";
 }
 
 // --- Job lists (sweep findings #4 and #19) -------------------------------

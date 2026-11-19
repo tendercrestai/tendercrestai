@@ -14,6 +14,7 @@ const DRAFT_ERRORS={
  'Writing output failed validation.':'draft_output_invalid',
  'Existing AI provider configuration is unavailable.':'draft_config_unavailable',
  'Selected section exceeds AI input capacity. Reduce sources or edit manually.':'draft_input_too_large',
+ 'No approved, current evidence for this section yet.':'draft_no_evidence',
 };
 function errorClass(error,kind){
  if(error&&typeof error.message==='string'&&KNOWN_ERRORS.has(error.message))return error.message;

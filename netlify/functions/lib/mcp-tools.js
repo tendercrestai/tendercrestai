@@ -35,12 +35,12 @@ const TOOL_DEFINITIONS = [
     name: 'shred_rfp',
     title: 'Shred an RFP',
     annotations: { readOnlyHint: true },
-    description: 'Shred an RFP or solicitation into a numbered requirement list with a gap preview. Paste text or upload a PDF or DOCX. AI extraction can miss requirements and every requirement needs human review. This starts an analysis job and returns a result token; call get_shred_result with the token to read the requirements. Free, no sign-in. Limited to 3 shreds per day, shared with the web shredder.',
+    description: 'Shred an RFP or solicitation into a numbered requirement list with a gap preview. Paste text or upload a PDF or DOCX. AI extraction can miss requirements and every requirement needs human review. This starts an analysis job and returns a result token; call get_shred_result with the token to read the requirements. Free, no sign-in. Limited to 5 shreds per day, shared with the web shredder.',
     requiresAuth: false,
     inputSchema: {
       type: 'object',
       properties: {
-        text: { type: 'string', description: 'Solicitation text, 40 to 100000 characters. Provide text or file.' },
+        text: { type: 'string', description: 'Solicitation text, 40 to 300000 characters. Provide text or file.' },
         file: FILE_SCHEMA,
         title: { type: 'string', description: 'Short title for the solicitation, up to 200 characters.' },
         source: { type: 'string', description: 'Where the solicitation came from, up to 500 characters.' },
@@ -75,7 +75,7 @@ const TOOL_DEFINITIONS = [
     inputSchema: {
       type: 'object',
       properties: {
-        text: { type: 'string', description: 'Solicitation text, 40 to 100000 characters. Provide text or file.' },
+        text: { type: 'string', description: 'Solicitation text, 40 to 300000 characters. Provide text or file.' },
         file: FILE_SCHEMA,
         title: { type: 'string', description: 'Short title for the bid, up to 200 characters.' },
         source: { type: 'string', description: 'Where the solicitation came from, up to 500 characters.' },
