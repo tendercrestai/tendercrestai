@@ -187,7 +187,18 @@ function validateOutput(output, segments, documents) {
     const context = full.slice(boundary < 0 ? 0 : boundary + 2, position + normalize(row.quote).length) + after;
     const ambiguous = row.uncertain || /\b(if|unless|except|may be required)\b/i.test(context);
     const explicitlyOptional = /\b(not required|not mandatory|optional|may submit|may provide)\b/i.test(context);
-    const mandatory = ambiguous ? "Unclear" : explicitlyOptional ? "No" : /\b(shall|must|required|mandatory)\b/i.test(row.quote)
+    // Imperative RFP sentences state obligations without a modal verb
+    // ("Submit proof of insurance of at least $1,000,000."), and due-date
+    // statements state the submission deadline ("All quotes are due
+    // December 31, 2026."). Both are mandatory when the model selected
+    // them as requirements and the context is neither conditional nor
+    // optional. The ambiguity and optional checks above still run first,
+    // so "Submit the form if requested." stays Unclear and "Bidders may
+    // submit questions." stays No.
+    const imperativeObligation = /^(?:\d+[.)]\s*)?(?:submit|provide|furnish|include|attach|deliver|demonstrate|maintain|obtain|ensure|comply with|complete|prepare|present|supply|file|upload)\b/i.test(row.quote.trim());
+    const dateToken = /\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?\b|\b\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\b/i.test(row.quote);
+    const dueDateStatement = /\bdue\b/i.test(row.quote) && dateToken;
+    const mandatory = ambiguous ? "Unclear" : explicitlyOptional ? "No" : /\b(shall|must|required|mandatory)\b/i.test(row.quote) || imperativeObligation || dueDateStatement
       ? "Yes" : row.mandatory === "Yes" ? "Unclear" : row.mandatory;
     return { requirement: row.quote, fingerprint: fingerprint(row.quote),
       category: row.category, mandatory, evaluation_weight: row.weight,

@@ -18,11 +18,12 @@ const DRAFT_ERRORS={
 function errorClass(error,kind){
  if(error&&typeof error.message==='string'&&KNOWN_ERRORS.has(error.message))return error.message;
  if(error&&typeof error.message==='string'&&Object.hasOwn(DRAFT_ERRORS,error.message))return DRAFT_ERRORS[error.message];
- // The admit RPC's budget exception reaches the worker as a 429: database()
- // rewrites the Postgres P0001 into 'Knowledge usage or retry limit reached.'
- // The admit call is the only step inside a draft job that can raise a 429,
- // so a 429 here means the workspace AI budget for the day is reached, not a
- // provider failure.
+ // The draft budget is charged once, when the job is enqueued: pw_enqueue
+ // admits with p_kind 'draft'. The worker used to admit a second time, so
+ // one AI preview consumed two of the 100 daily admits per organization.
+ // No step left in a draft job admits, so a 429 here is not expected; the
+ // mapping stays so any future budget check still surfaces as a budget
+ // failure instead of a provider failure.
  if(kind==='draft'&&error&&error.status===429)return 'draft_budget_reached';
  if(kind==='export')return 'export_failed';
  if(kind==='draft')return 'draft_failed';
@@ -32,7 +33,7 @@ async function run(config,id){
  const lease=randomUUID(),claimed=await S.rpc(config,'claim',{p_job:S.kb.uuid(id),p_lease:lease});if(claimed.done)return {done:true};const {job,project}=claimed;
  try{
   S.enabled(job.kind==='draft'?'builder':'builder');const current=await S.project(config,{id:job.requested_by},project.id);if(current.revision!==job.revision||current.evidence_epoch!==job.evidence_epoch)throw Error('revision_changed');let result;
-  if(job.kind==='draft'){if(job.input.mode){S.enabled('intelligence');await S.rpc(config,'admit',{p_org:current.org_id,p_user:job.requested_by,p_action:'draft'});result=await require('./lib/proposal-writing').write(current.state,job.input.sectionId,job.input.mode,job.input.language);}else result=S.core.draftSection(current.state,job.input.sectionId);}
+  if(job.kind==='draft'){if(job.input.mode){S.enabled('intelligence');result=await require('./lib/proposal-writing').write(current.state,job.input.sectionId,job.input.mode,job.input.language);}else result=S.core.draftSection(current.state,job.input.sectionId);}
   else{
    const attachments=[];for(const f of current.state.attachments){const records=await S.db(config,'pw_files?id=eq.'+S.kb.uuid(f.fileId)+'&project_id=eq.'+project.id+'&kind=eq.attachment&select=*');const record=records[0];if(!record)throw Error('attachment_unavailable');const docs=await S.db(config,'kb_documents?id=eq.'+S.kb.uuid(record.source_document_id)+'&org_id=eq.'+project.org_id+'&status=eq.Ready&select=id');if(!docs[0])throw Error('attachment_source_changed');const r=await S.storage(config,'object/authenticated/'+S.BUCKET+'/'+record.path);const bytes=Buffer.from(await r.arrayBuffer());if(require('node:crypto').createHash('sha256').update(bytes).digest('hex')!==record.sha256)throw Error('attachment_integrity');attachments.push({id:record.id,name:record.name,bytes});}
    const output=await require('./lib/proposal-export').packageFiles(current,{draft:job.input.draft,attachments});await S.project(config,{id:job.requested_by},project.id);

@@ -149,6 +149,31 @@ test("analyzeChunk captures provider usage and an estimated cost",async()=>{
   assert.equal(ai.estimateCostUSD({prompt_tokens:100,completion_tokens:50,total_tokens:150}),0.000045);
   assert.equal(ai.usageTokens({prompt_tokens:1}),null);
 });
+test("imperative obligations and due-date statements are mandatory, not unclear",()=>{
+  // Live sweep examples (Nov 18, 2026): "Submit proof of insurance of at
+  // least $1,000,000 with your proposal." and "All quotes are due
+  // December 31, 2026." both came back Mandatory: Unclear, while "The
+  // bidder must include a signed cover letter." was Yes. Imperative
+  // sentences and due-date statements are obligations even without a
+  // modal verb; conditional and optional wording still wins.
+  const check=(quote,mandatory)=>{
+    const s=[{...segments[0],text:quote}];
+    assert.equal(ai.validateOutput(output([row({quote,mandatory})]),s,docs).requirements[0].mandatory,"Yes",quote);
+  };
+  check("Submit proof of insurance of at least $1,000,000 with your proposal.","Yes");
+  check("Submit proof of insurance of at least $1,000,000 with your proposal.","No");
+  check("All quotes are due December 31, 2026.","Yes");
+  check("All quotes are due December 31, 2026.","No");
+  check("Provide three references.","No");
+  check("1. Submit proof of insurance.","Yes");
+  check("The bidder must include a signed cover letter.","Yes");
+  const s=[{...segments[0],text:"Submit the form if requested."}];
+  assert.equal(ai.validateOutput(output([row({quote:"Submit the form if requested."})]),s,docs).requirements[0].mandatory,"Unclear");
+  const s2=[{...segments[0],text:"Bidders may submit questions by email."}];
+  assert.equal(ai.validateOutput(output([row({quote:"Bidders may submit questions by email."})]),s2,docs).requirements[0].mandatory,"No");
+  const s3=[{...segments[0],text:"Payment is due 30 days after invoice."}];
+  assert.equal(ai.validateOutput(output([row({quote:"Payment is due 30 days after invoice.",mandatory:"No"})]),s3,docs).requirements[0].mandatory,"No");
+});
 test("submission deadlines must parse as real dates; form noise is dropped, not displayed",()=>{
   for(const [value,expected] of [
     ["OFFER ADDENDA ADDENDA 140FS226Q0154 See Schedule See Schedule FWS SAT 2...",false],
