@@ -112,7 +112,7 @@ $100/month ceiling for all three capabilities combined.
 
 ## Per-workspace limits and overall processing cap
 
-- Reuses existing workspace limits: at most 500 requirements and 500 sections
+- Reuses existing workspace limits: at most 1000 requirements and 1000 sections
   per project, at most 200 projects per org, state capped at 3 MB
   (enforced by `pw_commit`).
 - Trace-specific bounds: history capped at 50 entries per requirement;
