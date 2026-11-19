@@ -17,6 +17,7 @@ export function createAccountUsage(container,getSession){
     container.append(node('p',usage.remaining+' of '+usage.allowance+' proposals remaining'),node('p',usage.used+' used or in progress this '+(usage.state==='trial'?'trial':'billing period')+'.'));
     const date=new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(usage.periodEnd));
     container.append(node('p',usage.state==='trial'?'Trial ends: '+date+'. The allowance does not reset during the trial.':'Next billing reset: '+date+' (after successful renewal).'));
+    if(usage.periodStart)container.append(node('p',usage.state==='trial'?'Trial started: '+new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(usage.periodStart))+'.':'This billing period started '+new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(usage.periodStart))+'. Submissions before then were in the previous period.'));
     if(!usage.remaining)container.append(node('p','Your proposal allowance has been reached.'));
     container.append(node('p','This balance covers the emailed AI-draft service. Workspace editing and exports do not use these credits.'));
     container.append(node('p','Checked '+new Intl.DateTimeFormat(undefined,{timeStyle:'short'}).format(new Date(usage.asOf))+'. Pending proposals count toward usage; failed proposals are excluded.'));

@@ -1,7 +1,7 @@
 const {randomUUID,createHash}=require('node:crypto');
 const kb=require('./knowledge-base');
 const core=require('./proposal-core');
-const {normalize}=require('./compliance-ai');
+const {normalize,similarPairs}=require('./compliance-ai');
 const BUCKET='proposal-artifacts';
 function enabled(feature){if(process.env.PROPOSAL_WORKSPACE_ENABLED!=='true'||feature&&process.env['PROPOSAL_'+feature.toUpperCase()+'_ENABLED']!=='true')kb.fail(503,'This workspace feature is not enabled.');}
 // Non-throwing form of enabled(): for optional work (such as the
@@ -73,6 +73,6 @@ async function workspace(config,user,p){
   db(config,'pw_approvals?project_id=eq.'+p.id+'&select=id,section_id,revision,evidence_epoch,actor_id,created_at&order=created_at.desc&limit=100'),
   db(config,'pw_assessments?project_id=eq.'+p.id+'&select=id,revision,evidence_epoch,input_hash,result,created_at&order=created_at.desc&limit=20')]);
  const rendered=jobs.find(j=>j.status==='Completed'&&j.kind==='export'&&j.result?.contentHash===core.contentHash(p.state)&&j.result?.evidenceEpoch===p.evidence_epoch)?.result;
- return {enhancementSnapshot:process.env.PROPOSAL_INTELLIGENCE_ENABLED==='true'?{contentHash:core.contentHash(p.state),auditInputHash:require('./customer-intelligence').auditInputHash(p.state,p.evidence_epoch),evidenceEpoch:p.evidence_epoch}:null,project:p,role:mine.role,orgRole:mine.orgRole,members:people,directory,jobs,files,events,notifications:notices,approvals,assessments,trace:core.traceSummary(p.state,p.evidence_epoch),unresolved:core.unresolvedItems(p.state),readiness:core.readiness(p.state,p.evidence_epoch,rendered),readinessView:core.readinessView(p.state),amendments:core.amendmentView(p.state)};
+ return {enhancementSnapshot:process.env.PROPOSAL_INTELLIGENCE_ENABLED==='true'?{contentHash:core.contentHash(p.state),auditInputHash:require('./customer-intelligence').auditInputHash(p.state,p.evidence_epoch),evidenceEpoch:p.evidence_epoch}:null,project:p,role:mine.role,orgRole:mine.orgRole,members:people,directory,jobs,files,events,notifications:notices,approvals,assessments,trace:core.traceSummary(p.state,p.evidence_epoch),unresolved:core.unresolvedItems(p.state),readiness:core.readiness(p.state,p.evidence_epoch,rendered),readinessView:core.readinessView(p.state),amendments:core.amendmentView(p.state),similarPairs:similarPairs((p.state.requirements||[]).map(r=>({id:r.id,requirement:r.text})))};
 }
 module.exports={kb,core,enabled,isEnabled,rpc,db,project,members,commit,storage,putFile,signedFile,workerSettings,dispatch,notify,verifyAnalysis,workspace,recordTrace,BUCKET};

@@ -13,7 +13,9 @@ let filters={documents:{},answers:{},activity:{},team:{}},searchState=null;
 function message(text,error=false){$('message').textContent=text;$('message').className=error?'error':'';}
 function selected(){$('citation-count').textContent=citations.size+' citations selected';}
 function resetAnswer(){$('answer-form').reset();$('answer-revision').value='0';citations.clear();selected();for(const input of $('hits').querySelectorAll('input'))input.checked=false;}
-function clearSearch(){for(const id of ['hits','matches','search-documents','search-answers','search-activity','search-pages','search-status'])$(id).replaceChildren();$('approved-matches-title').hidden=true;searchState=null;}
+const browseIds={documents:['documents','document-pages'],answers:['answers','answer-pages'],activity:['events','activity-pages']};
+function setBrowseHidden(kind,hidden){for(const id of browseIds[kind])$(id).hidden=hidden;}
+function clearSearch(){for(const id of ['hits','matches','search-documents','search-answers','search-activity','search-pages','search-status'])$(id).replaceChildren();$('approved-matches-title').hidden=true;for(const kind of Object.keys(browseIds))setBrowseHidden(kind,false);$('clear-search').hidden=true;searchState=null;}
 function clearOrg(){
  clearTimeout(timer);epoch++;org=null;role=null;source=null;overview=null;searched=false;citations.clear();selected();$('org-workspace').hidden=true;
  for(const id of ['documents','answers','events','source-content','members','invitations','document-pages','answer-pages','activity-pages','team-pages'])$(id).replaceChildren();
@@ -61,7 +63,7 @@ async function organizations(selectedOrg){
  if(selection){$('organizations').value=selection;await choose();}else guide();
 }
 async function choose(){const value=$('organizations').value,selectedRole=$('organizations').selectedOptions[0]?.dataset.role;clearOrg();if(!value)return;org=value;$('org-workspace').hidden=false;updateRole(selectedRole);await refresh();}
-function citationLabel(c){return (c.file_name||'Source')+(c.page?' · physical page '+c.page:' · page unavailable')+(c.section?' · '+c.section:'');}
+function citationLabel(c){return (c.file_name||'Source')+(c.page?' · physical page '+c.page:c.section?'':' · page unavailable')+(c.section?' · '+c.section:'');}
 async function viewSource(id){const data=await api({action:'source',orgId:requireOrg(),documentId:id});source=data.document;$('source-content').replaceChildren();for(const chunk of data.chunks)$('source-content').append(node('p',citationLabel({...chunk,file_name:source.file_name})),node('blockquote',chunk.content));for(const warning of source.warnings||[])$('source-content').append(node('p','Warning: '+warning));$('source-dialog').showModal();}
 function paginate(id,data,load,label='results'){
  const container=$(id);container.replaceChildren();const previous=button('Previous',()=>load(data.page-1),true),next=button('Next',()=>load(data.page+1),true);previous.disabled=data.page===0;next.disabled=!data.hasMore;
@@ -114,20 +116,22 @@ function searchMode(){
 }
 function searchOptions(){return {scope:$('search-scope').value,query:$('query').value.trim(),documentStatus:$('search-document-status').value,fileType:$('search-file-type').value,answerStatus:$('search-answer-status').value,activityAction:$('search-activity-action').value.trim(),from:$('search-from').value,to:$('search-to').value};}
 async function runSearch(page=0){
- if(!searchState)return;const args={...searchState,page,pageSize:PAGE_SIZE,orgId:requireOrg()};const semantic=args.scope==='semantic';
+ if(!searchState)return;for(const kind of Object.keys(browseIds))setBrowseHidden(kind,false);const args={...searchState,page,pageSize:PAGE_SIZE,orgId:requireOrg()};const semantic=args.scope==='semantic';
  const result=await api(semantic?{action:'semantic',orgId:org,query:args.query,fileType:args.fileType,from:args.from,to:args.to,page,pageSize:25}:{action:'find',...args});
  for(const id of ['search-documents','search-answers','search-activity','hits','matches'])$(id).replaceChildren();$('approved-matches-title').hidden=true;
- if(semantic){renderHits(result.chunks);renderMatches(result.answers);$('search-status').textContent=`${result.total} matching ready excerpts. AI search never returns drafts as approved answers.`;}
+ if(semantic){renderHits(result.chunks);renderMatches(result.answers);if(result.chunks.length)setBrowseHidden('documents',true);if(result.answers.length)setBrowseHidden('answers',true);$('search-status').textContent=`${result.total} matching ready excerpts. AI search never returns drafts as approved answers.`;}
  else{
   const names={documents:'Document filenames',answers:'Answer text — drafts are labeled',activity:'Audit activity'};
-  for(const kind of ['documents','answers','activity'])if(result.groups[kind]){const container=$('search-'+kind),group=result.groups[kind],list=node('ul');container.append(node('h3',names[kind]+` (${group.total})`),list);({documents:renderDocuments,answers:renderAnswers,activity:renderEvents}[kind])(group.items,list);}
+  for(const kind of ['documents','answers','activity'])if(result.groups[kind]){const container=$('search-'+kind),group=result.groups[kind],list=node('ul');container.append(node('h3',names[kind]+` (${group.total})`),list);({documents:renderDocuments,answers:renderAnswers,activity:renderEvents}[kind])(group.items,list);if(group.total>0)setBrowseHidden(kind,true);}
   if(result.groups.excerpts)renderHits(result.groups.excerpts.items);
   $('search-status').textContent=Object.values(result.groups).some(g=>g.total>0)?'Matches are grouped by type. Each page shows up to 25 per group.':'No matches. Try fewer words, different filters, or AI search for meaning.';
  }
- searched=true;guide();paginate('search-pages',result,p=>runSearch(p),'excerpts');
+ $('clear-search').hidden=false;searched=true;guide();paginate('search-pages',result,p=>runSearch(p),'excerpts');
 }
 async function loadTeam(page=pages.team){
- const result=await api({action:'team',orgId:requireOrg(),query:filters.team.query||'',page,pageSize:PAGE_SIZE});pages.team=result.page;$('members').replaceChildren();$('invitations').replaceChildren();
+ $('members').replaceChildren();empty($('members'),'Loading team…');$('invitations').replaceChildren();empty($('invitations'),'Loading invitations…');
+ let result;try{result=await api({action:'team',orgId:requireOrg(),query:filters.team.query||'',page,pageSize:PAGE_SIZE});}catch(e){$('members').replaceChildren();empty($('members'),'Could not load team: '+e.message);$('invitations').replaceChildren();empty($('invitations'),'Could not load team: '+e.message);return;}
+ pages.team=result.page;$('members').replaceChildren();$('invitations').replaceChildren();
  if(!result.members.length)empty($('members'),'No matching members.');
  for(const m of result.members){const li=node('li',`${m.email} — ${m.role} — ${m.active?'Active':'Inactive'}`);
   if(m.role==='owner')li.append(node('p','Owner access is protected.'));
@@ -172,6 +176,7 @@ $('activity-filter-form').onsubmit=e=>{e.preventDefault();perform(async()=>{page
 $('search-scope').onchange=searchMode;
 $('reset-search-filters').onclick=()=>{for(const id of ['search-document-status','search-file-type','search-answer-status','search-activity-action','search-from','search-to'])$(id).value='';};
 $('search-form').onsubmit=e=>{e.preventDefault();perform(async()=>{searchState=searchOptions();await runSearch(0);});};
+$('clear-search').onclick=()=>{clearSearch();searched=false;guide();};
 $('clear-citations').onclick=()=>{citations.clear();selected();for(const input of $('hits').querySelectorAll('input'))input.checked=false;};
 $('new-answer').onclick=resetAnswer;
 $('answer-form').onsubmit=e=>{e.preventDefault();perform(async()=>{await api({action:'saveAnswer',orgId:requireOrg(),id:$('answer-id').value||null,revision:Number($('answer-revision').value),question:$('answer-question').value,answer:$('answer-text').value,chunkIds:[...citations]});resetAnswer();clearSearch();pages.answers=0;filters.answers={};$('answer-filter-form').reset();await refresh();message('Draft saved. Any previous approval was cleared.');});};

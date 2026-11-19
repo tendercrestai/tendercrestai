@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
   searchListItems, paginateList, pageRangeText, checklistCountsLine,
-  readableBlocker, blockerSearchText,
+  readableBlocker, blockerSearchText, blockerBreakdownLine,
 } from "../assets/ui-helpers.mjs";
 
 // Regression test for the PR #99 checklist gap (Nov 18, 2026): PR #99 wired
@@ -48,6 +48,7 @@ function makeView() {
       ],
       wordCount: 0,
       pageCount: null,
+      blockerCounts: {requirements: 2, attachments: 0, sections: 1, other: 1, total: 4},
     },
     project: {state: {requirements: [REQ_A, REQ_B], sections: [SEC_A]}},
   };
@@ -65,12 +66,12 @@ async function loadChecklist(view, query = "", page = 0) {
   };
   const checklist = new Function("node", "card", "field",
     "searchListItems", "paginateList", "appendPager",
-    "readableBlocker", "blockerSearchText", "checklistCountsLine",
+    "readableBlocker", "blockerSearchText", "checklistCountsLine", "blockerBreakdownLine",
     "view", "checklistQuery", "checklistPage",
     line + "; return checklist;")(
     stubs.node, stubs.card, stubs.field,
     searchListItems, paginateList, stubs.appendPager,
-    readableBlocker, blockerSearchText, checklistCountsLine,
+    readableBlocker, blockerSearchText, checklistCountsLine, blockerBreakdownLine,
     view, query, page);
   const parent = makeEl("div");
   checklist(parent);
@@ -80,6 +81,12 @@ async function loadChecklist(view, query = "", page = 0) {
 function listItems(el, out = []) {
   if (el.tag === "li") out.push(el.textContent);
   for (const c of el.children || []) listItems(c, out);
+  return out;
+}
+
+function paraTexts(el, out = []) {
+  if (el.tag === "p") out.push(el.textContent);
+  for (const c of el.children || []) paraTexts(c, out);
   return out;
 }
 
@@ -95,6 +102,9 @@ test("checklist renders readable REQ labels and section titles, never raw UUIDs"
   assert.ok(items.includes("Bid assessment is stale."),
     "blockers without a UUID render unchanged");
   assert.ok(items.every((t) => !UUID_PATTERN.test(t)), "no rendered checklist item may contain a raw UUID");
+  const paras = paraTexts(await loadChecklist(makeView()));
+  assert.ok(paras.includes("4 items: 2 requirement items, 1 section item, 1 other item."),
+    "checklist total must break down by blocker kind");
 });
 
 test("checklist search finds blockers by coverage status words", async () => {

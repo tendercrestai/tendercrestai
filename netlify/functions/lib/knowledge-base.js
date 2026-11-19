@@ -104,7 +104,17 @@ function citationChunks(document, options = {}) {
  const maxChunks = Number.isSafeInteger(options.maxChunks) && options.maxChunks > 0 ? options.maxChunks : 80;
  const chunks=[];
  for(const s of document.segments){
-  for(let start=0;start<s.text.length;){let end=Math.min(start+1500,s.text.length);if(end<s.text.length&&/[\uDC00-\uDFFF]/.test(s.text[end]))end--;
+  for(let start=0;start<s.text.length;){let end=Math.min(start+1500,s.text.length);
+   if(end<s.text.length){
+    // Do not cut an excerpt mid-word: back off to the last whitespace
+    // within 100 chars of the boundary, so a search excerpt ends on a
+    // whole word. The 200-char overlap still covers the backed-off text
+    // in the next chunk, so nothing is lost.
+    const windowStart=Math.max(start,end-100),tail=s.text.slice(windowStart,end);
+    const cutAt=Math.max(tail.lastIndexOf(' '),tail.lastIndexOf('\n'),tail.lastIndexOf('\t'));
+    if(cutAt>0)end=windowStart+cutAt;
+    if(/[\uDC00-\uDFFF]/.test(s.text[end]))end--;
+   }
    const raw=s.text.slice(start,end),content=raw.trim();if(content)chunks.push({content,page:s.page,section:s.section,segment_id:s.id,start_offset:start+raw.length-raw.trimStart().length});
    if(chunks.length>maxChunks)fail(413,'Source exceeds '+maxChunks+' citation chunks. Split the document.');if(end===s.text.length)break;start=end-200;if(/[\uDC00-\uDFFF]/.test(s.text[start]))start--;
   }

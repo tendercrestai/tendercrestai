@@ -52,7 +52,7 @@ test('derived items: kinds, source references, mandatory separate from task stat
 
 test('summary lines count outstanding work; excluded requirements are omitted',()=>{
  const s=importedState(),sum=core.readinessSummary(s);
- assert.deepEqual(sum.lines,['4 mandatory or unclear items unresolved.','2 required documents missing.','5 responses awaiting approval.','5 evidence gaps.']);
+ assert.deepEqual(sum.lines,['4 mandatory or unclear items unresolved.','2 required documents missing.','5 responses awaiting approval.','5 evidence gaps (0 confirmed missing, 5 not yet assessed).','1 non-mandatory item also unresolved.','One item can appear in several lines above: it can need evidence, a response approval, and a document at the same time.']);
  assert.equal(sum.total,5);assert.equal(sum.unresolved,5);
  const excluded=core.apply(s,'reviewRequirement',{requirementId:s.requirements[4].id,status:'Needs Review',reason:'Out of scope for this bid.',disposition:'not applicable'},'reviewer-1',reviewerOpts);
  assert.equal(core.readinessItems(excluded).length,4);
@@ -73,7 +73,7 @@ test('two members divide work, resolve items, and see an accurate shared summary
  // Simulate both members refreshing: the persisted state is reloaded from JSON.
  const refreshed=JSON.parse(JSON.stringify(s));
  const sum=core.readinessSummary(refreshed);
- assert.deepEqual(sum.lines,['2 mandatory or unclear items unresolved.','1 required document missing.','3 responses awaiting approval.','3 evidence gaps.']);
+ assert.deepEqual(sum.lines,['2 mandatory or unclear items unresolved.','1 required document missing.','3 responses awaiting approval.','3 evidence gaps (0 confirmed missing, 3 not yet assessed).','1 non-mandatory item also unresolved.','One item can appear in several lines above: it can need evidence, a response approval, and a document at the same time.']);
  assert.deepEqual(sum.byOwner,{'member-a':1,'member-b':1,unassigned:1});
  assert.equal(sum.done,2);assert.equal(sum.unresolved,3);
  const items=core.readinessItems(refreshed);

@@ -5,7 +5,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import { validateFile } from "./rfp-document.mjs";
 import { statuses, categories, metrics, sourceLabel, filterRows, alerts, stableRequirementId, validDeadline } from "./compliance-model.mjs";
 import { csv, xlsx } from "./compliance-export.mjs";
-import { createActionQueue } from "./ui-helpers.mjs";
+import { createActionQueue, truncate, shortId } from "./ui-helpers.mjs";
 const $ = id => document.getElementById(id);
 const el = (tag, text, className) => { const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n; };
 let supabase, user, state, editing, busy=false, paused=false, epoch=0;
@@ -138,7 +138,11 @@ function render(result, sources=true) {
     const div=el("div");div.append(el("dt",label),el("dd",String(value)));host.append(div);
   }
   const list=el("ul");for(const text of alerts({...state,analysis:{...state.analysis,facts:visibleFacts}}))list.append(el("li",text));
-  for(const pair of state.similar_pairs || [])list.append(el("li","Review possible duplicate/amendment conflict: "+pair.join(" / ")));
+  // Similar pairs used to render as two raw UUIDs. Label each side the way
+  // the table does (R-number plus the requirement text) so the alert is
+  // actionable without copying an ID anywhere.
+  const pairLabel=(id)=>{const i=state.requirements.findIndex(r=>r.id===id);if(i<0)return shortId(id);const r=state.requirements[i];return "R"+String(i+1).padStart(4,"0")+" · "+truncate(r.requirement,80);};
+  for(const pair of state.similar_pairs || [])list.append(el("li","Review possible duplicate/amendment conflict: "+pair.map(pairLabel).join(" / ")));
   $("alerts").replaceChildren(list);renderTable();
 }
 async function refreshHistory() {
