@@ -34,7 +34,7 @@ if($('opportunities-form')){let page=0,data=null,run=0;function render(){const b
 
 export {api,metrics,node,loadQuota};
 // Advance warning for the shared free-tool budget (the shredder and the
-// bid checker share three anonymous uses per IP per UTC day). Reading the
+// bid checker share five anonymous uses per IP per UTC day). Reading the
 // quota consumes no use; the line sits next to the submit button so the
 // daily limit is visible before the user starts, not only at the 429.
-async function loadQuota(){const el=$('quota-status');if(!el)return;try{const q=await api({action:'quota'});el.textContent=q.remaining===0?'No free uses left today. The shredder and the bid checker share three anonymous uses per IP per UTC day; the limit resets at midnight UTC.':q.remaining+' of '+q.limit+' free uses left today, shared between the shredder and the bid checker. Resets at midnight UTC.';}catch{el.textContent='';}}
+async function loadQuota(){const el=$('quota-status');if(!el)return;try{const q=await api({action:'quota'});el.textContent=q.remaining===0?'No free uses left today. The shredder and the bid checker share five anonymous uses per IP per UTC day; the limit resets at midnight UTC.':q.remaining+' of '+q.limit+' free uses left today, shared between the shredder and the bid checker. Resets at midnight UTC.';}catch{el.textContent='';}}

@@ -121,7 +121,7 @@ test('free tool call searches SAM.gov through the real handler and counts agains
   } finally { global.fetch = saved.fetch; kb.rpc = saved.rpc; }
 });
 
-test('free tool call starts a shred through the real handler and counts against the 3-per-day limit', async () => {
+test('free tool call starts a shred through the real handler and counts against the 5-per-day limit', async () => {
   const saved = { fetch: global.fetch, rpc: kb.rpc };
   const admissions = [];
   kb.rpc = async (config, name, args) => { if (name === 'ft_admit') admissions.push(args); return null; };
@@ -140,7 +140,8 @@ test('free tool call starts a shred through the real handler and counts against 
     assert.match(parsed.token, /^[0-9a-f-]+\.[a-f0-9]{64}$/);
     assert.equal(admissions.length, 1);
     assert.equal(admissions[0].p_kind, 'shred');
-    assert.equal(admissions[0].p_limit, 3);
+    assert.equal(admissions[0].p_limit, 5);
+    assert.equal(admissions[0].p_global, 25);
   } finally { global.fetch = saved.fetch; kb.rpc = saved.rpc; }
 });
 
