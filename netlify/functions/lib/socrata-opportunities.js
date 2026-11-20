@@ -45,7 +45,13 @@ function text(value) {
 }
 function dateValue(value) {
   if (typeof value !== 'string' || !value.trim()) return null;
-  const ms = Date.parse(value.trim());
+  let v = value.trim();
+  // Socrata floating timestamps carry no timezone; Date.parse would read
+  // them as server-local time, so the result would depend on the server
+  // timezone. Interpret them as UTC, matching the NYC lane, so a deadline
+  // means the same instant everywhere.
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?$/.test(v)) v += 'Z';
+  const ms = Date.parse(v);
   if (!Number.isFinite(ms)) return null;
   return new Date(ms).toISOString();
 }
