@@ -1,0 +1,50 @@
+# TenderCrest AI
+
+> TenderCrest AI helps proposal teams answer RFPs from evidence they already trust. It shreds a solicitation into a numbered requirement list, maps approved company evidence to each requirement, builds a compliance matrix, and drafts a proposal for human review. Exports to DOCX and PDF.
+
+## Product
+
+- [TenderCrest AI](https://www.tendercrestai.com/): Evidence-backed RFP and proposal software.
+- [Product](https://www.tendercrestai.com/product.html): How the workflow works, from shredding to a reviewed proposal package.
+- [Pricing](https://www.tendercrestai.com/pricing): Pro $299/month (5 proposals), Growth $699/month (20 proposals), Enterprise $1,299/month (60 proposals). Month-to-month, 14-day trial.
+- [Interactive demo](https://www.tendercrestai.com/demo.html): Try the product with no signup.
+- [Security](https://www.tendercrestai.com/security.html): How TenderCrest AI handles your documents and data.
+
+## Free tools
+
+- [Free RFP shredder](https://www.tendercrestai.com/tools/shredder): Paste or upload a solicitation and get a numbered requirement list. No signup, email, or card.
+- [Bid-fit checker](https://www.tendercrestai.com/tools/bid-check): Score whether a solicitation is worth bidding on. No signup, email, or card.
+- [Opportunity feeds](https://www.tendercrestai.com/opportunities): Free, searchable government solicitation feeds. No signup, email, or card.
+
+## Opportunity feeds
+
+- [Federal solicitations, SAM.gov](https://www.tendercrestai.com/opportunities): Live federal solicitations, searchable by keyword, NAICS, PSC, and set-aside.
+- [New York City](https://www.tendercrestai.com/opportunities/nyc): Notices from the NYC City Record.
+- [Federal grants](https://www.tendercrestai.com/opportunities/grants): Federal grant opportunities from Grants.gov.
+- [Los Angeles](https://www.tendercrestai.com/opportunities/los-angeles): City of Los Angeles solicitations from RAMP.
+- [Delaware](https://www.tendercrestai.com/opportunities/delaware): Delaware open bids.
+- [Montgomery County, MD](https://www.tendercrestai.com/opportunities/montgomery-county): Montgomery County solicitations.
+- [Washington, DC](https://www.tendercrestai.com/opportunities/dc): District of Columbia solicitations from PASS.
+- [Washington State](https://www.tendercrestai.com/opportunities/washington): Washington State solicitations from WEBS.
+
+## Comparisons
+
+- [TenderCrest AI vs Loopio](https://www.tendercrestai.com/compare/loopio): Compare on price, trial, and fit.
+- [TenderCrest AI vs Responsive](https://www.tendercrestai.com/compare/responsive): Compare on price, trial, and fit.
+- [TenderCrest AI vs Qvidian](https://www.tendercrestai.com/compare/qvidian): Compare on price, trial, and fit.
+- [TenderCrest AI vs XaitPorter](https://www.tendercrestai.com/compare/xait): Compare on price, trial, and fit.
+- [TenderCrest AI vs ChatGPT](https://www.tendercrestai.com/compare/chatgpt): Compare on price, trial, and fit.
+
+## MCP server
+
+- [MCP server](https://www.tendercrestai.com/mcp): 14 tools for searching opportunities, shredding RFPs, and checking bid fit from AI assistants. OAuth 2.1 with PKCE.
+
+## Company
+
+- [Partner tools](https://www.tendercrestai.com/partners): Proposal tools and resources TenderCrest AI recommends.
+- [Contact](https://www.tendercrestai.com/contact.html): Get in touch with TenderCrest AI.
+- [LinkedIn](https://www.linkedin.com/company/tendercrestai/): TenderCrest AI on LinkedIn.
+- [G2](https://www.g2.com/products/tendercrest-ai/reviews): TenderCrest AI on G2.
+- [Product Hunt](https://www.producthunt.com/products/tendercrest-ai): TenderCrest AI on Product Hunt.
+
+TenderCrest AI is a B2B SaaS founded in October 2026, headquartered in Seattle, Washington. It serves consultancies, agencies, government contractors, and capture teams.
