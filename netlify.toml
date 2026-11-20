@@ -210,13 +210,20 @@
   to = "/grants-opportunities.html"
   status = 200
 [[redirects]]
-  from = "/opportunities/utah"
-  to = "/bonfire-opportunities.html"
+  from = "/opportunities/los-angeles"
+  to = "/la-opportunities.html"
   status = 200
-  force = true
 [[redirects]]
-  from = "/opportunities/kcmo"
-  to = "/kcmo-opportunities.html"
+  from = "/opportunities/delaware"
+  to = "/delaware-opportunities.html"
+  status = 200
+[[redirects]]
+  from = "/opportunities/montgomery-county"
+  to = "/montgomery-opportunities.html"
+  status = 200
+[[redirects]]
+  from = "/opportunities/dc"
+  to = "/dc-opportunities.html"
   status = 200
 [[redirects]]
   from = "/opportunities/washington"

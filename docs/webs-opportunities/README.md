@@ -1,6 +1,6 @@
 # Washington WEBS opportunity feed
 
-Route `/opportunities/washington`, alongside the existing federal `/opportunities` (SAM.gov), NYC `/opportunities/nyc`, federal-grants `/opportunities/grants` and Bonfire `/opportunities/utah` + `/opportunities/kcmo` feeds. Washington search, details and pagination follow the Bonfire patterns. Existing federal API, billing/auth/trial, demo, bid checker scoring, consent and tracker implementations are unchanged.
+Route `/opportunities/washington`, alongside the existing federal `/opportunities` (SAM.gov), NYC `/opportunities/nyc`, federal-grants `/opportunities/grants`, Los Angeles `/opportunities/los-angeles`, Delaware `/opportunities/delaware`, Montgomery County `/opportunities/montgomery-county`, and DC `/opportunities/dc` feeds. Washington search, details and pagination follow the shared opportunity-lane patterns. Existing federal API, billing/auth/trial, demo, bid checker scoring, consent and tracker implementations are unchanged. (The Bonfire `/opportunities/utah` and `/opportunities/kcmo` feeds were removed in November 2026: Euna's Terms of Service prohibit extracting and rehosting Bonfire data for commercial purposes without a written licence.)
 
 ## Source verified November 19, 2026
 
