@@ -8,11 +8,11 @@ const destination = resolve(root, "dist");
 // Explicit public files only. Never publish the repository root, server source,
 // internal runbooks, SQL fixtures, credentials, or future unreviewed files.
 const pages = [
-  "nyc-opportunities.html", "grants-opportunities.html", "bonfire-opportunities.html", "kcmo-opportunities.html", "webs-opportunities.html", "bid-check.html", "shredder.html", "opportunities.html", "compare-responsive.html", "compare-loopio.html", "compare-qvidian.html", "compare-xait.html", "compare-chatgpt.html", "compare.html", "partners.html", "ocr.html", "index.html", "auth.html", "contact.html", "rfp-upload.html", "compliance.html",
+  "nyc-opportunities.html", "grants-opportunities.html", "la-opportunities.html", "delaware-opportunities.html", "montgomery-opportunities.html", "dc-opportunities.html", "webs-opportunities.html", "bid-check.html", "shredder.html", "opportunities.html", "compare-responsive.html", "compare-loopio.html", "compare-qvidian.html", "compare-xait.html", "compare-chatgpt.html", "compare.html", "partners.html", "ocr.html", "index.html", "auth.html", "contact.html", "rfp-upload.html", "compliance.html",
   "workspace.html", "knowledge.html", "security.html", "privacy.html", "terms.html", "product.html", "samples.html", "demo.html", "pricing.html", "googleb40d2fbef272897b.html", "robots.txt", "sitemap.xml"
 ];
 const assets = [
-  "nyc-opportunities.mjs", "grants-opportunities.mjs", "bonfire-opportunities.mjs", "kcmo-opportunities.mjs", "webs-opportunities.mjs", "bid-check.mjs", "teardowns.mjs", "free-tools.css", "free-tools.mjs", "product-film.css", "product-film.mjs", "openai-pixel.mjs", "google-ads.mjs", "rewardful.mjs",
+  "nyc-opportunities.mjs", "grants-opportunities.mjs", "la-opportunities.mjs", "delaware-opportunities.mjs", "montgomery-opportunities.mjs", "dc-opportunities.mjs", "webs-opportunities.mjs", "bid-check.mjs", "teardowns.mjs", "free-tools.css", "free-tools.mjs", "product-film.css", "product-film.mjs", "openai-pixel.mjs", "google-ads.mjs", "rewardful.mjs",
   "local-ocr.mjs", "customer-hub.mjs", "customer-request.mjs", "auth-journey.mjs", "account-usage.mjs", "analytics.mjs", "customer-workspace.mjs", "interactive-demo.mjs", "demo-data.mjs", "workspace.mjs", "workspace.css", "private-rfp-upload.mjs", "rfp-upload.mjs", "rfp-document.mjs", "upload-attempt.mjs", "proposal-status.mjs",
   "docx-validation.mjs", "compliance.mjs", "compliance-model.mjs",
   "compliance-export.mjs", "compliance-handoff.mjs", "compliance.css", "knowledge.mjs", "knowledge.css", "public-pages.css", "readiness-model.mjs", "amendment-model.mjs", "ui-helpers.mjs"
