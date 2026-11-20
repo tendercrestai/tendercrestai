@@ -21,6 +21,8 @@ for (const [page, expected] of [
   ['nyc-opportunities.html', ['Is searching NYC notices free?', 'What is City Record Online?', 'Does a listed deadline mean the bid is still open?', 'How fresh is this feed?', 'Can I shred a NYC notice?']],
   ['grants-opportunities.html', ['Is searching federal grants free?', 'Are these grants or contracts?', "Why don't results show award amounts?", 'How fresh is this feed?', 'Can I shred a grant?']],
   ['bonfire-opportunities.html', ['Is searching Utah notices free?', 'What is Bonfire?', 'Does a listed close date mean the bid is still open?', 'Why do some notices say the close date is not stated?', 'Can I shred a Utah notice?']],
+  ['kcmo-opportunities.html', ['Is searching Kansas City notices free?', 'What is Bonfire?', 'Does a listed close date mean the bid is still open?', 'Why do some notices say the close date is not stated?', 'Can I shred a Kansas City notice?']],
+  ['webs-opportunities.html', ['Is searching Washington notices free?', 'What is WEBS?', 'Does a listed close date mean the bid is still open?', 'Why do some notices say the close date is not stated?', 'Can I shred a Washington notice?']],
 ]) {
   test(page + ' carries indexable guide copy and a visible FAQ matching its FAQPage JSON-LD', () => {
     const html = read(page);
@@ -50,11 +52,19 @@ test('Utah opportunities page states its source, close-date reading and value li
   const html = read('bonfire-opportunities.html');
   for (const text of ['Bonfire', 'close date not stated', 'cached for up to one hour', 'Attachments are not imported', 'No estimated value is published by this feed']) assert.ok(html.includes(text), text);
 });
-test('shredder offers all four opportunity providers and maps each to its detail endpoint', () => {
+test('Kansas City opportunities page states its source, close-date reading and value limit', () => {
+  const html = read('kcmo-opportunities.html');
+  for (const text of ['Bonfire', 'close date not stated', 'cached for up to one hour', 'Attachments are not imported', 'No estimated value is published by this feed']) assert.ok(html.includes(text), text);
+});
+test('Washington opportunities page states its source, login need and value limit', () => {
+  const html = read('webs-opportunities.html');
+  for (const text of ['WEBS', 'close date not stated', 'cached for up to one hour', 'Attachments are not imported', 'No estimated value is published by this feed', 'Full solicitation documents need a free WEBS login', 'soonest-closing']) assert.ok(html.includes(text), text);
+});
+test('shredder offers all six opportunity providers and maps each to its detail endpoint', () => {
   const shredder = read('shredder.html');
-  for (const value of ['value="sam"', 'value="nyc"', 'value="grants"', 'value="bonfire"']) assert.ok(shredder.includes(value), value);
+  for (const value of ['value="sam"', 'value="nyc"', 'value="grants"', 'value="bonfire"', 'value="kcmo"', 'value="webs"']) assert.ok(shredder.includes(value), value);
   const client = read('assets/free-tools.mjs');
-  for (const path of ["sam:'opportunities'", "nyc:'nyc-opportunities'", "grants:'grants-opportunities'", "bonfire:'bonfire-opportunities'"]) assert.ok(client.includes(path), path);
+  for (const path of ["sam:'opportunities'", "nyc:'nyc-opportunities'", "grants:'grants-opportunities'", "bonfire:'bonfire-opportunities'", "kcmo:'kcmo-opportunities'", "webs:'webs-opportunities'"]) assert.ok(client.includes(path), path);
 });
 test('sitemap lists both opportunity feeds', () => {
   const sitemap = read('sitemap.xml');
@@ -62,4 +72,12 @@ test('sitemap lists both opportunity feeds', () => {
   assert.ok(sitemap.includes('<loc>https://www.tendercrestai.com/opportunities/nyc</loc>'), 'NYC feed in sitemap');
   assert.ok(sitemap.includes('<loc>https://www.tendercrestai.com/opportunities/grants</loc><lastmod>2026-11-19</lastmod>'), 'grants feed in sitemap');
   assert.ok(sitemap.includes('<loc>https://www.tendercrestai.com/opportunities/utah</loc><lastmod>2026-11-19</lastmod>'), 'Utah feed in sitemap');
+  assert.ok(sitemap.includes('<loc>https://www.tendercrestai.com/opportunities/kcmo</loc><lastmod>2026-11-19</lastmod>'), 'Kansas City feed in sitemap');
+  assert.ok(sitemap.includes('<loc>https://www.tendercrestai.com/opportunities/washington</loc><lastmod>2026-11-19</lastmod>'), 'Washington feed in sitemap');
+});
+test('every opportunity page links all six sources in its source nav', () => {
+  for (const page of ['opportunities.html', 'nyc-opportunities.html', 'grants-opportunities.html', 'bonfire-opportunities.html', 'kcmo-opportunities.html', 'webs-opportunities.html']) {
+    const html = read(page);
+    for (const href of ['/opportunities"', '/opportunities/nyc', '/opportunities/grants', '/opportunities/utah', '/opportunities/kcmo', '/opportunities/washington']) assert.ok(html.includes('href="' + href), page + ' links ' + href);
+  }
 });

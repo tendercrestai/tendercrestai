@@ -214,6 +214,14 @@
   to = "/bonfire-opportunities.html"
   status = 200
   force = true
+[[redirects]]
+  from = "/opportunities/kcmo"
+  to = "/kcmo-opportunities.html"
+  status = 200
+[[redirects]]
+  from = "/opportunities/washington"
+  to = "/webs-opportunities.html"
+  status = 200
 
 [functions."nyc-opportunities"]
   external_node_modules = ["pdfjs-dist", "sax"]

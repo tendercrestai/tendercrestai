@@ -35,15 +35,67 @@ test('normalization keeps unstated close dates, drops foreign links and undated 
  assert.equal(B.normalize({link:'https://utah.bonfirehub.com/opportunities/12345',pubDate:'not a date',description:'Name: Title only Department: Agency Description: Text.'}),null);
  assert.equal(B.normalize({link:'https://utah.bonfirehub.com/opportunities/12345',pubDate:'Mon, 16 Nov 2026 09:00:00 GMT',description:'Department: Agency Description: Text.'}),null);
 });
-function fixtureHarness(){
+function fixtureHarness(org, feed){
+ org = org || 'utah'; feed = feed || RSS;
  const kb=require('../netlify/functions/lib/knowledge-base'),F=require('../netlify/functions/lib/free-tools');
  const saved={fetch:global.fetch,rpc:kb.rpc,db:F.db};
- const state={cache:{},admissions:[],calls:[],feed:RSS,status:200};
+ const state={cache:{},admissions:[],calls:[],feed:feed,status:200};
  F.db=async(c,path)=>{const m=path.match(/key=eq\.([^&]+)/);return m&&state.cache[m[1]]?[{body:state.cache[m[1]]}]:[];};
  kb.rpc=async(c,name,p)=>{if(name==='ft_admit'){state.admissions.push(p);return null;}if(name==='ft_cache_put'){state.cache[p.p_key]=p.p_body;return null;}throw Error('Unexpected RPC '+name);};
- global.fetch=async(url,o)=>{state.calls.push(url);assert.equal(url,B.FEED);assert.equal(o.redirect,'error');if(state.status!==200)return new Response('{}',{status:state.status});return new Response(state.feed,{headers:{'Content-Type':'application/rss+xml'}});};
+ global.fetch=async(url,o)=>{state.calls.push(url);assert.equal(url,B.feedUrl(org));assert.equal(o.redirect,'error');if(state.status!==200)return new Response('{}',{status:state.status});return new Response(state.feed,{headers:{'Content-Type':'application/rss+xml'}});};
  return {state,c:{},e:{headers:{'x-nf-client-connection-ip':'192.0.2.1'}},restore(){global.fetch=saved.fetch;kb.rpc=saved.rpc;F.db=saved.db;}};
 }
+const KCMO_RSS=`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Kansas City Bonfire Opportunities</title><link>https://kcmo.bonfirehub.com/opportunities</link><description>Fictional fixture feed</description>
+<item><title>Reference #: EV4880 Tax Burden Study. Name: EV4880 Tax Burden Study</title><link>https://kcmo.bonfirehub.com/opportunities/259613</link><pubDate>Tue, 21 Oct 2026 17:00:00 -0500</pubDate><description><![CDATA[Description: The City of Kansas City invites qualified firms to conduct a tax burden study. Project closes Dec 19, 2099 11:00 PM CST.]]></description></item>
+<item><title>Reference #: EV4879. Name: EV4879 Water/Wastewater Treatment Chemicals</title><link>https://kcmo.bonfirehub.com/opportunities/262165</link><pubDate>Sun, 09 Nov 2026 16:00:00 -0600</pubDate><description><![CDATA[Description: Fictional chemicals text with no closing line.]]></description></item>
+<item><title>Reference #: EV4894. Name: EV4894 Past notice</title><link>https://kcmo.bonfirehub.com/opportunities/262604</link><pubDate>Mon, 19 Oct 2026 18:00:00 -0500</pubDate><description><![CDATA[Description: Fictional text. Project closes Nov 10, 2001 4:00 PM CST.]]></description></item>
+<item><title>Reference #: EV4900. Name: Foreign link</title><link>https://evil.invalid/opportunities/262605</link><pubDate>Mon, 16 Nov 2026 09:00:00 GMT</pubDate><description><![CDATA[Description: Fictional text. Project closes Dec 19, 2099 4:00 PM CST.]]></description></item>
+</channel></rss>`;
+test('kcmo identity is scoped to its own host and rejects the Utah host',()=>{
+ assert.equal(B.bonfireId('259613','kcmo'),'259613');
+ assert.equal(B.bonfireId('https://kcmo.bonfirehub.com/opportunities/259613','kcmo'),'259613');
+ assert.throws(()=>B.bonfireId('https://utah.bonfirehub.com/opportunities/259613','kcmo'),e=>e.status===400);
+ assert.throws(()=>B.bonfireId('https://kcmo.bonfirehub.com/opportunities/259613'),e=>e.status===400);
+ assert.equal(B.feedUrl('kcmo'),'https://kcmo.bonfirehub.com/opportunities/rss');
+ assert.equal(B.feedUrl('utah'),B.FEED);
+});
+test('kcmo normalization reads first-token references, stops names at Description, and falls back to the city agency',()=>{
+ const items=B.parseRss(KCMO_RSS,'kcmo').map(x=>B.normalize(x,'kcmo')).filter(Boolean);assert.equal(items.length,3);
+ const first=items.find(x=>x.id==='259613');assert.equal(first.provider,'bonfire');assert.equal(first.reference,'EV4880');assert.equal(first.title,'EV4880 Tax Burden Study');assert.equal(first.agency,'City of Kansas City, Missouri');assert.equal(first.deadline,'2099-12-20T05:00:00.000Z');assert.equal(first.url,'https://kcmo.bonfirehub.com/opportunities/259613');
+ const second=items.find(x=>x.id==='262165');assert.equal(second.deadline,null);assert.equal(second.reference,'EV4879');
+ assert.equal(B.normalize({link:'https://kcmo.bonfirehub.com/opportunities/259613',pubDate:'Tue, 21 Oct 2026 17:00:00 -0500',description:'Name: Title onlyDescription: Text.'},'kcmo').title,'Title only');
+ assert.equal(B.parseRss(KCMO_RSS).length,4,'default org stays Utah for parsing but drops kcmo links in normalization');
+ assert.equal(B.parseRss(KCMO_RSS).map(x=>B.normalize(x)).filter(Boolean).length,0);
+});
+test('kcmo search filters past and foreign notices, matches keyword, caches under its own keys, and admits under the bonfire kind',async()=>{
+ const h=fixtureHarness('kcmo',KCMO_RSS),s=h.state;
+ try{
+  const first=await B.search(h.c,h.e,{},'kcmo');assert.equal(first.items.length,2);assert.equal(first.total,2);assert.equal(first.cached,false);assert.match(first.notice,/Kansas City solicitation notices from Bonfire/);assert.equal(s.calls.length,1);
+  const second=await B.search(h.c,h.e,{},'kcmo');assert.equal(second.cached,true);assert.equal(s.calls.length,1);
+  assert.equal((await B.search(h.c,h.e,{keyword:'tax burden'},'kcmo')).items.length,1);
+  assert.equal((await B.search(h.c,h.e,{keyword:'EV4879'},'kcmo')).items.length,1);
+  assert.ok(s.admissions.every(p=>p.p_kind==='bonfire'&&p.p_limit===10&&p.p_global===50));
+  const F=require('../netlify/functions/lib/free-tools');
+  assert.notEqual(F.mac('bonfire:kcmo:snapshot:v1'),F.mac('bonfire:utah:snapshot:v1'),'kcmo and utah snapshots use different cache keys');
+ }finally{h.restore();}
+});
+test('kcmo detail returns the notice text, resolves by URL, caches, and 404s when the notice leaves the feed',async()=>{
+ const h=fixtureHarness('kcmo',KCMO_RSS),s=h.state;
+ try{
+  const d=await B.detail(h.c,h.e,'259613','kcmo');assert.equal(d.item.title,'EV4880 Tax Burden Study');assert.match(d.text,/tax burden study\./);assert.match(d.notice,/Attachments are not imported/);assert.equal(s.calls.length,1);
+  const again=await B.detail(h.c,h.e,'https://kcmo.bonfirehub.com/opportunities/259613','kcmo');assert.equal(again.cached,true);assert.equal(s.calls.length,1);
+  s.cache={};await assert.rejects(B.detail(h.c,h.e,'99999','kcmo'),e=>e.status===404);
+ }finally{h.restore();}
+});
+test('kcmo handler routes search and detail and rejects unknown actions',async()=>{
+ const h=fixtureHarness('kcmo',KCMO_RSS),kb=require('../netlify/functions/lib/knowledge-base'),F=require('../netlify/functions/lib/free-tools'),handler=require('../netlify/functions/kcmo-opportunities').handler;
+ const saved={enabled:F.enabled,configuration:kb.configuration};F.enabled=()=>true;kb.configuration=()=>h.c;
+ try{
+  const searchRes=await handler({httpMethod:'POST',headers:{'x-nf-client-connection-ip':'192.0.2.1'},body:JSON.stringify({action:'search',keyword:'',page:0})});assert.equal(searchRes.statusCode,200);assert.equal(JSON.parse(searchRes.body).items.length,2);
+  const detailRes=await handler({httpMethod:'POST',headers:{'x-nf-client-connection-ip':'192.0.2.1'},body:JSON.stringify({action:'detail',notice:'259613'})});assert.equal(detailRes.statusCode,200);
+  const bad=await handler({httpMethod:'POST',headers:{},body:JSON.stringify({action:'explode'})});assert.equal(bad.statusCode,400);
+ }finally{F.enabled=saved.enabled;kb.configuration=saved.configuration;h.restore();}
+});
 test('search filters past and foreign notices, matches keyword across title, agency and reference, pages, caches, and admits under its own kind',async()=>{
  const h=fixtureHarness(),s=h.state;
  try{
