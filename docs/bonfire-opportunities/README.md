@@ -20,7 +20,13 @@ Cards link to `/tools/shredder?provider=bonfire&notice=<id>`. The notice descrip
 
 ## Release checks
 
-Build and full npm suite green: 731 tests pass, 0 fail, including 8 new Bonfire tests (identity, close-date parsing incl. 12 AM/PM and unknown timezones, RSS parsing, normalization, search/paging/caching/admission, feed failure, detail, handler). Tests use mocked feed responses only and never hit the live Bonfire feed.
+Build and full npm suite green: 749 tests pass, 0 fail, including 8 new Bonfire tests (identity, close-date parsing incl. 12 AM/PM and unknown timezones, RSS parsing, normalization, search/paging/caching/admission, feed failure, detail, handler) plus 5 new Kansas City tests (org-scoped identity, title-carried reference/name normalization, search, detail, handler). Tests use mocked feed responses only and never hit the live Bonfire feed; a live smoke run against both real feeds is recorded in the PR.
+
+## Kansas City Bonfire lane (added in the KCMO + WEBS PR)
+
+Route `/opportunities/kcmo`, alongside `/opportunities/utah`. Same generalized Bonfire module (`netlify/functions/lib/bonfire-opportunities.js`), parameterized by org slug instead of duplicated: Utah keeps its own feed URL, labels, cache keys (`bonfire:utah:*`) and behavior exactly as before; Kansas City uses `https://kcmo.bonfirehub.com/opportunities/rss` with cache keys (`bonfire:kcmo:*`).
+
+Source verified November 19, 2026: public keyless RSS 2.0, 7 items. The KCMO feed shapes its items differently from Utah, which the live smoke test caught before merge: the `<title>` element carries `Reference #: <ref>. Name: <name>`, while the `<description>` holds only the body text starting with `Description: ... Project closes <Month> <day>, <year> <h>:<mm> AM/PM CST.` (Utah puts Reference, Name and Department all inside the description). Normalization therefore reads Reference and Name from the description first and falls back to the title, so both shapes work. Two KCMO-specific behaviors, both covered by tests: descriptions carry no `Department:` field, so the agency falls back to `City of Kansas City, Missouri` (the hub is a single city, not a multi-agency hub); and the name field stops at `Description:` as well as `Department:`, because some descriptions run the name straight into `Description:` with no separator. Reference numbers are read as the first token after `Reference #:` (`EV4880`, not `EV4880 Tax Burden Study`). Close dates use CST/CDT, already covered by the shared timezone map. Shredder handoff is `/tools/shredder?provider=kcmo&notice=<id>` (its own provider value, so the shredder routes to the KCMO detail endpoint; `bonfire` stays Utah-only). Admission reuses the existing `bonfire` kind (10 per IP, 50 shared per UTC day); no new migration is needed for this lane.
 
 ## Virginia eVA verdict: NOT added
 
