@@ -38,6 +38,12 @@ test("public build excludes internal source and preserves public module dependen
   assert.equal(protectedResource.resource, "https://www.tendercrestai.com/mcp");
   assert.deepEqual(protectedResource.authorization_servers, ["https://www.tendercrestai.com"]);
   assert.deepEqual(protectedResource.scopes_supported, ["mcp:read"]);
+  // llms.txt files for AI search and citation (Nov 20, 2026): plain .txt, so
+  // the no-.json rule above still holds and no Content-Type header is needed.
+  assert.ok(files.includes("llms.txt"), "llms.txt");
+  assert.ok(files.includes("llms-full.txt"), "llms-full.txt");
+  const homepage = await readFile(new URL("dist/index.html", root), "utf8");
+  assert.match(homepage, /"@type":"SoftwareApplication"/);
   assert.match(config, /for\s*=\s*"\/.well-known\/oauth-protected-resource"/);
   assert.match(config, /Content-Type\s*=\s*"application\/json"/);
   const hsts = config.match(/Strict-Transport-Security\s*=\s*"([^"]+)"/);
