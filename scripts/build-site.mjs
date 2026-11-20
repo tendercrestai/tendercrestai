@@ -88,3 +88,9 @@ await cp(resolve(root, ".well-known", "security.txt"), resolve(destination, ".we
 // extension so the public-build test's no-.json rule still holds, and
 // netlify.toml sets its Content-Type to application/json.
 await cp(resolve(root, ".well-known", "oauth-protected-resource"), resolve(destination, ".well-known", "oauth-protected-resource"));
+
+// Muse server-ownership challenge (Nov 20, 2026): the connector platform
+// requires this file at /.well-known/muse-challenge/<token>, plain text.
+// Challenge expires Nov 26, 2026; remove the file after verification passes.
+await mkdir(resolve(destination, ".well-known", "muse-challenge"), { recursive: true });
+await cp(resolve(root, ".well-known", "muse-challenge", "1fbce084affcdd5b891fcea39de3dc8ae80afcd5e13af44e8328fcd01daafb7a"), resolve(destination, ".well-known", "muse-challenge", "1fbce084affcdd5b891fcea39de3dc8ae80afcd5e13af44e8328fcd01daafb7a"));
