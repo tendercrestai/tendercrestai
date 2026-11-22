@@ -34,6 +34,7 @@ test("public build excludes internal source and preserves public module dependen
   // static file (no .json, per the no-.json rule above) with its
   // Content-Type set explicitly in netlify.toml.
   assert.ok(files.includes(".well-known/oauth-protected-resource"), ".well-known/oauth-protected-resource");
+  assert.ok(files.includes("favicon.ico"), "favicon.ico");
   const protectedResource = JSON.parse(await readFile(new URL("dist/.well-known/oauth-protected-resource", root), "utf8"));
   assert.equal(protectedResource.resource, "https://www.tendercrestai.com/mcp");
   assert.deepEqual(protectedResource.authorization_servers, ["https://www.tendercrestai.com"]);
@@ -99,6 +100,18 @@ test("website redesign: affiliates and about pages, shared chrome, pricing table
   assert.match(pricing, /\$21\.65 per proposal/);
   assert.match(pricing, /No card\? Try the/);
   assert.match(pricing, /Refer a customer and earn 20% of their first 12 payments/);
+  // Site fixes Nov 22: the comparison table states what every plan
+  // includes (KB on all plans), with the two missing rows added, and
+  // each plan section carries an anchor for the homepage deep links.
+  assert.match(pricing, /<td>Matrix extraction<\/td><td>Included<\/td><td>Included<\/td><td>Included<\/td>/);
+  assert.match(pricing, /<td>Knowledge base<\/td><td>Included<\/td><td>Full past performance knowledge base<\/td><td>Dedicated Knowledge Base Digest<\/td>/);
+  assert.match(pricing, /<td>Email delivery of generated drafts<\/td><td>Included<\/td><td>Included<\/td><td>Included<\/td>/);
+  assert.match(pricing, /<td>AI-assisted draft generation<\/td><td>Included<\/td><td>Included<\/td><td>Included<\/td>/);
+  assert.match(pricing, /<td>Company qualifications in each proposal<\/td><td>Included<\/td><td>Included<\/td><td>Included<\/td>/);
+  assert.match(pricing, /<td>Billing<\/td><td>Manage billing and cancellation through Stripe<\/td><td>Manage billing and cancellation through Stripe<\/td><td>Manage billing and cancellation through Stripe<\/td>/);
+  assert.match(pricing, /<section id="pro">/);
+  assert.match(pricing, /<section id="growth">/);
+  assert.match(pricing, /<section id="enterprise">/);
   assert.match(pricing, /buy\.stripe\.com\/dRm9AT6PcaJT44U622dby00/);
   assert.match(pricing, /buy\.stripe\.com\/eVqfZh4H44lv8laaiidby01/);
   assert.match(pricing, /buy\.stripe\.com\/14AdR92yW4lvcBq0HIdby02/);
@@ -124,6 +137,18 @@ test("website redesign: affiliates and about pages, shared chrome, pricing table
   assert.match(homepage, /\/samples\/workspace-editor\.png/);
   assert.ok(!/(?:📊|🛡️|📦|📐)/.test(homepage), "homepage feature icons must be SVG, not emoji");
   assert.match(homepage, /class="feature-icon"/);
+  // Site fixes Nov 22: homepage plan links deep-link to their plan, the
+  // limits copy states the live 1,000-requirement ceiling, and every
+  // built page carries the favicon link.
+  assert.match(homepage, /href="\/pricing#pro">See Pro plan details/);
+  assert.match(homepage, /href="\/pricing#growth">See Growth plan details/);
+  assert.match(homepage, /href="\/pricing#enterprise">See Enterprise plan details/);
+  assert.match(homepage, /up to 1,000 requirements/);
+  assert.match(homepage, /<link rel="icon" href="\/favicon\.ico">/);
+  const demo = await readFile(new URL("dist/demo.html", root), "utf8");
+  assert.match(demo, /width="1152" height="479"/);
+  assert.match(affiliates, /by agreement for referral partners who publish a partner page/);
+  assert.match(about, /We build for the teams doing the work/);
 
   // Consent consolidation: the four modules register with the single
   // coordinator and no longer build their own first-visit panels.
@@ -140,6 +165,7 @@ test("website redesign: affiliates and about pages, shared chrome, pricing table
   assert.match(config, /from = "\/affiliates"\n\s*to = "\/affiliates\.html"/);
   assert.match(config, /from = "\/about"\n\s*to = "\/about\.html"/);
   const llms = await readFile(new URL("dist/llms.txt", root), "utf8");
+  assert.match(config, /from = "\/teardowns\/federal-emergency-generator-replacement-23-requirements"\n\s*to = "\/teardowns\/federal-emergency-generator-replacement-23-requirements\.html"/);
   assert.match(llms, /Become a Partner\]\(https:\/\/www\.tendercrestai\.com\/affiliates\)/);
   assert.match(llms, /About\]\(https:\/\/www\.tendercrestai\.com\/about\)/);
 });

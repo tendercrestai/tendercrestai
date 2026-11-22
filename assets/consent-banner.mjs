@@ -7,9 +7,12 @@
 // Providers register during their own init. The banner shows when any
 // registered provider still needs a choice, and hides once every provider
 // has one. It is a fixed bottom banner, so the page hero stays visible
-// on first visit. Providers that load on only some pages (OpenAI and
-// Google load only on the homepage and demo) simply do not register
-// elsewhere, and the banner renders only the providers present.
+// on first visit. While the banner is visible, the page reserves bottom
+// space equal to the banner height, so the footer can still be scrolled
+// into view instead of sitting underneath the banner. Providers that load
+// on only some pages (OpenAI and Google load only on the homepage and
+// demo) simply do not register elsewhere, and the banner renders only
+// the providers present.
 //
 // The module guards all DOM access so it can be imported in Node for
 // tests; registration is a no-op store without a document.
@@ -18,6 +21,7 @@ const statuses = new Map();
 let banner = null;
 let renderScheduled = false;
 let currentFocusId = null;
+let resizeListenerAdded = false;
 
 function doc() {
   return typeof document !== 'undefined' ? document : null;
@@ -76,6 +80,16 @@ function stateLabel(option) {
   if (!saved) return 'Not set';
   return saved.allowed === true ? 'Allowed' : 'Declined';
 }
+// Keep the footer reachable while the banner is visible: reserve bottom
+// space equal to the banner's rendered height, and release it when the
+// banner hides. A missing offsetHeight (non-browser import) reserves
+// nothing rather than a bogus value.
+function syncBodyPadding() {
+  const d = doc();
+  if (!d || !d.body || !banner) return;
+  const height = banner.offsetHeight;
+  d.body.style.paddingBottom = (!banner.hidden && height) ? height + 'px' : '';
+}
 function ensureBanner() {
   const d = doc();
   if (!d || banner) return banner;
@@ -83,8 +97,12 @@ function ensureBanner() {
   banner.id = 'consent-banner';
   banner.setAttribute('aria-label', 'Privacy choices');
   banner.hidden = true;
-  banner.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:200;max-height:46vh;overflow:auto;background:#fff;color:#17243b;border-top:1px solid #94a3b8;box-shadow:0 -4px 16px rgb(0 0 0/.12);padding:12px 16px;font:inherit';
+  banner.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:200;max-height:52vh;overflow:auto;background:#fff;color:#17243b;border-top:1px solid #94a3b8;box-shadow:0 -4px 16px rgb(0 0 0/.12);padding:8px 16px;font:inherit';
   d.body.append(banner);
+  if (typeof window !== 'undefined' && !resizeListenerAdded) {
+    resizeListenerAdded = true;
+    window.addEventListener('resize', syncBodyPadding);
+  }
   return banner;
 }
 function refocus() {
@@ -135,7 +153,7 @@ function decideAll(allowed) {
 function rowFor(option) {
   const row = element('div');
   row.setAttribute('data-consent-id', option.id);
-  row.style.cssText = 'display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;border-top:1px solid #e2e8f0;padding:10px 0';
+  row.style.cssText = 'display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;border-top:1px solid #e2e8f0;padding:6px 0';
   const text = element('div');
   text.style.cssText = 'flex:1;min-width:220px';
   const title = element('strong', option.title + ' — ' + stateLabel(option));
@@ -193,7 +211,7 @@ function render() {
   b.append(intro);
   for (const option of options.values()) b.append(rowFor(option));
   const actions = element('div');
-  actions.style.cssText = 'display:flex;gap:12px;flex-wrap:wrap;margin-top:12px';
+  actions.style.cssText = 'display:flex;gap:12px;flex-wrap:wrap;margin-top:8px';
   for (const [label, allowed] of [['Allow all', true], ['Decline all', false]]) {
     const button = element('button', label);
     button.type = 'button';
@@ -202,11 +220,13 @@ function render() {
     actions.append(button);
   }
   b.append(actions);
+  syncBodyPadding();
 }
 function evaluate() {
   const b = ensureBanner();
   if (!b) return;
   b.hidden = ![...options.values()].some(shouldPrompt);
+  syncBodyPadding();
 }
 function schedule() {
   if (renderScheduled) return;
@@ -235,5 +255,6 @@ export function showConsentBanner(focusId) {
   currentFocusId = focusId || null;
   render();
   b.hidden = false;
+  syncBodyPadding();
   refocus();
 }

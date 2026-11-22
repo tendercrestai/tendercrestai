@@ -10,7 +10,7 @@ const destination = resolve(root, "dist");
 // internal runbooks, SQL fixtures, credentials, or future unreviewed files.
 const pages = [
   "nyc-opportunities.html", "grants-opportunities.html", "la-opportunities.html", "delaware-opportunities.html", "montgomery-opportunities.html", "dc-opportunities.html", "webs-opportunities.html", "bid-check.html", "shredder.html", "opportunities.html", "compare-responsive.html", "compare-loopio.html", "compare-qvidian.html", "compare-xait.html", "compare-chatgpt.html", "compare.html", "partners.html", "affiliates.html", "about.html", "ocr.html", "index.html", "auth.html", "contact.html", "rfp-upload.html", "compliance.html",
-  "workspace.html", "knowledge.html", "security.html", "privacy.html", "terms.html", "product.html", "samples.html", "demo.html", "pricing.html", "googleb40d2fbef272897b.html", "robots.txt", "sitemap.xml", "llms.txt", "llms-full.txt"
+  "workspace.html", "knowledge.html", "security.html", "privacy.html", "terms.html", "product.html", "samples.html", "demo.html", "pricing.html", "googleb40d2fbef272897b.html", "robots.txt", "sitemap.xml", "llms.txt", "llms-full.txt", "favicon.ico"
 ];
 const assets = [
   "nyc-opportunities.mjs", "grants-opportunities.mjs", "la-opportunities.mjs", "delaware-opportunities.mjs", "montgomery-opportunities.mjs", "dc-opportunities.mjs", "webs-opportunities.mjs", "bid-check.mjs", "teardowns.mjs", "free-tools.css", "free-tools.mjs", "product-film.css", "product-film.mjs", "openai-pixel.mjs", "google-ads.mjs", "rewardful.mjs",
@@ -29,7 +29,7 @@ function decorateHTML(html, page) {
     if (html.includes('<!-- @site-header -->')) html = html.replace('<!-- @site-header -->', () => siteHeader(page));
     if (html.includes('<!-- @site-footer -->')) html = html.replace('<!-- @site-footer -->', () => siteFooter(page));
     if (hasChrome) html = html.replace(/<\/head>/i, '<link rel="stylesheet" href="/assets/site-chrome.css"></head>');
-    html = html.replace(/<\/head>/i, `<template id="rewardful-tracking"><script>(function(w,r){w._rwq=r;w[r]=w[r]||function(){(w[r].q=w[r].q||[]).push(arguments)}})(window,'rewardful');</script>
+    html = html.replace(/<\/head>/i, `<link rel="icon" href="/favicon.ico"><template id="rewardful-tracking"><script>(function(w,r){w._rwq=r;w[r]=w[r]||function(){(w[r].q=w[r].q||[]).push(arguments)}})(window,'rewardful');</script>
 <script async src="https://r.wdfl.co/rw.js" data-rewardful="bbbf92"></script></template><script type="module" src="/assets/rewardful.mjs"></script></head>`);
     if (['index.html','demo.html'].includes(page)) html = html.replace(/<\/body>/i, '<script type="module" src="/assets/openai-pixel.mjs"></script><script type="module" src="/assets/google-ads.mjs"></script></body>');
     if (process.env.ANALYTICS_ENABLED === 'true') html = html.replace(/<html\b/i, '<html data-usage-analytics="enabled"');
