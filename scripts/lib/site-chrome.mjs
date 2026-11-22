@@ -45,6 +45,7 @@ const COLUMNS = [
     ['Washington WEBS', '/opportunities/washington'],
     ['How it works', '/product.html'],
     ['Sample deliverables', '/samples.html'],
+    ['Serverdex', 'https://serverdex.io/server/io-github-tendercrestai-tendercrest-ai'],
   ] },
   { title: 'Compare', links: [
     ['Responsive', '/compare/responsive'],
