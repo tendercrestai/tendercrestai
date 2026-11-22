@@ -233,6 +233,12 @@
   force = true
 
 [[redirects]]
+  from = "/teardowns/federal-emergency-generator-replacement-23-requirements"
+  to = "/teardowns/federal-emergency-generator-replacement-23-requirements.html"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/opportunities/nyc"
   to = "/nyc-opportunities.html"
   status = 200

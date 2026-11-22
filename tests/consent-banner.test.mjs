@@ -138,3 +138,19 @@ test("consent coordinator shows a saved status and does not prompt for decided p
   assert.ok(status, "status note renders");
   assert.equal(status.textContent, "Test status note.");
 });
+
+test("banner reserves bottom space while visible so the footer stays reachable", async () => {
+  const el = bannerElement();
+  el.offsetHeight = 420;
+  banner.showConsentBanner();
+  assert.equal(document.body.style.paddingBottom, "420px", "visible banner reserves its height as bottom padding");
+  assert.match(el.style.cssText, /max-height:52vh/);
+  assert.match(el.style.cssText, /padding:8px 16px/);
+  const row = el.children.find((c) => c.attributes["data-consent-id"] === "google");
+  assert.match(row.style.cssText, /padding:6px 0/);
+  // Hiding the banner releases the reserved space again.
+  const actions = el.children[el.children.length - 1];
+  actions.children[1].onclick(); // Decline all
+  assert.equal(el.hidden, true);
+  assert.equal(document.body.style.paddingBottom, "", "hidden banner releases the reserved space");
+});
