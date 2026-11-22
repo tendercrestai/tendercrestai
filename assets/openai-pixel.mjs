@@ -1,4 +1,7 @@
 // Separate advertising consent. Never import this module on authenticated/product pages.
+// First-visit choice is collected through the shared consent banner
+// (./consent-banner.mjs); this module only registers its option there.
+import { registerConsentOption, showConsentBanner } from './consent-banner.mjs';
 const KEY='tendercrest.openai-ad-consent.v1',TTL=30*86400000;
 const blocked=()=>navigator.globalPrivacyControl===true||navigator.doNotTrack==='1';
 const publicHashes=new Set(['','#home','#features','#pricing','#product-film','#interactive-demo']);
@@ -16,19 +19,13 @@ function load(){
 }
 function init(){
  if(!safeLocation())return;
- const panel=document.createElement('section');panel.setAttribute('aria-label','Optional OpenAI advertising tracking');panel.style.cssText='padding:16px;margin:16px 0;border:1px solid #94a3b8;border-radius:8px;background:#fff;color:#17243b';
- const text=document.createElement('p');text.textContent='Optional OpenAI advertising tracking: allow the OpenAI advertising pixel on public demo and homepage pages to measure advertising effectiveness? This third-party SDK may process browser/device information, identifiers and page visits under OpenAI’s policies. This is separate from usage analytics and never authorizes model training.';panel.append(text);
- const link=document.createElement('a');link.href='/security.html#advertising-tracking';link.textContent='Advertising tracking details';panel.append(link);
- for(const [label,yes]of [['Allow OpenAI advertising tracking',true],['Decline advertising tracking',false]]){
- const button=document.createElement('button');button.type='button';button.textContent=label;button.style.cssText='margin:8px;padding:10px;font:inherit';button.onclick=()=>{save(yes);if(loaded&&!yes){location.reload();return;}panel.hidden=true;if(yes)load();};panel.append(button);
- }
+ registerConsentOption({id:'openai',title:'OpenAI advertising tracking',summary:'Allow the OpenAI advertising pixel on public demo and homepage pages to measure advertising effectiveness? This third-party SDK may process browser/device information, identifiers and page visits under OpenAI’s policies. This is separate from usage analytics and never authorizes model training.',detailsHref:'/security.html#advertising-tracking',detailsText:'Advertising tracking details',readChoice:()=>read(),saveChoice:(allowed)=>save(allowed),onDecision:(allowed)=>{if(loaded&&!allowed){location.reload();return;}if(allowed)load();},shouldPrompt:()=>!read()&&!blocked(),canAllow:()=>!blocked()});
  // The three consent settings buttons (analytics, advertising, Rewardful)
 // used to land as separate buttons in the footer flow. Group them under
 // one labeled "Privacy choices" container instead.
 function privacyChoices(){let c=document.getElementById('privacy-choices');if(!c){c=document.createElement('div');c.id='privacy-choices';const label=document.createElement('span');label.textContent='Privacy choices: ';c.append(label);(document.querySelector('footer')||document.body).append(c);}return c;}
-const settings=document.createElement('button');settings.type='button';settings.textContent='Advertising tracking settings';settings.style.cssText='font:inherit;display:inline-block;width:auto;background:transparent;border:1px solid currentColor;border-radius:6px;padding:8px;color:inherit;cursor:pointer';settings.onclick=()=>{panel.hidden=false;panel.querySelector('button').focus();};privacyChoices().append(settings);
- (document.querySelector('main')||document.body).prepend(panel);
- const choice=read();panel.hidden=!!choice||blocked();if(choice?.allowed)load();
+const settings=document.createElement('button');settings.type='button';settings.textContent='Advertising tracking settings';settings.style.cssText='font:inherit;display:inline-block;width:auto;background:transparent;border:1px solid currentColor;border-radius:6px;padding:8px;color:inherit;cursor:pointer';settings.onclick=()=>showConsentBanner('openai');privacyChoices().append(settings);
+ if(read()?.allowed)load();
  // Leaving public marketing sections (e.g. opening sign-in) unloads the third-party runtime.
  window.addEventListener('hashchange',()=>{if(loaded&&!safeLocation())location.reload();});
  window.addEventListener('storage',e=>{if(e.key===KEY&&loaded&&read()?.allowed!==true)location.reload();});
