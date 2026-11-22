@@ -10,7 +10,7 @@ test("public build excludes internal source and preserves public module dependen
     assert.ok(!/(^|\/)(netlify|supabase|docs|tests|scripts|work|\.git)(\/|$)/.test(file), file);
     assert.ok(!/\.(sql|md|json|toml)$/.test(file), file);
   }
-  for (const page of ["index.html", "rfp-upload.html", "auth.html", "contact.html", "security.html", "privacy.html", "terms.html", "compliance.html", "partners.html"]) {
+  for (const page of ["index.html", "rfp-upload.html", "auth.html", "contact.html", "security.html", "privacy.html", "terms.html", "compliance.html", "partners.html", "affiliates.html", "about.html"]) {
     assert.ok(files.includes(page), page);
   }
   for (const asset of ["assets/docx-validation.mjs", "assets/compliance.mjs", "assets/compliance.css",
@@ -60,4 +60,86 @@ test("public build excludes internal source and preserves public module dependen
   }
   assert.ok(!/(^|[\s;])(\*|https:|data:|blob:)([\s;]|$)/.test(policy),
     "CSP must not use a bare wildcard or scheme wildcard");
+});
+
+test("website redesign: affiliates and about pages, shared chrome, pricing table, single consent banner", async () => {
+  await import("../scripts/build-site.mjs");
+  const files = await readdir(new URL("dist/", root), { recursive: true });
+  for (const page of ["affiliates.html", "about.html"]) assert.ok(files.includes(page), page);
+  assert.ok(files.includes("assets/site-chrome.css"), "assets/site-chrome.css");
+  assert.ok(files.includes("assets/consent-banner.mjs"), "assets/consent-banner.mjs");
+
+  const affiliates = await readFile(new URL("dist/affiliates.html", root), "utf8");
+  assert.match(affiliates, /Become a TenderCrest AI partner/);
+  assert.match(affiliates, /20% of each of their first 12 monthly payments/);
+  assert.match(affiliates, /first 12 monthly payments/);
+  assert.match(affiliates, /90-day referral cookie/);
+  assert.match(affiliates, /Commissions become due 30 days after each payment/);
+  assert.match(affiliates, /Payouts via PayPal/);
+  assert.match(affiliates, /no minimum payout/);
+  assert.match(affiliates, /tendercrest-ai\.getrewardful\.com\/signup/);
+  assert.match(affiliates, /tendercrest-ai\.getrewardful\.com\/login/);
+  assert.match(affiliates, /\$59\.80/);
+  assert.match(affiliates, /\$1,677\.60/);
+  assert.match(affiliates, /\$3,117\.60/);
+  assert.match(affiliates, /"@type":"FAQPage"/);
+  assert.ok(!/Archit/.test(affiliates), "affiliates page must not name the founder");
+
+  const about = await readFile(new URL("dist/about.html", root), "utf8");
+  assert.match(about, /Our mission is to make sure good work wins bids\./);
+  assert.match(about, /Founded in October 2026, headquartered in Seattle, Washington\./);
+  assert.match(about, /hello@tendercrestai\.com/);
+  assert.ok(!/Archit/.test(about), "About page must not name the founder");
+
+  const pricing = await readFile(new URL("dist/pricing.html", root), "utf8");
+  assert.match(pricing, /Most popular/);
+  assert.match(pricing, /<table>/);
+  assert.match(pricing, /\$59\.80 per proposal/);
+  assert.match(pricing, /\$34\.95 per proposal/);
+  assert.match(pricing, /\$21\.65 per proposal/);
+  assert.match(pricing, /No card\? Try the/);
+  assert.match(pricing, /Refer a customer and earn 20% of their first 12 payments/);
+  assert.match(pricing, /buy\.stripe\.com\/dRm9AT6PcaJT44U622dby00/);
+  assert.match(pricing, /buy\.stripe\.com\/eVqfZh4H44lv8laaiidby01/);
+  assert.match(pricing, /buy\.stripe\.com\/14AdR92yW4lvcBq0HIdby02/);
+
+  // Shared chrome: every public page renders one header and one footer
+  // from the single partial, with the new nav and footer links.
+  for (const page of ["index.html", "pricing.html", "partners.html", "affiliates.html", "about.html", "demo.html", "teardowns/index.html"]) {
+    const html = await readFile(new URL("dist/" + page, root), "utf8");
+    assert.ok(!html.includes("<!-- @site-header -->"), page + " header placeholder must be replaced");
+    assert.ok(!html.includes("<!-- @site-footer -->"), page + " footer placeholder must be replaced");
+    assert.match(html, /Become a Partner/);
+    assert.match(html, /Log in/);
+    assert.match(html, /Start trial/);
+    assert.match(html, /\/assets\/site-chrome\.css/);
+  }
+  // The homepage pricing tab is a summary now: no duplicated Stripe payment links.
+  // (The inline auth-journey script still lists the payment URLs in its routes
+  // map, as on the pricing page; that is configuration, not a link.)
+  const homepage = await readFile(new URL("dist/index.html", root), "utf8");
+  assert.ok(!/href="https:\/\/buy\.stripe\.com/.test(homepage), "homepage must not duplicate Stripe payment links");
+  assert.match(homepage, /See Pro plan details/);
+  assert.match(homepage, /Shred an RFP free — no signup/);
+  assert.match(homepage, /\/samples\/workspace-editor\.png/);
+  assert.ok(!/(?:📊|🛡️|📦|📐)/.test(homepage), "homepage feature icons must be SVG, not emoji");
+  assert.match(homepage, /class="feature-icon"/);
+
+  // Consent consolidation: the four modules register with the single
+  // coordinator and no longer build their own first-visit panels.
+  for (const module of ["analytics.mjs", "openai-pixel.mjs", "google-ads.mjs", "rewardful.mjs"]) {
+    const source = await readFile(new URL("dist/assets/" + module, root), "utf8");
+    assert.match(source, /from '\.\/consent-banner\.mjs'/);
+    assert.match(source, /registerConsentOption/);
+    assert.ok(!source.includes("prepend(panel)"), module + " must not prepend its own panel");
+  }
+  const sitemap = await readFile(new URL("dist/sitemap.xml", root), "utf8");
+  assert.match(sitemap, /tendercrestai\.com\/affiliates<\/loc><lastmod>2026-11-21<\/lastmod>/);
+  assert.match(sitemap, /tendercrestai\.com\/about<\/loc><lastmod>2026-11-21<\/lastmod>/);
+  const config = await readFile(new URL("netlify.toml", root), "utf8");
+  assert.match(config, /from = "\/affiliates"\n\s*to = "\/affiliates\.html"/);
+  assert.match(config, /from = "\/about"\n\s*to = "\/about\.html"/);
+  const llms = await readFile(new URL("dist/llms.txt", root), "utf8");
+  assert.match(llms, /Become a Partner\]\(https:\/\/www\.tendercrestai\.com\/affiliates\)/);
+  assert.match(llms, /About\]\(https:\/\/www\.tendercrestai\.com\/about\)/);
 });

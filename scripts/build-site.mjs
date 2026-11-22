@@ -2,25 +2,33 @@ import { cp, mkdir, rm, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import {generateTeardowns,addSitemapRoutes} from "./lib/teardowns.mjs";
+import {siteHeader,siteFooter} from "./lib/site-chrome.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const destination = resolve(root, "dist");
 // Explicit public files only. Never publish the repository root, server source,
 // internal runbooks, SQL fixtures, credentials, or future unreviewed files.
 const pages = [
-  "nyc-opportunities.html", "grants-opportunities.html", "la-opportunities.html", "delaware-opportunities.html", "montgomery-opportunities.html", "dc-opportunities.html", "webs-opportunities.html", "bid-check.html", "shredder.html", "opportunities.html", "compare-responsive.html", "compare-loopio.html", "compare-qvidian.html", "compare-xait.html", "compare-chatgpt.html", "compare.html", "partners.html", "ocr.html", "index.html", "auth.html", "contact.html", "rfp-upload.html", "compliance.html",
+  "nyc-opportunities.html", "grants-opportunities.html", "la-opportunities.html", "delaware-opportunities.html", "montgomery-opportunities.html", "dc-opportunities.html", "webs-opportunities.html", "bid-check.html", "shredder.html", "opportunities.html", "compare-responsive.html", "compare-loopio.html", "compare-qvidian.html", "compare-xait.html", "compare-chatgpt.html", "compare.html", "partners.html", "affiliates.html", "about.html", "ocr.html", "index.html", "auth.html", "contact.html", "rfp-upload.html", "compliance.html",
   "workspace.html", "knowledge.html", "security.html", "privacy.html", "terms.html", "product.html", "samples.html", "demo.html", "pricing.html", "googleb40d2fbef272897b.html", "robots.txt", "sitemap.xml", "llms.txt", "llms-full.txt"
 ];
 const assets = [
   "nyc-opportunities.mjs", "grants-opportunities.mjs", "la-opportunities.mjs", "delaware-opportunities.mjs", "montgomery-opportunities.mjs", "dc-opportunities.mjs", "webs-opportunities.mjs", "bid-check.mjs", "teardowns.mjs", "free-tools.css", "free-tools.mjs", "product-film.css", "product-film.mjs", "openai-pixel.mjs", "google-ads.mjs", "rewardful.mjs",
   "local-ocr.mjs", "customer-hub.mjs", "customer-request.mjs", "auth-journey.mjs", "account-usage.mjs", "analytics.mjs", "customer-workspace.mjs", "interactive-demo.mjs", "demo-data.mjs", "workspace.mjs", "workspace.css", "private-rfp-upload.mjs", "rfp-upload.mjs", "rfp-document.mjs", "upload-attempt.mjs", "proposal-status.mjs",
   "docx-validation.mjs", "compliance.mjs", "compliance-model.mjs",
-  "compliance-export.mjs", "compliance-handoff.mjs", "compliance.css", "knowledge.mjs", "knowledge.css", "public-pages.css", "readiness-model.mjs", "amendment-model.mjs", "ui-helpers.mjs"
+  "compliance-export.mjs", "compliance-handoff.mjs", "compliance.css", "knowledge.mjs", "knowledge.css", "public-pages.css", "site-chrome.css", "consent-banner.mjs", "readiness-model.mjs", "amendment-model.mjs", "ui-helpers.mjs"
 ];
 await rm(destination, { recursive: true, force: true });
 await mkdir(resolve(destination, "assets"), { recursive: true });
 function decorateHTML(html, page) {
   if (/<body\b/i.test(html)) {
+    // Shared header/footer (single source of truth in scripts/lib/site-chrome.mjs).
+    // Pages that keep their own chrome (app, auth, verification file) carry
+    // no placeholders and are left untouched.
+    const hasChrome = html.includes('<!-- @site-header -->') || html.includes('<!-- @site-footer -->');
+    if (html.includes('<!-- @site-header -->')) html = html.replace('<!-- @site-header -->', () => siteHeader(page));
+    if (html.includes('<!-- @site-footer -->')) html = html.replace('<!-- @site-footer -->', () => siteFooter(page));
+    if (hasChrome) html = html.replace(/<\/head>/i, '<link rel="stylesheet" href="/assets/site-chrome.css"></head>');
     html = html.replace(/<\/head>/i, `<template id="rewardful-tracking"><script>(function(w,r){w._rwq=r;w[r]=w[r]||function(){(w[r].q=w[r].q||[]).push(arguments)}})(window,'rewardful');</script>
 <script async src="https://r.wdfl.co/rw.js" data-rewardful="bbbf92"></script></template><script type="module" src="/assets/rewardful.mjs"></script></head>`);
     if (['index.html','demo.html'].includes(page)) html = html.replace(/<\/body>/i, '<script type="module" src="/assets/openai-pixel.mjs"></script><script type="module" src="/assets/google-ads.mjs"></script></body>');

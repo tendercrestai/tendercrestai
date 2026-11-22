@@ -260,6 +260,9 @@
     .feature-card h3 { margin-bottom: .5rem; }
     .feature-card p { color: var(--slate-600); font-size: .875rem; }
 
+    .feature-icon { color: var(--primary); margin-bottom: .5rem; }
+    .feature-icon svg { display: block; }
+
     .workflow {
       background: white;
       border: 1px solid var(--slate-200);
@@ -552,30 +555,7 @@
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
 
-  <header>
-    <div class="nav-container">
-      <a href="#overview" class="brand" onclick="switchTab('overview'); return false;">
-        <div class="brand-icon">⚡</div>
-        <span>TenderCrest AI</span>
-      </a>
-
-      <div class="nav-right">
-        <nav class="nav-tabs" aria-label="Main navigation">
-          <button class="nav-tab-btn active" id="tab-btn-overview"
-            aria-controls="tab-overview" aria-pressed="true"
-            onclick="switchTab('overview')">Platform Overview</button>
-
-          <button class="nav-tab-btn" id="tab-btn-pricing"
-            aria-controls="tab-pricing" aria-pressed="false"
-            onclick="switchTab('pricing')">Pricing &amp; Plans</button>
-
-          <button class="nav-tab-btn" id="tab-btn-portal"
-            aria-controls="tab-portal" aria-pressed="false"
-            onclick="switchTab('portal')">Email a draft</button>
-        </nav>
-      </div>
-    </div>
-  </header>
+  <!-- @site-header -->
 
   <main id="main-content" tabindex="-1">
 
@@ -593,9 +573,10 @@
         <div class="hero-actions">
           <a class="btn btn-primary" href="/workspace.html">Open your proposal workspace</a>
           <a class="btn btn-outline" href="#product-film" data-film-trigger>Watch the 30-second overview</a>
-          <a class="btn btn-outline" href="/demo.html#interactive-demo">Try Interactive Demo — No Credit Card Required</a>
+          <a class="btn btn-primary" href="/demo.html#interactive-demo">Try Interactive Demo — No Credit Card Required</a>
           <a class="btn btn-outline" href="#pricing"
              onclick="switchTab('pricing'); return false;">See pricing &amp; allowances</a>
+          <a class="btn btn-outline" href="/tools/shredder">Shred an RFP free — no signup</a>
         </div>
 
         <p class="review-note">
@@ -659,30 +640,30 @@
 
       <div class="feature-grid">
         <div class="feature-card">
-          <div style="font-size:1.5rem">📊</div>
+          <div class="feature-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></div>
           <h3>Requirements, evidence and gaps</h3>
           <p>Review RFP quotations, match current approved company answers, and record a separate human compliance decision. Missing evidence stays visible.</p>
         </div>
 
         <div class="feature-card">
-          <div style="font-size:1.5rem">🛡️</div>
+          <div class="feature-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
           <h3>A bid decision you can explain</h3>
           <p>Review cited fit factors, unknowns and mandatory disqualifiers. Record your decision and rationale; a fit score is not a win probability.</p>
         </div>
 
         <div class="feature-card">
-          <div style="font-size:1.5rem">⚡</div>
+          <div class="feature-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
           <h3>Write and review together</h3>
           <p>Assemble sections from accepted approved answers, edit with autosave, assign authors and reviewers, and approve the saved revision. Relevant changes require renewed review. Consult optional cited reference guidance for response structure.</p>
         </div>
         <div class="feature-card">
-          <div style="font-size:1.5rem">📦</div>
+          <div class="feature-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
           <h3>Export a reviewed package</h3>
           <p>Download DOCX, PDF, compliance XLSX/CSV, supporting attachments and a file manifest. A final package requires a resolved checklist and authorized sign-off.</p>
         </div>
 
         <div class="feature-card">
-          <div style="font-size:1.5rem">📐</div>
+          <div class="feature-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></div>
           <h3>Structure informed by winning responses</h3>
           <p>See which of the buyer's evaluation factors your draft covers, section by section. Response-structure suggestions come from verified winning proposals, and you accept or dismiss each one. Every claim traces to evidence you supplied.</p>
         </div>
@@ -691,6 +672,7 @@
       <div class="workflow" aria-labelledby="proof-title">
         <h2 id="proof-title">Inspect the product and the files before you sign up</h2>
         <p>Explore actual workspace captures using fictional evidence, then download a five-page PDF proposal and the DOCX, matrix, sources and manifest from the same saved example.</p>
+        <figure style="margin:1.5rem 0"><img src="/samples/workspace-editor.png" alt="TenderCrest AI workspace editor showing a fictional proposal draft with requirement links" width="1152" height="479" loading="lazy" style="max-width:100%;height:auto;display:block;border:1px solid var(--slate-200);border-radius:8px"><figcaption>Fictional workspace capture: the editor with requirement links.</figcaption></figure>
         <p><a href="/demo.html">Open the visual product tour &rarr;</a> · <a href="/samples/fictional-workspace-package.zip" download>Download the fictional workspace ZIP</a> · <a href="/samples.html">Compare the sample deliverables</a></p>
         <p class="review-note">These are synthetic demonstrations, not customer results or proof of real-world compliance.</p>
       </div>
@@ -739,17 +721,8 @@
             <span class="price-num">$299</span>
             <span class="price-period">USD / month</span>
           </div>
-          <div style="margin-bottom:1.25rem">
-            <a href="https://buy.stripe.com/dRm9AT6PcaJT44U622dby00"
-               class="btn btn-primary" target="_blank"
-               rel="noopener noreferrer">Start 14-day free trial</a>
-          </div>
-          <ul class="features-list">
-            <li><span class="check-icon">✓</span> <strong>5 Proposals</strong> per month</li>
-            <li><span class="check-icon">✓</span> Manage billing and cancellation through Stripe</li>
-            <li><span class="check-icon">✓</span> Government &amp; Enterprise Matrix Extraction</li>
-            <li><span class="check-icon">✓</span> Email delivery of generated drafts</li>
-          </ul>
+          <p><strong>5 proposals</strong> per month — $59.80 per proposal.</p>
+          <p><a href="/pricing">See Pro plan details &rarr;</a></p>
         </div>
 
         <!-- GROWTH -->
@@ -763,17 +736,8 @@
             <span class="price-num">$699</span>
             <span class="price-period">USD / month</span>
           </div>
-          <div style="margin-bottom:1.25rem">
-            <a href="https://buy.stripe.com/eVqfZh4H44lv8laaiidby01"
-               class="btn btn-primary" target="_blank"
-               rel="noopener noreferrer">Start 14-day free trial</a>
-          </div>
-          <ul class="features-list">
-            <li><span class="check-icon">✓</span> <strong>20 Proposals</strong> per month</li>
-            <li><span class="check-icon">✓</span> Manage billing and cancellation through Stripe</li>
-            <li><span class="check-icon">✓</span> Government and commercial RFP inputs</li>
-            <li><span class="check-icon">✓</span> Full past performance knowledge base</li>
-          </ul>
+          <p><strong>20 proposals</strong> per month — $34.95 per proposal.</p>
+          <p><a href="/pricing">See Growth plan details &rarr;</a></p>
         </div>
 
         <!-- ENTERPRISE -->
@@ -787,17 +751,8 @@
             <span class="price-num">$1,299</span>
             <span class="price-period">USD / month</span>
           </div>
-          <div style="margin-bottom:1.25rem">
-            <a href="https://buy.stripe.com/14AdR92yW4lvcBq0HIdby02"
-               class="btn btn-primary" target="_blank"
-               rel="noopener noreferrer">Start 14-day free trial</a>
-          </div>
-          <ul class="features-list">
-            <li><span class="check-icon">✓</span> <strong>60 Proposals</strong> per month</li>
-            <li><span class="check-icon">✓</span> Dedicated Knowledge Base Digest</li>
-            <li><span class="check-icon">✓</span> Company qualifications in each proposal</li>
-            <li><span class="check-icon">✓</span> AI-assisted draft generation</li>
-          </ul>
+          <p><strong>60 proposals</strong> per month — $21.65 per proposal.</p>
+          <p><a href="/pricing">See Enterprise plan details &rarr;</a></p>
         </div>
       </div>
 
@@ -1041,51 +996,7 @@
     </div>
   </div>
 
-  <footer>
-    <p><a href="/teardowns" class="footer-link">Teardowns</a></p>
-    <div style="max-width:1280px;margin:auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem">
-      <div>&copy; 2026 TenderCrest AI. All rights reserved.</div>
-
-      <div style="display:flex;gap:1.5rem;align-items:center;flex-wrap:wrap">
-        <a href="#overview" onclick="switchTab('overview');return false;"
-           class="footer-link">Overview</a>
-
-        <a href="#pricing" onclick="switchTab('pricing');return false;"
-           class="footer-link">Pricing</a>
-
-        <a href="/compare/responsive" class="footer-link">Compare: Responsive</a>
-
-        <a href="/compare/loopio" class="footer-link">Compare: Loopio</a>
-
-        <a href="/compare/qvidian" class="footer-link">Compare: Qvidian</a>
-
-        <a href="/compare/xait" class="footer-link">Compare: XaitPorter</a>
-
-        <a href="/compare/chatgpt" class="footer-link">Compare: ChatGPT &amp; Claude</a>
-
-        <a href="/partners" class="footer-link">Partner tools</a>
-
-        <a href="#portal" onclick="switchTab('portal');return false;"
-           class="footer-link">Portal</a>
-
-        <a href="/auth.html" class="footer-link" id="customer-auth-link">My Account</a>
-
-        <a href="/product.html" class="footer-link">How it works</a>
-        <a href="/samples.html" class="footer-link">Sample deliverables</a>
-        <a href="/contact.html" class="footer-link">Contact Us</a>
-        <a href="/security.html" class="footer-link">Security &amp; Data Handling</a>
-        <a href="/privacy.html" class="footer-link">Privacy</a>
-        <a href="/terms.html" class="footer-link">Terms</a>
-
-        <button type="button" onclick="openLegalModal()"
-           class="footer-link">Terms &amp; Disclaimers</button>
-
-        <a href="https://billing.stripe.com/p/login/dRm9AT6PcaJT44U622dby00"
-           target="_blank" rel="noopener noreferrer"
-           class="footer-portal-link">Manage / Cancel Subscription</a>
-      </div>
-    </div>
-  </footer>
+  <!-- @site-footer -->
 
   <!-- EXISTING SITE FUNCTIONS -->
   <script>

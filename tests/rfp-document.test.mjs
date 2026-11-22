@@ -157,9 +157,16 @@ test("all page scripts parse and existing workspace retains pricing and upload n
 
   assert.ok(html.includes('href="/rfp-upload.html"'));
   assert.ok(html.includes("billing.stripe.com/p/login/"));
-  // Every paid plan has a Stripe trial entry point; the standalone free
-  // Enterprise provisioning form must not survive the policy change.
-  assert.equal((html.match(/Start 14-day free trial<\/a>/g) || []).length, 3);
+  // Every paid plan has a Stripe trial entry point on the pricing page;
+  // the homepage pricing tab is a summary that links there instead, so it
+  // carries no trial buttons. The standalone free Enterprise provisioning
+  // form must not survive the policy change.
+  const pricing = await readFile(
+    new URL("../pricing.html", import.meta.url),
+    "utf8"
+  );
+  assert.equal((pricing.match(/Start 14-day free trial<\/a>/g) || []).length, 3);
+  assert.equal((html.match(/Start 14-day free trial<\/a>/g) || []).length, 0);
   assert.ok(!html.includes('handleTestActivation'));
   assert.ok(html.includes('id="trial-policy"'));
   assert.ok(html.includes("Authorization"));

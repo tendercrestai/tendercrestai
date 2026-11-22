@@ -60,6 +60,8 @@ TenderCrest AI publishes free, searchable feeds of open government solicitations
 ## Company
 
 - [Partner tools](https://www.tendercrestai.com/partners): Proposal tools and resources TenderCrest AI recommends.
+- [Become a Partner](https://www.tendercrestai.com/affiliates): Refer customers and earn 20% of their first 12 monthly payments. Self-serve signup, no application, no fee.
+- [About](https://www.tendercrestai.com/about): Mission, the problem TenderCrest AI solves, and how the product works.
 - [Contact](https://www.tendercrestai.com/contact.html): Get in touch with TenderCrest AI.
 - [Privacy](https://www.tendercrestai.com/privacy.html): Privacy policy.
 - [Terms](https://www.tendercrestai.com/terms): Terms of service.
