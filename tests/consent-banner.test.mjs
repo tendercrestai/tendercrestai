@@ -86,6 +86,14 @@ const tick = () => new Promise((r) => setTimeout(r, 10));
 function bannerElement() {
   return body.children.find((c) => c.id === "consent-banner") || null;
 }
+function bannerRows(el) {
+  const wrap = el.children.find((c) => /overflow-y:auto/.test(c.style.cssText));
+  assert.ok(wrap, "provider rows live in a scrolling wrapper");
+  return wrap.children;
+}
+function bannerActions(el) {
+  return el.children[el.children.length - 1];
+}
 
 test("consent coordinator renders one banner for all providers and hides once every choice is saved", async () => {
   const options = ["analytics", "openai", "google", "rewardful"].map((id) => fakeOption(id));
@@ -95,13 +103,13 @@ test("consent coordinator renders one banner for all providers and hides once ev
   assert.ok(el, "one banner element is created");
   assert.equal(body.children.filter((c) => c.id === "consent-banner").length, 1);
   assert.equal(el.hidden, false, "banner shows while choices are pending");
-  // h2 + intro + one row per provider + actions
-  assert.equal(el.children.length, 7);
-  const rows = el.children.filter((c) => c.attributes["data-consent-id"]);
+  // h2 + intro + rows wrapper + actions
+  assert.equal(el.children.length, 4);
+  const rows = bannerRows(el).filter((c) => c.attributes["data-consent-id"]);
   assert.deepEqual(rows.map((r) => r.attributes["data-consent-id"]), ["analytics", "openai", "google", "rewardful"]);
 
   // Decline all saves a choice for every provider and hides the banner.
-  const actions = el.children[el.children.length - 1];
+  const actions = bannerActions(el);
   assert.equal(actions.children.length, 2);
   actions.children[1].onclick(); // Decline all
   for (const option of options) {
@@ -129,14 +137,40 @@ test("consent coordinator shows a saved status and does not prompt for decided p
   const el = bannerElement();
   assert.equal(el.hidden, true, "banner stays hidden when every provider is decided");
   banner.showConsentBanner("decided");
-  const row = el.children.find((c) => c.attributes["data-consent-id"] === "decided");
+  const row = bannerRows(el).find((c) => c.attributes["data-consent-id"] === "decided");
   assert.ok(row, "decided provider row renders on demand");
   assert.match(row.children[0].children[0].textContent, /Allowed/);
   banner.setConsentStatus("decided", "Test status note.");
-  const updated = el.children.find((c) => c.attributes["data-consent-id"] === "decided");
+  const updated = bannerRows(el).find((c) => c.attributes["data-consent-id"] === "decided");
   const status = updated.children[0].children.find((c) => c.attributes.role === "status");
   assert.ok(status, "status note renders");
   assert.equal(status.textContent, "Test status note.");
+});
+
+test("banner pins Allow all / Decline all below a scrolling rows area", async () => {
+  const el = bannerElement();
+  banner.showConsentBanner();
+  // Panel is a flex column, not a scrolling box: the panel itself must
+  // not scroll, or the pinned actions would scroll away with the rows.
+  assert.match(el.style.cssText, /display:flex/);
+  assert.match(el.style.cssText, /flex-direction:column/);
+  assert.doesNotMatch(el.style.cssText, /overflow:auto/);
+  // Rows live in a flex:1 wrapper that scrolls on its own.
+  const wrap = el.children.find((c) => /overflow-y:auto/.test(c.style.cssText));
+  assert.ok(wrap, "rows wrapper exists");
+  assert.match(wrap.style.cssText, /flex:1/);
+  assert.match(wrap.style.cssText, /min-height:0/);
+  // Actions are the last child, pinned with flex:none and a solid
+  // background matching the panel so rows cannot bleed through.
+  const actions = bannerActions(el);
+  assert.equal(actions.children.length, 2);
+  assert.match(actions.children[0].textContent, /Allow all/);
+  assert.match(actions.children[1].textContent, /Decline all/);
+  assert.match(actions.style.cssText, /flex:none/);
+  assert.match(actions.style.cssText, /background:#fff/);
+  // Heading and intro stay fixed above the rows area.
+  assert.match(el.children[0].style.cssText, /flex:none/);
+  assert.match(el.children[1].style.cssText, /flex:none/);
 });
 
 test("banner reserves bottom space while visible so the footer stays reachable", async () => {
@@ -146,10 +180,10 @@ test("banner reserves bottom space while visible so the footer stays reachable",
   assert.equal(document.body.style.paddingBottom, "420px", "visible banner reserves its height as bottom padding");
   assert.match(el.style.cssText, /max-height:52vh/);
   assert.match(el.style.cssText, /padding:8px 16px/);
-  const row = el.children.find((c) => c.attributes["data-consent-id"] === "google");
+  const row = bannerRows(el).find((c) => c.attributes["data-consent-id"] === "google");
   assert.match(row.style.cssText, /padding:6px 0/);
   // Hiding the banner releases the reserved space again.
-  const actions = el.children[el.children.length - 1];
+  const actions = bannerActions(el);
   actions.children[1].onclick(); // Decline all
   assert.equal(el.hidden, true);
   assert.equal(document.body.style.paddingBottom, "", "hidden banner releases the reserved space");

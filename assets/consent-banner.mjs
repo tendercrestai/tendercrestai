@@ -9,7 +9,10 @@
 // has one. It is a fixed bottom banner, so the page hero stays visible
 // on first visit. While the banner is visible, the page reserves bottom
 // space equal to the banner height, so the footer can still be scrolled
-// into view instead of sitting underneath the banner. Providers that load
+// into view instead of sitting underneath the banner. The panel is a
+// flex column: the provider rows scroll inside it while the Allow all /
+// Decline all actions stay pinned to the bottom, so they are always
+// visible even when the rows are taller than the panel. Providers that load
 // on only some pages (OpenAI and Google load only on the homepage and
 // demo) simply do not register elsewhere, and the banner renders only
 // the providers present.
@@ -97,7 +100,7 @@ function ensureBanner() {
   banner.id = 'consent-banner';
   banner.setAttribute('aria-label', 'Privacy choices');
   banner.hidden = true;
-  banner.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:200;max-height:52vh;overflow:auto;background:#fff;color:#17243b;border-top:1px solid #94a3b8;box-shadow:0 -4px 16px rgb(0 0 0/.12);padding:8px 16px;font:inherit';
+  banner.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:200;max-height:52vh;display:flex;flex-direction:column;background:#fff;color:#17243b;border-top:1px solid #94a3b8;box-shadow:0 -4px 16px rgb(0 0 0/.12);padding:8px 16px;font:inherit';
   d.body.append(banner);
   if (typeof window !== 'undefined' && !resizeListenerAdded) {
     resizeListenerAdded = true;
@@ -204,14 +207,17 @@ function render() {
   if (!b) return;
   while (b.firstChild) b.removeChild(b.firstChild);
   const heading = element('h2', 'Privacy choices');
-  heading.style.cssText = 'margin:0 0 4px;font-size:1rem';
+  heading.style.cssText = 'margin:0 0 4px;font-size:1rem;flex:none';
   b.append(heading);
   const intro = element('p', 'Choose what TenderCrest AI may measure. Each choice is separate, stored for 30 days, and can be changed anytime from the Privacy choices buttons in the footer.');
-  intro.style.cssText = 'margin:0';
+  intro.style.cssText = 'margin:0;flex:none';
   b.append(intro);
-  for (const option of options.values()) b.append(rowFor(option));
+  const rows = element('div');
+  rows.style.cssText = 'flex:1;min-height:0;overflow-y:auto';
+  for (const option of options.values()) rows.append(rowFor(option));
+  b.append(rows);
   const actions = element('div');
-  actions.style.cssText = 'display:flex;gap:12px;flex-wrap:wrap;margin-top:8px';
+  actions.style.cssText = 'display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;flex:none;background:#fff';
   for (const [label, allowed] of [['Allow all', true], ['Decline all', false]]) {
     const button = element('button', label);
     button.type = 'button';
