@@ -232,6 +232,10 @@ function evaluate() {
   const b = ensureBanner();
   if (!b) return;
   b.hidden = ![...options.values()].some(shouldPrompt);
+  // The panel's inline display:flex (needed for the pinned-actions layout)
+  // overrides the browser's built-in [hidden] rule, so hidden alone does
+  // not hide the banner. Set display explicitly alongside it.
+  b.style.display = b.hidden ? 'none' : 'flex';
   syncBodyPadding();
 }
 function schedule() {
@@ -261,6 +265,7 @@ export function showConsentBanner(focusId) {
   currentFocusId = focusId || null;
   render();
   b.hidden = false;
+  b.style.display = 'flex';
   syncBodyPadding();
   refocus();
 }

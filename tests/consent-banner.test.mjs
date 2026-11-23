@@ -117,10 +117,15 @@ test("consent coordinator renders one banner for all providers and hides once ev
     assert.deepEqual(option.state.decisions, [false]);
   }
   assert.equal(el.hidden, true, "banner hides once every provider has a choice");
+  // Regression guard (Nov 23): the panel's inline display:flex overrides
+  // the browser's [hidden] rule, so hidden alone does not hide the banner.
+  // The rendered display must be none, not just the hidden property.
+  assert.equal(el.style.display, "none", "hidden banner is really not displayed");
 
   // A footer settings button reopens the banner, focused on that provider.
   banner.showConsentBanner("google");
   assert.equal(el.hidden, false, "settings button reopens the banner");
+  assert.equal(el.style.display, "flex", "reopened banner displays as a flex column again");
   const googleButton = el.querySelector('[data-consent-id="google"] button');
   assert.ok(googleButton && googleButton._focused, "focus lands on the Google row");
 
@@ -128,6 +133,7 @@ test("consent coordinator renders one banner for all providers and hides once ev
   googleButton.onclick();
   assert.equal(options[2].state.saved.allowed, true, "google allowed");
   assert.equal(el.hidden, true);
+  assert.equal(el.style.display, "none", "per-row Allow really hides the banner");
 });
 
 test("consent coordinator shows a saved status and does not prompt for decided providers", async () => {
@@ -136,7 +142,9 @@ test("consent coordinator shows a saved status and does not prompt for decided p
   await tick();
   const el = bannerElement();
   assert.equal(el.hidden, true, "banner stays hidden when every provider is decided");
+  assert.equal(el.style.display, "none", "decided banner is really not displayed");
   banner.showConsentBanner("decided");
+  assert.equal(el.style.display, "flex", "reopened banner displays again");
   const row = bannerRows(el).find((c) => c.attributes["data-consent-id"] === "decided");
   assert.ok(row, "decided provider row renders on demand");
   assert.match(row.children[0].children[0].textContent, /Allowed/);
@@ -186,5 +194,6 @@ test("banner reserves bottom space while visible so the footer stays reachable",
   const actions = bannerActions(el);
   actions.children[1].onclick(); // Decline all
   assert.equal(el.hidden, true);
+  assert.equal(el.style.display, "none", "hidden banner is really not displayed");
   assert.equal(document.body.style.paddingBottom, "", "hidden banner releases the reserved space");
 });
