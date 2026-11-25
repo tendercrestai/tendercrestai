@@ -6,6 +6,7 @@ import {uploadRfp} from './private-rfp-upload.mjs';
 import {filterReadinessItems,readinessStatusLabels,readinessKindLabels,requiredForms} from './readiness-model.mjs';
 import {createActionQueue,truncate,isNeedsInputOnly,draftNoTextMessage,partitionJobs,dedupeDraftJobs,matchEvidenceOutcome,countText,formatWarningReview,checklistCountsLine,formatActivityDate,shortId,searchListItems,paginateList,pageRangeText,readableBlocker,blockerSearchText,blockerBreakdownLine,memberLabel,sourceNeedsReview,sourceReviewNote,requirementSourceNeedsReview,mergeablePairs} from './ui-helpers.mjs';
 import {amendmentKindLabels,amendmentChangeTypeLabels,amendmentChangeStatusLabels,amendmentCounts} from './amendment-model.mjs';
+import {askConfirm} from './in-page-confirm.mjs';
 const $=id=>document.getElementById(id),node=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
 // Section titles are truncated requirement text, so 162 of them blur together.
 // Carry the first linked requirement code in picker labels, and let the
@@ -210,7 +211,7 @@ function readinessPanel(parent,s){
     const note2=field(f2,'What was wrong with the extraction?','textarea','');
     note2.required=true;submit(f2,'Save correction');
    } else {
-    c.append(button('Remove manual item',async()=>{if(!confirm('Remove this manual readiness item?'))return;await mutate('readinessDeleteManual',{itemId:item.id});render();message('Manual item removed.');},true));
+    c.append(button('Remove manual item',async()=>{if(!await askConfirm('Remove this manual readiness item?'))return;await mutate('readinessDeleteManual',{itemId:item.id});render();message('Manual item removed.');},true));
    }
   }
  }
@@ -350,8 +351,8 @@ function exportsPanel(parent,s){parent.append(node('p','DOCX, PDF and compliance
  if(exportJobs.length){parent.append(node('h3','Export packages'));for(const j of exportJobs)jobCard(j);}
  if(draftJobs.length){parent.append(node('h3','Section drafts'));for(const j of dedupeDraftJobs(draftJobs))jobCard(j);}
 }
-$('reload').onclick=()=>{if(dirty&&!confirm('Your unsaved text will be discarded. Copy it first if needed. Reload anyway?'))return;clearTimeout(saveTimer);dirty=false;run(()=>open(view.project.id));};
-$('back').onclick=()=>{if(dirty&&!confirm('Your unsaved text will be discarded. Copy it first if needed. Go back to projects anyway?'))return;clearTimeout(saveTimer);dirty=false;showProjects();};
+$('reload').onclick=async()=>{if(dirty&&!await askConfirm('Your unsaved text will be discarded. Copy it first if needed. Reload anyway?'))return;clearTimeout(saveTimer);dirty=false;run(()=>open(view.project.id));};
+$('back').onclick=async()=>{if(dirty&&!await askConfirm('Your unsaved text will be discarded. Copy it first if needed. Go back to projects anyway?'))return;clearTimeout(saveTimer);dirty=false;showProjects();};
 $('close-preview').onclick=()=>$('preview').close();$('accept').onclick=()=>run(async()=>{await mutate('acceptDraft',{sectionId:previewJob.result.sectionId,jobId:previewJob.id,confirmReplace:true});$('preview').close();render();message('Suggested section accepted and saved. Review is still required.');});
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 async function init(){const response=await fetch('/.netlify/functions/proposal-config'),config=await response.json();if(!response.ok||!config.enabled)throw Error(config.error||'Proposal workspace is not enabled for this deployment.');featureFlags=config.features||{};client=createClient(config.url,config.key);const sessionResult=await client.auth.getSession();user=sessionResult.data.session?.user;if(!user){const id=location.hash.slice(1);$('login').querySelector('a').href='/auth.html?next=workspace'+(/^[a-f0-9-]{36}$/i.test(id)?'&project='+encodeURIComponent(id):'');$('login').hidden=false;message('Sign in to access your private projects.');return;}client.auth.onAuthStateChange((event,s)=>{if(user&&s?.user?.id!==user.id){void identifyUsage(null);accountEpoch++;user=null;view=null;dirty=false;clearTimeout(saveTimer);$('app').hidden=true;$('login').hidden=false;$('panel').replaceChildren();message('Account changed. Sign in and reload.');}});await session();$('app').hidden=false;const orgs=await knowledge({action:'organizations'});myOrgs=orgs.organizations||[];for(const o of myOrgs)$('org-filter').append(new Option(o.kb_organizations.name,o.org_id));$('org-filter').onchange=()=>{orgFilter=$('org-filter').value;run(()=>projects());};const creatable=orgs.organizations.filter(o=>['owner','editor'].includes(o.role));$('create').hidden=!creatable.length;for(const o of creatable)$('organization').append(new Option(o.kb_organizations.name,o.org_id));if(!orgs.organizations.length)message('Create an organization in Knowledge base first.');$('create').onsubmit=e=>{e.preventDefault();run(async()=>{const f=new FormData(e.target),r=await api({action:'create',orgId:$('organization').value,title:f.get('title'),company:f.get('company'),grant:f.get('grant')==='on'});await projects();await open(r.id);});};

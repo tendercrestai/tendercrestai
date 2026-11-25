@@ -3,6 +3,7 @@ import {identifyUsage} from './analytics.mjs';
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm';
 import {validateFile} from './rfp-document.mjs';
 import {createActionQueue,formatActivityDate,shortId} from './ui-helpers.mjs';
+import {askConfirm} from './in-page-confirm.mjs';
 const $=id=>document.getElementById(id);
 const node=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e;};
 const PAGE_SIZE=25,INVITE_KEY='tendercrest.kb.pendingInvite';
@@ -75,7 +76,7 @@ function renderDocuments(items,container){
  for(const d of items){const codeText={extraction_failed:'Extraction failed — try Process / retry, or re-upload the file',embedding_failed:'Embedding failed — the provider denied access, or its quota is exhausted. Ask the organization administrator to verify the provider key and model, then use Process / retry.'};const li=node('li',d.file_name+' — '+d.status+(d.error_code?' ('+(codeText[d.error_code]||d.error_code)+')':''));for(const w of d.warnings||[])li.append(node('p','Review warning: '+w));
   if(d.status==='Ready')li.append(button('Verify source',()=>viewSource(d.id)));
   if(['Uploaded','Processing','Failed'].includes(d.status)&&['owner','editor'].includes(role))li.append(button('Process / retry',async()=>{if(!$('consent').checked)throw Error('Tick the consent box in the upload form above, then use Process / retry.');await process(d.id);await refresh();}));
-  if(d.status!=='Archived'&&['owner','editor'].includes(role))li.append(button('Archive',async()=>{if(!confirm('Archive this source and revoke dependent approvals?'))return;await api({action:'archive',orgId:org,documentId:d.id});clearSearch();resetAnswer();await refresh();},true));
+  if(d.status!=='Archived'&&['owner','editor'].includes(role))li.append(button('Archive',async()=>{if(!await askConfirm('Archive this source and revoke dependent approvals?'))return;await api({action:'archive',orgId:org,documentId:d.id});clearSearch();resetAnswer();await refresh();},true));
   container.append(li);
  }
 }
@@ -139,7 +140,7 @@ async function loadTeam(page=pages.team){
    const controls=node('div');controls.className='member-controls';const label=node('label','Role'),select=node('select');
    for(const value of ['viewer','editor','reviewer']){const option=node('option',value);option.value=value;select.append(option);}select.value=m.role;label.append(select);
    const activeLabel=node('label'),active=node('input');active.type='checkbox';active.checked=m.active;activeLabel.className='check';activeLabel.append(active,document.createTextNode('Active access'));
-   controls.append(label,activeLabel,button('Save member',async()=>{if(m.active&&!active.checked&&!confirm('Deactivate '+m.email+'? Future organization access will stop.'))return;await api({action:'memberUpdate',orgId:org,userId:m.user_id,role:select.value,active:active.checked});await loadTeam();message('Membership updated. Changes apply to future requests immediately.');}));li.append(controls);
+   controls.append(label,activeLabel,button('Save member',async()=>{if(m.active&&!active.checked&&!await askConfirm('Deactivate '+m.email+'? Future organization access will stop.'))return;await api({action:'memberUpdate',orgId:org,userId:m.user_id,role:select.value,active:active.checked});await loadTeam();message('Membership updated. Changes apply to future requests immediately.');}));li.append(controls);
   }
   $('members').append(li);
  }
