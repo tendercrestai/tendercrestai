@@ -73,7 +73,16 @@ function checkAuthorizeParams(params) {
   if (!auth.validRedirectUri(params.redirect_uri)) kb.fail(400, 'A valid https or loopback redirect_uri is required.');
   if (!auth.validCodeChallenge(params.code_challenge)) kb.fail(400, 'A valid PKCE code_challenge is required.');
   if (params.code_challenge_method !== 'S256') kb.fail(400, 'Only code_challenge_method=S256 is supported.');
-  if (params.state !== undefined && (typeof params.state !== 'string' || params.state.length > 500)) kb.fail(400, 'Invalid state.');
+  // The state is opaque to this server: it is never interpreted, only echoed
+  // back to the client's redirect URI after the user signs in and approves
+  // the connection, and the client (not this server) validates it. The cap
+  // is a size guard against oversized redirects, not a security boundary:
+  // OpenAI's Connect flow sends a long base64/JWT-encoded state (over 500
+  // characters), and the old 500-character cap rejected it with
+  // "Invalid state." instead of the sign-in page. CSRF protection here
+  // comes from PKCE plus the explicit on-page approval, which a direct POST
+  // cannot fake without the user's TenderCrest session.
+  if (params.state !== undefined && (typeof params.state !== 'string' || params.state.length > 4096)) kb.fail(400, 'Invalid state.');
   return params;
 }
 function loginPage(params) {

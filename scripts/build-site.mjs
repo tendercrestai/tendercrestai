@@ -97,6 +97,14 @@ await cp(resolve(root, ".well-known", "security.txt"), resolve(destination, ".we
 // netlify.toml sets its Content-Type to application/json.
 await cp(resolve(root, ".well-known", "oauth-protected-resource"), resolve(destination, ".well-known", "oauth-protected-resource"));
 
+// OpenAI apps domain challenge (Nov 25, 2026): the plugin dashboard issues
+// one token per submission and requires it verbatim at
+// /.well-known/openai-apps-challenge, plain text, no redirect. The file
+// holds only the token bytes (no trailing newline); netlify.toml sets its
+// Content-Type to text/plain. If OpenAI issues a new token on resubmission,
+// replace the file contents; do not leave two tokens in it.
+await cp(resolve(root, ".well-known", "openai-apps-challenge"), resolve(destination, ".well-known", "openai-apps-challenge"));
+
 // Muse server-ownership challenge (Nov 20, 2026): the connector platform
 // requires this file at /.well-known/muse-challenge/<token>, plain text.
 // Challenge expires Nov 26, 2026; remove the file after verification passes.

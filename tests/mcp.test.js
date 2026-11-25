@@ -80,21 +80,30 @@ test('tools/list exposes the free and account tools with honest limits', async (
   assert.match(body.result.tools.find((t) => t.name === 'check_bid_fit').description, /never a win prediction/);
 });
 
-test('every tool carries a title and the read-only hint in tools/list', async () => {
-  // Anthropic directory requirement: title plus readOnlyHint on every tool.
-  // All 14 tools are read-only; none modifies or deletes data.
+test('every tool carries a title and explicit annotation booleans in tools/list', async () => {
+  // Every tool states readOnlyHint, destructiveHint, and openWorldHint as
+  // direct boolean keys. The four free job tools are honestly NOT read-only:
+  // they create server-side analysis jobs and consume shared quota (and can
+  // restart a stalled job), so readOnlyHint is false there; the ten pure
+  // reads stay true. Nothing deletes data, so destructiveHint is false
+  // everywhere. openWorldHint is true only where the tool touches an
+  // external system: live SAM.gov data, or the AI extraction pipeline.
+  const jobTools = ['shred_rfp', 'get_shred_result', 'check_bid_fit', 'get_bid_check_result'];
+  const openWorldTools = [...jobTools, 'search_opportunities', 'get_opportunity'];
   const { body } = await rpc(mcp.handler, { jsonrpc: '2.0', id: 3, method: 'tools/list' });
   assert.equal(body.result.tools.length, 14);
   for (const tool of body.result.tools) {
     assert.equal(typeof tool.title, 'string', tool.name + ' needs a title');
     assert.ok(tool.title.length > 0, tool.name + ' title must not be empty');
     assert.ok(tool.name.length <= 64, tool.name + ' must be 64 characters or fewer');
-    assert.equal(tool.annotations.readOnlyHint, true, tool.name + ' must be read-only');
-    assert.equal(tool.annotations.destructiveHint, undefined, tool.name + ' must not claim destructiveHint');
+    for (const hint of ['readOnlyHint', 'destructiveHint', 'openWorldHint']) assert.equal(typeof tool.annotations[hint], 'boolean', tool.name + ' must state ' + hint + ' as a boolean');
+    assert.equal(tool.annotations.readOnlyHint, !jobTools.includes(tool.name), tool.name + ' readOnlyHint must reflect its job side effect');
+    assert.equal(tool.annotations.destructiveHint, false, tool.name + ' must not be destructive');
+    assert.equal(tool.annotations.openWorldHint, openWorldTools.includes(tool.name), tool.name + ' openWorldHint must reflect external interaction');
   }
   for (const tool of TOOL_DEFINITIONS) {
     assert.equal(typeof tool.title, 'string', tool.name);
-    assert.equal(tool.annotations.readOnlyHint, true, tool.name);
+    for (const hint of ['readOnlyHint', 'destructiveHint', 'openWorldHint']) assert.equal(typeof tool.annotations[hint], 'boolean', tool.name + ' must state ' + hint + ' as a boolean');
   }
 });
 
@@ -250,6 +259,25 @@ test('authorize page requires valid OAuth params and PKCE challenge', async () =
   assert.ok(page.body.includes('<style nonce="' + nonce + '">'), 'inline style carries the CSP nonce');
   const bad = await mcpAuth.handler({ httpMethod: 'GET', path: '/oauth/authorize', queryStringParameters: { response_type: 'code', ...base, code_challenge_method: 'plain' }, headers: {}, body: '' });
   assert.equal(bad.statusCode, 400);
+});
+
+test('authorize page accepts a long client state, as OpenAI Connect sends', async () => {
+  // OpenAI's Connect flow sends a long opaque state (base64-encoded context,
+  // well over 500 characters). The old 500-character cap rejected it with
+  // {"error":"Invalid state."} instead of the sign-in page, three times with
+  // fresh states and no prior TenderCrest session. The state is only echoed
+  // back after the user signs in and approves, so a long state must reach
+  // the login page; a state past the cap is still rejected.
+  const base = { client_id: 'test-client', redirect_uri: 'https://client.example.invalid/callback', code_challenge: 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM', code_challenge_method: 'S256' };
+  const openAiState = Buffer.from(JSON.stringify({ csrf: crypto.randomBytes(32).toString('hex'), s: 'oauth_s_' + crypto.randomBytes(16).toString('hex'), app: 'tendercrest-ai', pad: 'x'.repeat(400) })).toString('base64url');
+  assert.ok(openAiState.length > 500, 'fixture state must exceed the old 500-character cap, got ' + openAiState.length);
+  const page = await mcpAuth.handler({ httpMethod: 'GET', path: '/oauth/authorize', queryStringParameters: { response_type: 'code', ...base, state: openAiState }, headers: {}, body: '' });
+  assert.equal(page.statusCode, 200);
+  assert.match(page.body, /Connect TenderCrest AI/);
+  assert.ok(page.body.includes(openAiState), 'the long state must be echoed into the login page so consent returns it');
+  const tooLong = await mcpAuth.handler({ httpMethod: 'GET', path: '/oauth/authorize', queryStringParameters: { response_type: 'code', ...base, state: 's'.repeat(4097) }, headers: {}, body: '' });
+  assert.equal(tooLong.statusCode, 400);
+  assert.match(JSON.parse(tooLong.body).error, /Invalid state/);
 });
 
 test('authorize page shows a consent step and a code needs explicit approval', async () => {
