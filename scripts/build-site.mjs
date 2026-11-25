@@ -9,7 +9,7 @@ const destination = resolve(root, "dist");
 // Explicit public files only. Never publish the repository root, server source,
 // internal runbooks, SQL fixtures, credentials, or future unreviewed files.
 const pages = [
-  "nyc-opportunities.html", "grants-opportunities.html", "la-opportunities.html", "delaware-opportunities.html", "montgomery-opportunities.html", "dc-opportunities.html", "webs-opportunities.html", "bid-check.html", "shredder.html", "opportunities.html", "compare-responsive.html", "compare-loopio.html", "compare-qvidian.html", "compare-xait.html", "compare-chatgpt.html", "compare.html", "partners.html", "affiliates.html", "about.html", "ocr.html", "index.html", "auth.html", "contact.html", "rfp-upload.html", "compliance.html",
+  "nyc-opportunities.html", "grants-opportunities.html", "la-opportunities.html", "delaware-opportunities.html", "montgomery-opportunities.html", "dc-opportunities.html", "webs-opportunities.html", "bid-check.html", "shredder.html", "opportunities.html", "compare-responsive.html", "compare-loopio.html", "compare-qvidian.html", "compare-xait.html", "compare-chatgpt.html", "compare-grantable.html", "compare-granted-ai.html", "compare-grantparty.html", "compare.html", "partners.html", "affiliates.html", "about.html", "ocr.html", "index.html", "auth.html", "contact.html", "rfp-upload.html", "compliance.html",
   "workspace.html", "knowledge.html", "security.html", "privacy.html", "terms.html", "product.html", "samples.html", "demo.html", "pricing.html", "googleb40d2fbef272897b.html", "robots.txt", "sitemap.xml", "llms.txt", "llms-full.txt", "favicon.ico"
 ];
 const assets = [

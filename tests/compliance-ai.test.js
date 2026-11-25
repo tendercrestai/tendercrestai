@@ -229,3 +229,19 @@ test("model-selected deadline facts drop unparseable values",()=>{
   const dropped=ai.validateOutput({requirements:[],facts:[{type:"Submission Deadline",value:"OFFER ADDENDA ADDENDA 140FS226Q0154 See Schedule",segment_id:"s1",quote:"Due date: OFFER ADDENDA ADDENDA 140FS226Q0154 See Schedule."}]},noise,docs).facts;
   assert.equal(dropped.length,0);
 });
+test("grant prompt variant is NOFO-tuned and selected only with the grant flag",async()=>{
+  assert.ok(ai.GRANT_SYSTEM.includes("funding-opportunity"));
+  assert.match(ai.GRANT_SYSTEM,/eligibility/i);
+  assert.match(ai.GRANT_SYSTEM,/budget narrative/i);
+  assert.match(ai.GRANT_SYSTEM,/SF-424/);
+  assert.notEqual(ai.GRANT_SYSTEM,ai.SYSTEM);
+  process.env.COMPLIANCE_AI_API_KEY='<redacted>';
+  process.env.COMPLIANCE_AI_MODEL='gpt-4.1-mini';
+  const ok=()=>Response.json({choices:[{finish_reason:"stop",message:{content:JSON.stringify({requirements:[{excerpt_id:"e0",category:"Eligibility",mandatory:"Yes",uncertain:false}],facts:[]})}}]});
+  let system;
+  const capture=async(url,options)=>{system=JSON.parse(options.body).messages[0].content;return ok();};
+  await ai.analyzeChunk(segments,docs,capture,{grant:true});
+  assert.ok(system.includes("funding-opportunity"));
+  await ai.analyzeChunk(segments,docs,capture);
+  assert.ok(!system.includes("funding-opportunity"));
+});

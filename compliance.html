@@ -19,6 +19,7 @@
       <section aria-labelledby="upload-title"><div class="section-head"><div><h2 id="upload-title">Start a private preview</h2><p id="account"></p></div><span class="badge">No proposal allowance used</span></div>
         <p>PDF, DOCX or UTF-8 TXT · 10 MB per file · Up to 6 documents including amendments · 300,000 extracted characters total.</p>
         <form id="upload-form"><label for="documents">RFP documents and amendments</label><input id="documents" type="file" multiple accept=".pdf,.docx,.txt" required>
+          <label class="check"><input type="checkbox" id="grant-nofo"> This is a grant funding opportunity (NOFO). Use the NOFO-tuned extraction: eligibility, evaluation criteria, budget narrative and performance measures.</label>
           <p>Uploads remain private. Analysis sends extracted text to the configured AI provider. Scanned pages need OCR.</p>
           <button id="prepare" type="submit">Upload & extract for review</button></form>
         <div class="toolbar"><label for="history">Saved analyses</label><select id="history"><option value="">Choose an analysis</option></select><button type="button" id="reload">Reload saved analysis</button></div>

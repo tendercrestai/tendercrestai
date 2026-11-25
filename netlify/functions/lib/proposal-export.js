@@ -41,6 +41,49 @@ function complianceView(project){return {analysis:{id:project.state.analysis?.id
 // separate columns on every line. Never claims certification, guaranteed
 // readiness, or a win probability: the scope note says so explicitly.
 function readinessSourceLabel(ref){return (ref.document||'Source unavailable')+' · '+(ref.section||'Section unavailable')+' · '+(ref.page===null||ref.page===undefined?'Page unavailable':'PDF page '+ref.page);}
+// AI-use disclosure note (Grant Mode M11): a short, exportable record of
+// what the AI drafted, what evidence it used and what a person verified or
+// edited, for funders that ask how AI was used. Counts come only from the
+// saved state; nothing is inferred. Keep this note with the proposal.
+function aiUseDisclosureText(state){
+ const sections=state.sections||[],requirements=state.requirements||[];
+ const drafted=sections.filter(s=>(s.text||'').trim()).length;
+ const unverified=sections.filter(s=>s.unverified).length;
+ const approved=sections.filter(s=>s.status==='approved').length;
+ const reviewed=requirements.filter(r=>r.reviewedBy).length;
+ const evidenceUsed=(state.evidence||[]).filter(e=>e.decision==='accepted'&&!e.stale).length;
+ const edited=sections.filter(s=>s.editedBy).length;
+ return ['AI-USE DISCLOSURE',
+  '- AI drafted '+drafted+' of '+sections.length+' sections from approved company evidence and the solicitation text. Every drafted claim is traced to a source or flagged unverified; anything the AI could not verify is marked for a person to fill in, never invented.',
+  '- Evidence used: '+evidenceUsed+' accepted evidence mapping(s) from the organization knowledge library.',
+  '- Human review: '+reviewed+' of '+requirements.length+' requirements reviewed by a person; '+approved+' of '+sections.length+' sections approved; '+edited+' section(s) edited by a person after drafting.',
+  '- Still unverified: '+unverified+' section(s) carry an unverified flag and need human verification before submission.',
+  '- Customer data is not used to train a shared model.',
+  '- This note describes the saved revision only. A person remains responsible for the facts, the evidence scope and the final submission.'].join('\n');
+}
+// Grant-only readiness sections (M8 submission guidance, N5 plain-English
+// eligibility check, N1 budget table). Facts come from the imported NOFO
+// analysis; when the NOFO supplied none, the report says so instead of
+// inventing eligibility or submission instructions.
+function grantReportLines(state){
+ if(!state.grant)return [];
+ const out=['','ELIGIBILITY CHECK (PLAIN ENGLISH): read the NOFO eligibility section before submitting.'];
+ const facts=(state.analysis?.facts||[]).filter(f=>f&&f.type==='Eligibility');
+ for(const f of facts)out.push('- '+f.value);
+ const eligReqs=(state.requirements||[]).filter(r=>r.category==='Eligibility');
+ for(const r of eligReqs)out.push('- '+(r.text||'').slice(0,300)+' ['+(r.status||'Needs Review')+']');
+ if(!facts.length&&!eligReqs.length)out.push('- No eligibility rule was extracted from the NOFO. Do not assume eligibility; read the NOFO eligibility section and confirm the applicant type, location and registration requirements.');
+ out.push('','SUBMITTING THIS GRANT: TenderCrest does not submit for you.');
+ out.push('- Submit through the channel named in the NOFO, usually Grants.gov Workspace or the funder portal named in the NOFO. Include the required forms from the NOFO, including the SF-424 family where the NOFO calls for them.');
+ out.push('- Track the submission in Grants.gov and keep the confirmation. Deadlines are in the timezone stated in the NOFO; verify the exact closing time on the original grant before you apply.');
+ out.push('- Attachments are not imported from the Grants.gov feed. The full NOFO, with all attachments and amendments, is the submission source.');
+ const budget=state.budget||{rows:[],narrative:''};
+ out.push('','BUDGET: simple table and narrative only. This is not a full budget builder: no indirect-cost rates, modular budgets, multi-year schedules or sub-awards.');
+ if((budget.rows||[]).length){let total=0;for(const row of budget.rows){total+=Number(row.amount)||0;out.push('- '+row.item+': $'+(Number(row.amount)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+(row.note?'; '+row.note:''));}out.push('- Total: $'+total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}));}
+ else out.push('- No budget lines entered yet. Add line items and a budget narrative in the workspace before submitting.');
+ if(budget.narrative)out.push('Budget narrative: '+budget.narrative);
+ return out;
+}
 function readinessReportText(project){
  const items=core.readinessItems(project.state),summary=core.readinessSummary(project.state);
  const unresolved=items.filter(core.readinessItemUnresolved),mandatoryUnresolved=unresolved.filter(i=>i.mandatory!=='No'),otherUnresolved=unresolved.filter(i=>i.mandatory==='No'),resolved=items.filter(i=>!core.readinessItemUnresolved(i));
@@ -56,6 +99,7 @@ function readinessReportText(project){
  lines.push('','DONE / NOT APPLICABLE ('+resolved.length+')');
  if(!resolved.length)lines.push('- None yet.');
  for(const i of resolved)lines.push(...itemLines(i));
+ lines.push('',aiUseDisclosureText(project.state),...grantReportLines(project.state));
  return lines.join('\n')+'\n';
 }// Amendment impact report (Capability 3). Plain text, same pattern as the
 // readiness report. Lists every proposed change with old and new wording side
@@ -127,4 +171,4 @@ async function packageFiles(project,{draft=true,attachments=[]}={}){
  const manifest={schema:'tendercrest-submission-v1',projectId:project.id,revision:project.revision,evidenceEpoch:m.epoch,contentHash:m.contentHash,draft,submissionReady:!draft&&readiness.ready,unresolvedItems:readiness.blockers,readinessSummary:core.readinessSummary(project.state),amendmentImpact:(project.state.amendments||[]).length?core.amendmentSummary(project.state.amendments[project.state.amendments.length-1]):null,excludedRequirements:project.state.requirements.filter(core.excluded).map(r=>({id:r.id,disposition:r.disposition})),renderedPDFPages:rendered.pages,docxPaginationMeasured:false,wordCount:readiness.wordCount,files:Object.entries(files).map(([name,bytes])=>({name,bytes:bytes.length,sha256:require('node:crypto').createHash('sha256').update(bytes).digest('hex')})),generatedAt:new Date().toISOString(),internalCommentsIncluded:false};
  files['manifest.json']=Buffer.from(JSON.stringify(manifest,null,2));const zip=Buffer.from(zipSync(Object.fromEntries(Object.entries(files).map(([k,v])=>[k,new Uint8Array(v)])),{level:6}));if(zip.length>52428800)throw Error('Submission package exceeds 50 MiB.');return {files,zip,manifest,measured};
 }
-module.exports={model,docx,pdf,packageFiles,complianceView,safeName,readinessReportText,readinessSourceLabel,amendmentImpactReportText,AMENDMENT_TYPE_HEADINGS};
+module.exports={model,docx,pdf,packageFiles,complianceView,safeName,readinessReportText,aiUseDisclosureText,grantReportLines,readinessSourceLabel,amendmentImpactReportText,AMENDMENT_TYPE_HEADINGS};

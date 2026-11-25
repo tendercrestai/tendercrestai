@@ -19,7 +19,7 @@ function visibleFaq(html) {
 for (const [page, expected] of [
   ['opportunities.html', ['Is searching federal opportunities free?', 'How current are the results?', 'What is a NAICS code?', 'What does a set-aside mean?', 'Can I shred a solicitation I find here?']],
   ['nyc-opportunities.html', ['Is searching NYC notices free?', 'What is City Record Online?', 'Does a listed deadline mean the bid is still open?', 'How fresh is this feed?', 'Can I shred a NYC notice?']],
-  ['grants-opportunities.html', ['Is searching federal grants free?', 'Are these grants or contracts?', "Why don't results show award amounts?", 'How fresh is this feed?', 'Can I shred a grant?']],
+  ['grants-opportunities.html', ['Is searching federal grants free?', 'Are these grants or contracts?', "Why don't results show award amounts?", 'How fresh is this feed?', 'Can I shred a grant?', 'How do I start a grant proposal from a grant on this page?']],
   ['la-opportunities.html', ['Is searching Los Angeles notices free?', 'What is RAMP?', 'Does a listed close date mean the bid is still open?', 'Why do some notices say the close date is not stated?', 'Can I shred a Los Angeles notice?']],
   ['delaware-opportunities.html', ['Is searching Delaware bids free?', 'What is the Delaware open bids feed?', 'Why is the agency shown as a code?', 'Does a listed deadline mean the bid is still open?', 'Can I shred a Delaware bid?']],
   ['montgomery-opportunities.html', ['Is searching Montgomery County notices free?', 'What is this feed?', 'Why does every result link to the county search page?', 'Does a listed close date mean the bid is still open?', 'Can I shred a Montgomery County notice?']],
@@ -80,7 +80,7 @@ test('sitemap lists all eight opportunity feeds', () => {
   const sitemap = read('sitemap.xml');
   assert.ok(sitemap.includes('<loc>https://www.tendercrestai.com/opportunities</loc>'), 'federal feed in sitemap');
   assert.ok(sitemap.includes('<loc>https://www.tendercrestai.com/opportunities/nyc</loc>'), 'NYC feed in sitemap');
-  assert.ok(sitemap.includes('<loc>https://www.tendercrestai.com/opportunities/grants</loc><lastmod>2026-11-19</lastmod>'), 'grants feed in sitemap');
+  assert.ok(sitemap.includes('<loc>https://www.tendercrestai.com/opportunities/grants</loc><lastmod>2026-11-25</lastmod>'), 'grants feed in sitemap');
   assert.ok(sitemap.includes('<loc>https://www.tendercrestai.com/opportunities/los-angeles</loc><lastmod>2026-11-20</lastmod>'), 'Los Angeles feed in sitemap');
   assert.ok(sitemap.includes('<loc>https://www.tendercrestai.com/opportunities/delaware</loc><lastmod>2026-11-20</lastmod>'), 'Delaware feed in sitemap');
   assert.ok(sitemap.includes('<loc>https://www.tendercrestai.com/opportunities/montgomery-county</loc><lastmod>2026-11-20</lastmod>'), 'Montgomery County feed in sitemap');

@@ -589,3 +589,23 @@ test("an explicitly disabled deployment cannot dispatch or consume a credit", as
   const response=await handler({httpMethod:'POST',body:JSON.stringify(input),headers:{authorization:'Bearer fixture'}});
   assert.equal(response.statusCode,503);assert.match(JSON.parse(response.body).error,/disabled/);assert.equal(calls.length,0);
 });
+
+test("grant submissions require the grant sector and carry its marker", async () => {
+  const grant = { ...input, proposalSector: "Grant / Non-Profit Application", grant: true, documentId: DOC };
+  const response = await run(grant);
+
+  assert.equal(response.statusCode, 200);
+
+  const fields = JSON.parse(queueCalls()[0].options.body).fields;
+  assert.equal(fields["Proposal Sector"], "Grant / Non-Profit Application");
+
+  assert.equal((await run({ ...input, grant: true, documentId: DOC })).statusCode, 400);
+  assert.equal((await run({ ...grant, grant: "yes" })).statusCode, 400);
+});
+
+test("a grant-tier company reserves against its grant allowance", async () => {
+  settings.tier = "Grant Plus ($49/mo)";
+  const response = await run({ ...input, proposalSector: "Grant / Non-Profit Application", grant: true, documentId: DOC });
+  assert.equal(response.statusCode, 200);
+  assert.equal(ledger.get(ID).status, "queued");
+});

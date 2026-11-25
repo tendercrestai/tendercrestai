@@ -160,7 +160,7 @@ test("website redesign: affiliates and about pages, shared chrome, pricing table
   }
   const sitemap = await readFile(new URL("dist/sitemap.xml", root), "utf8");
   assert.match(sitemap, /tendercrestai\.com\/affiliates<\/loc><lastmod>2026-11-21<\/lastmod>/);
-  assert.match(sitemap, /tendercrestai\.com\/about<\/loc><lastmod>2026-11-21<\/lastmod>/);
+  assert.match(sitemap, /tendercrestai\.com\/about<\/loc><lastmod>2026-11-25<\/lastmod>/);
   const config = await readFile(new URL("netlify.toml", root), "utf8");
   assert.match(config, /from = "\/affiliates"\n\s*to = "\/affiliates\.html"/);
   assert.match(config, /from = "\/about"\n\s*to = "\/about\.html"/);
@@ -168,4 +168,75 @@ test("website redesign: affiliates and about pages, shared chrome, pricing table
   assert.match(config, /from = "\/teardowns\/federal-emergency-generator-replacement-23-requirements"\n\s*to = "\/teardowns\/federal-emergency-generator-replacement-23-requirements\.html"/);
   assert.match(llms, /Become a Partner\]\(https:\/\/www\.tendercrestai\.com\/affiliates\)/);
   assert.match(llms, /About\]\(https:\/\/www\.tendercrestai\.com\/about\)/);
+});
+
+test("grant mode: pricing grants section, homepage grant search, compare pages, feed actions", async () => {
+  await import("../scripts/build-site.mjs");
+  const files = await readdir(new URL("dist/", root), { recursive: true });
+  for (const page of ["compare-grantable.html", "compare-granted-ai.html", "compare-grantparty.html"]) assert.ok(files.includes(page), page);
+
+  const pricing = await readFile(new URL("dist/pricing.html", root), "utf8");
+  assert.match(pricing, /<section id="grants">/);
+  assert.match(pricing, /<strong>1 grant<\/strong> per month/);
+  assert.match(pricing, /<strong>5 grants<\/strong> per month/);
+  assert.match(pricing, /<strong>15 grants<\/strong> per month/);
+  assert.match(pricing, /buy\.stripe\.com\/3cI28r3D0aJTfNCfCCdby04/);
+  assert.match(pricing, /buy\.stripe\.com\/7sY28r5L8dW544U1LMdby05/);
+  assert.match(pricing, /buy\.stripe\.com\/8x2fZh0qOf09fNCcqqdby03/);
+  assert.match(pricing, /Annual: save 17%/);
+  // Toggling monthly/annual must not bypass authenticated checkout: the toggle
+  // re-applies the checkout-link rewrite after restoring the monthly hrefs.
+  assert.match(pricing, /window\.__tcRewriteCheckoutLinks=\(\)=>\{if\(!window\.__tcAuthenticatedCheckout\)return;/);
+  assert.match(pricing, /if\(!isAnnual&&window\.__tcRewriteCheckoutLinks\)window\.__tcRewriteCheckoutLinks\(\)/);
+  assert.match(pricing, /A payment card is required at Stripe checkout/);
+  assert.match(pricing, /Do you train AI on my documents\?/);
+  assert.match(pricing, /Can I get an invoice or pay by purchase order\?/);
+
+  const homepage = await readFile(new URL("dist/index.html", root), "utf8");
+  assert.match(homepage, /<form class="grant-search" action="\/opportunities\/grants" method="get" role="search">/);
+  assert.match(homepage, /name="keyword"/);
+  assert.match(homepage, /Grants\.gov<\/span>/);
+  assert.match(homepage, /A generic chatbot vs Grant Mode/);
+  assert.match(homepage, /href="\/pricing#grants">See grant plan details/);
+  assert.match(homepage, /Grant trials include up to <strong>1 grant on Grant Starter/);
+
+  const feed = await readFile(new URL("dist/assets/grants-opportunities.mjs", root), "utf8");
+  assert.match(feed, /Start a grant proposal/);
+  assert.match(feed, /days left/);
+  assert.match(feed, /Award amounts and eligibility/);
+  assert.match(feed, /active opportunities/);
+
+  for (const page of ["compare-grantable.html", "compare-granted-ai.html", "compare-grantparty.html"]) {
+    const html = await readFile(new URL("dist/" + page, root), "utf8");
+    assert.match(html, /GRANT SOFTWARE COMPARISON/);
+    assert.match(html, /Published information and fit, checked November 25, 2026/);
+    assert.match(html, /Why teams choose TenderCrest/);
+    assert.match(html, /"@type": ?"FAQPage"/);
+    assert.ok(!html.includes("—"), page + " must not use em dashes");
+  }
+  const grantable = await readFile(new URL("dist/compare-grantable.html", root), "utf8");
+  assert.match(grantable, /Starter \$50\/month/);
+  assert.match(grantable, /Pro \$150\/month/);
+  const granted = await readFile(new URL("dist/compare-granted-ai.html", root), "utf8");
+  assert.match(granted, /Basic \$29\/month/);
+  assert.match(granted, /Professional \$89\/month/);
+  const grantparty = await readFile(new URL("dist/compare-grantparty.html", root), "utf8");
+  assert.match(grantparty, /\$249\/month/);
+  assert.match(grantparty, /\$100 pilot/);
+
+  const sitemap = await readFile(new URL("dist/sitemap.xml", root), "utf8");
+  for (const slug of ["grantable", "granted-ai", "grantparty"]) assert.match(sitemap, new RegExp("tendercrestai\\.com\\/compare\\/" + slug + "<\\/loc><lastmod>2026-11-25<\\/lastmod>"));
+  assert.match(sitemap, /tendercrestai\.com\/pricing<\/loc><lastmod>2026-11-25<\/lastmod>/);
+  assert.match(sitemap, /tendercrestai\.com\/opportunities\/grants<\/loc><lastmod>2026-11-25<\/lastmod>/);
+
+  const config = await readFile(new URL("netlify.toml", root), "utf8");
+  for (const slug of ["grantable", "granted-ai", "grantparty"]) assert.match(config, new RegExp("from = \"\\/compare\\/" + slug + "\"\\n\\s*to = \"\\/compare-" + slug + "\\.html\""));
+
+  const llms = await readFile(new URL("dist/llms.txt", root), "utf8");
+  assert.match(llms, /Grant Starter \$19\/month \(1 grant\)/);
+  assert.match(llms, /Grant Plus \$49\/month \(5 grants\)/);
+  assert.match(llms, /Grant Pro \$99\/month \(15 grants\)/);
+
+  const about = await readFile(new URL("dist/about.html", root), "utf8");
+  assert.match(about, /Grant Mode brings the same evidence-backed approach to NOFOs/);
 });

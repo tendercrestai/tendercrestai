@@ -46,3 +46,18 @@ test('draft preview reads the job evidence epoch, so a fresh preview is not flag
  assert.equal(job.evidence_epoch,0);
  assert.equal(job.revision,4);
 });
+test('grant projects are created with the marker and listed with a Grant flag',async()=>{
+ let created;const originalRpc=S.rpc;S.rpc=async(c,n,args)=>{if(n==='create')created=args;return id;};
+ const r=await createHandler()(event({action:'create',orgId:other,title:'Grant X',company:'Org',grant:true}));
+ assert.equal(r.statusCode,200);assert.equal(created.p_state.grant,true);assert.deepEqual(created.p_state.budget,{rows:[],narrative:''});
+ S.rpc=originalRpc;
+ const originalDatabase=S.kb.database;try{S.kb.database=async()=>[{id:'x',title:'Grant X',state:{grant:true}}];const list=await createHandler()(event({action:'list'}));const v=JSON.parse(list.body);assert.equal(v.projects[0].grant,true);assert.ok(!('state' in v.projects[0]));}finally{S.kb.database=originalDatabase;}
+});
+test('budget action validates rows and the settings action toggles the grant marker',async()=>{
+ let r=await run({action:'budget',revision:4,evidenceEpoch:0,rows:[{item:'Staff time',amount:1200,note:'Lead writer'}],narrative:'Direct costs only.'});
+ assert.equal(r.statusCode,200);const saved=JSON.parse(r.body).project.state;assert.equal(saved.budget.rows.length,1);assert.equal(saved.budget.rows[0].amount,1200);assert.equal(saved.budget.narrative,'Direct costs only.');
+ r=await run({action:'budget',revision:4,evidenceEpoch:0,rows:[{item:'Bad',amount:-1}],narrative:''});
+ assert.equal(r.statusCode,400);
+ r=await run({action:'settings',revision:4,evidenceEpoch:0,title:'Grant X',company:'Org',accent:'#1d4ed8',grant:true});
+ assert.equal(r.statusCode,200);assert.equal(JSON.parse(r.body).project.state.grant,true);
+});

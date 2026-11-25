@@ -186,7 +186,7 @@ $("analyze").onclick=()=>{
   try {
     while(!paused && !["Completed","Partial"].includes(state.analysis.status)) {
       message("Analyzing chunk "+(state.analysis.processed+1)+" / "+state.analysis.total_chunks+"…");
-      render(await api({action:"step",analysisId:state.analysis.id,reviewed:true,reviewHash:state.analysis.fingerprint}),false);
+      render(await api({action:"step",analysisId:state.analysis.id,reviewed:true,reviewHash:state.analysis.fingerprint,grant:$("grant-nofo")?.checked===true}),false);
     }
     message(paused?"Analysis paused. Saved chunks can be resumed.":state.analysis.status==="Partial"?"Processing finished with extraction gaps. Review warnings before relying on the matrix.":"Analysis completed. Review every requirement and supply company evidence.");
   }catch(error){
