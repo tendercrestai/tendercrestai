@@ -16,7 +16,7 @@ const assets = [
   "nyc-opportunities.mjs", "grants-opportunities.mjs", "la-opportunities.mjs", "delaware-opportunities.mjs", "montgomery-opportunities.mjs", "dc-opportunities.mjs", "webs-opportunities.mjs", "bid-check.mjs", "teardowns.mjs", "free-tools.css", "free-tools.mjs", "product-film.css", "product-film.mjs", "openai-pixel.mjs", "google-ads.mjs", "rewardful.mjs",
   "local-ocr.mjs", "customer-hub.mjs", "customer-request.mjs", "auth-journey.mjs", "account-usage.mjs", "analytics.mjs", "customer-workspace.mjs", "interactive-demo.mjs", "demo-data.mjs", "workspace.mjs", "workspace.css", "private-rfp-upload.mjs", "rfp-upload.mjs", "rfp-document.mjs", "upload-attempt.mjs", "proposal-status.mjs",
   "docx-validation.mjs", "compliance.mjs", "compliance-model.mjs",
-  "compliance-export.mjs", "compliance-handoff.mjs", "compliance.css", "knowledge.mjs", "knowledge.css", "public-pages.css", "site-chrome.css", "consent-banner.mjs", "readiness-model.mjs", "amendment-model.mjs", "ui-helpers.mjs"
+  "compliance-export.mjs", "compliance-handoff.mjs", "compliance.css", "knowledge.mjs", "knowledge.css", "public-pages.css", "site-chrome.css", "consent-banner.mjs", "readiness-model.mjs", "amendment-model.mjs", "ui-helpers.mjs", "in-page-confirm.mjs", "site-session.mjs"
 ];
 await rm(destination, { recursive: true, force: true });
 await mkdir(resolve(destination, "assets"), { recursive: true });

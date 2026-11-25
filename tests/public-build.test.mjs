@@ -88,6 +88,10 @@ test("website redesign: affiliates and about pages, shared chrome, pricing table
   for (const page of ["affiliates.html", "about.html"]) assert.ok(files.includes(page), page);
   assert.ok(files.includes("assets/site-chrome.css"), "assets/site-chrome.css");
   assert.ok(files.includes("assets/consent-banner.mjs"), "assets/consent-banner.mjs");
+  // Checkout-confirm fix: the shared in-page dialog helper and the header
+  // session module ship in the build.
+  assert.ok(files.includes("assets/in-page-confirm.mjs"), "assets/in-page-confirm.mjs");
+  assert.ok(files.includes("assets/site-session.mjs"), "assets/site-session.mjs");
 
   const affiliates = await readFile(new URL("dist/affiliates.html", root), "utf8");
   assert.match(affiliates, /Become a TenderCrest AI partner/);
@@ -145,6 +149,9 @@ test("website redesign: affiliates and about pages, shared chrome, pricing table
     assert.match(html, /Log in/);
     assert.match(html, /Start trial/);
     assert.match(html, /\/assets\/site-chrome\.css/);
+    // Header session module: every shared-header page loads it, so a
+    // signed-in account sees "My account" instead of "Log in".
+    assert.match(html, /\/assets\/site-session\.mjs/);
   }
   // The homepage pricing tab is a summary now: no duplicated Stripe payment links.
   // (The inline auth-journey script still lists the payment URLs in its routes
@@ -164,6 +171,12 @@ test("website redesign: affiliates and about pages, shared chrome, pricing table
   assert.match(homepage, /href="\/pricing#enterprise">See Enterprise plan details/);
   assert.match(homepage, /up to 1,000 requirements/);
   assert.match(homepage, /<link rel="icon" href="\/favicon\.ico">/);
+  // Grants copy: the hero subtitle carries the grants parallel to the RFP
+  // sentence, and the workflow grid has a grants card.
+  assert.match(homepage, /Grant Mode brings the same workflow to funding/);
+  assert.match(homepage, /Grants, the same workflow/);
+  const product = await readFile(new URL("dist/product.html", root), "utf8");
+  assert.match(product, /The same workflow applies to grants/);
   const demo = await readFile(new URL("dist/demo.html", root), "utf8");
   assert.match(demo, /width="1152" height="479"/);
   assert.match(affiliates, /by agreement for referral partners who publish a partner page/);

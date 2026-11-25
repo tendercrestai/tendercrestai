@@ -75,9 +75,9 @@ function columns() {
 }
 export function siteHeader(page) {
   if (page === 'index') {
-    return `<header><div class="nav-container"><a href="#overview" class="brand" onclick="switchTab('overview'); return false;"><div class="brand-icon">⚡</div><span>TenderCrest AI</span></a><div class="nav-right"><nav class="nav-tabs" aria-label="Main navigation"><button class="nav-tab-btn active" id="tab-btn-overview" aria-controls="tab-overview" aria-pressed="true" onclick="switchTab('overview')">Platform Overview</button><button class="nav-tab-btn" id="tab-btn-pricing" aria-controls="tab-pricing" aria-pressed="false" onclick="switchTab('pricing')">Pricing &amp; Plans</button><button class="nav-tab-btn" id="tab-btn-portal" aria-controls="tab-portal" aria-pressed="false" onclick="switchTab('portal')">Email a draft</button></nav><nav class="site-nav" aria-label="Site">${navLinks()}${actions()}</nav></div></div></header>`;
+    return `<header><div class="nav-container"><a href="#overview" class="brand" onclick="switchTab('overview'); return false;"><div class="brand-icon">⚡</div><span>TenderCrest AI</span></a><div class="nav-right"><nav class="nav-tabs" aria-label="Main navigation"><button class="nav-tab-btn active" id="tab-btn-overview" aria-controls="tab-overview" aria-pressed="true" onclick="switchTab('overview')">Platform Overview</button><button class="nav-tab-btn" id="tab-btn-pricing" aria-controls="tab-pricing" aria-pressed="false" onclick="switchTab('pricing')">Pricing &amp; Plans</button><button class="nav-tab-btn" id="tab-btn-portal" aria-controls="tab-portal" aria-pressed="false" onclick="switchTab('portal')">Email a draft</button></nav><nav class="site-nav" aria-label="Site">${navLinks()}${actions()}</nav></div></div><script type="module" src="/assets/site-session.mjs"></script></header>`;
   }
-  return `<header class="site-header"><a class="brand" href="/">TenderCrest AI</a><nav aria-label="Site" class="site-nav">${navLinks()}${actions()}</nav></header>`;
+  return `<header class="site-header"><a class="brand" href="/">TenderCrest AI</a><nav aria-label="Site" class="site-nav">${navLinks()}${actions()}</nav><script type="module" src="/assets/site-session.mjs"></script></header>`;
 }
 export function siteFooter(page) {
   let extra = '';

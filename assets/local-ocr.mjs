@@ -1,3 +1,4 @@
+import {askConfirm} from './in-page-confirm.mjs';
 const $=id=>document.getElementById(id);let active=null,sourceName='recovered-rfp',result='',canceled=false,rejectCancellation=null;
 async function engine(){if(globalThis.Tesseract)return globalThis.Tesseract;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/tesseract.min.js';s.onload=resolve;s.onerror=()=>reject(Error('OCR tools could not load. Check your connection and retry.'));document.head.append(s);});return globalThis.Tesseract;}
 $('ocr-form').onsubmit=async event=>{event.preventDefault();const file=$('ocr-file').files[0];if(!file||!$('ocr-consent').checked)return;
@@ -11,4 +12,4 @@ $('ocr-form').onsubmit=async event=>{event.preventDefault();const file=$('ocr-fi
  }catch(e){$('ocr-status').textContent=canceled?'OCR canceled or timed out. No file was uploaded.':e.message;}finally{clearTimeout(timer);rejectCancellation=null;if(active)await active.terminate().catch(()=>{});active=null;if(task)await task.destroy().catch(()=>{});$('ocr-run').disabled=false;$('ocr-cancel').disabled=true;}
 };
 $('ocr-cancel').onclick=()=>{canceled=true;rejectCancellation?.(Error('OCR canceled.'));void active?.terminate();$('ocr-status').textContent='Canceling local OCR…';};
-$('ocr-download').onclick=()=>{if(!result||!confirm('Have you compared the recovered text with the original PDF?'))return;const url=URL.createObjectURL(new Blob([result],{type:'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=sourceName+'.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+$('ocr-download').onclick=async()=>{if(!result)return;if(!await askConfirm('Have you compared the recovered text with the original PDF?'))return;const url=URL.createObjectURL(new Blob([result],{type:'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=sourceName+'.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
