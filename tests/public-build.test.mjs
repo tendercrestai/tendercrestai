@@ -50,6 +50,20 @@ test("public build excludes internal source and preserves public module dependen
   assert.ok(files.includes("llms-full.txt"), "llms-full.txt");
   const homepage = await readFile(new URL("dist/index.html", root), "utf8");
   assert.match(homepage, /"@type":"SoftwareApplication"/);
+  // Homepage mobile layout (Nov 25, 2026): hero CTAs wrap into even rows
+  // instead of squeezing five across, the Grants.gov search is a real
+  // layout (label above the input on mobile), and the grant note wraps
+  // cleanly. The film play button sits low and left of centre, clear of
+  // the poster's headline text.
+  assert.match(homepage, /\.hero-actions\s*\{[^}]*flex-wrap:\s*wrap/);
+  assert.match(homepage, /\.hero-actions\s*\.btn\s*\{[^}]*flex:\s*0 1 220px/);
+  assert.match(homepage, /grid-template-columns:\s*1fr 1fr/);
+  assert.match(homepage, /\.grant-search\s*\{[^}]*display:\s*flex/);
+  assert.match(homepage, /\.grant-search\s+input\s*\{[^}]*flex:\s*1 1 240px/);
+  assert.match(homepage, /text-wrap:\s*pretty/);
+  const filmCss = await readFile(new URL("dist/assets/product-film.css", root), "utf8");
+  assert.match(filmCss, /\.film-play\{[^}]*left:44%/);
+  assert.match(filmCss, /\.film-play\{[^}]*bottom:1rem/);
   assert.match(config, /for\s*=\s*"\/.well-known\/oauth-protected-resource"/);
   assert.match(config, /Content-Type\s*=\s*"application\/json"/);
   const hsts = config.match(/Strict-Transport-Security\s*=\s*"([^"]+)"/);

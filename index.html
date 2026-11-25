@@ -195,8 +195,14 @@
       color: var(--slate-600);
     }
 
+    /* Hero CTAs wrap into even rows: the hero column caps at 780px, so five
+       buttons across never fit — at every width they squeezed into narrow,
+       uneven columns. flex-basis 220px gives rows of three then two (two
+       then one on narrow tablets), equal widths per row and stretch-equal
+       heights; the mobile grid below takes over at 720px. */
     .hero-actions {
       display: flex;
+      flex-wrap: wrap;
       justify-content: center;
       gap: 1rem;
       margin: 1.5rem auto;
@@ -233,7 +239,36 @@
     }
 
     .btn:disabled { opacity: .6; cursor: wait; }
-    .hero-actions .btn { width: auto; }
+    .hero-actions .btn { width: auto; flex: 0 1 220px; }
+
+    /* Grants.gov search (Nov 25, 2026): a real layout, not the browser
+       default. Label, input, and button in one row on desktop; stacked
+       with the label above the input on mobile (see the media query). */
+    .grant-search {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: .75rem;
+      max-width: 640px;
+      margin: 1.5rem auto 0;
+    }
+    .grant-search label { font-size: .9rem; font-weight: 700; color: var(--slate-700); white-space: nowrap; }
+    .grant-search input {
+      flex: 1 1 240px;
+      min-width: 0;
+      padding: .75rem 1rem;
+      font: inherit;
+      font-size: 1rem;
+      line-height: 1.4;
+      color: var(--slate-900);
+      background: #fff;
+      border: 1px solid var(--slate-200);
+      border-radius: 8px;
+    }
+    .grant-search .btn { width: auto; flex: none; }
+    .agency-chips { margin: 1rem 0 .5rem; }
+    .grant-hero-note { max-width: 640px; margin: .75rem auto 0; line-height: 1.6; text-wrap: pretty; }
 
     .review-note {
       color: var(--slate-600);
@@ -528,8 +563,13 @@
       .nav-tab-btn { flex: 1; padding: .65rem .3rem; font-size: .75rem; }
       main { padding: 1.5rem 1rem; }
       h1,.page-title { font-size: 1.8rem; }
-      .hero-actions { flex-direction: column; }
-      .hero-actions .btn { width: 100%; }
+      .hero-actions { display: grid; grid-template-columns: 1fr 1fr; }
+      .hero-actions .btn { width: 100%; flex: none; min-height: 3rem; padding: .75rem .75rem; font-size: .9rem; }
+      .hero-actions .btn:last-child { grid-column: 1 / -1; }
+      .grant-search { flex-direction: column; align-items: stretch; }
+      .grant-search label { text-align: left; }
+      .grant-search input { flex: none; width: 100%; }
+      .grant-search .btn { width: 100%; }
       .pricing-grid { grid-template-columns: minmax(0,1fr); }
       .portal-box,.workflow { padding: 1.25rem; }
       .portal-top-bar { flex-direction: column; }
