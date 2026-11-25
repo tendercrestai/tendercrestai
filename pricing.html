@@ -83,7 +83,7 @@
 <li>English and Spanish drafting</li>
 <li>Compliance-matrix export (DOCX, PDF, CSV, Excel)</li>
 </ul>
-<p class="actions"><a class="button grant-cta" href="https://buy.stripe.com/3cI28r3D0aJTfNCfCCdby04" target="_blank" rel="noopener noreferrer">Start 14-day trial</a></p>
+<p class="actions"><a class="button grant-cta" href="https://buy.stripe.com/3cI28r3D0aJTfNCfCCdby04" data-annual-href="https://buy.stripe.com/3cI14n7TgcS130Q3TUdby06" target="_blank" rel="noopener noreferrer">Start 14-day trial</a></p>
 <p>A payment card is required at Stripe checkout.</p>
 </section>
 <section id="grant-plus">
@@ -100,7 +100,7 @@
 <li>Compliance-matrix export (DOCX, PDF, CSV, Excel)</li>
 </ul>
 <p>Same capabilities as Grant Starter, with more grants per month. Budget table and narrative, AI-use disclosure note, and plain-English eligibility check are included on every grant plan.</p>
-<p class="actions"><a class="button grant-cta" href="https://buy.stripe.com/7sY28r5L8dW544U1LMdby05" target="_blank" rel="noopener noreferrer">Start 14-day trial</a></p>
+<p class="actions"><a class="button grant-cta" href="https://buy.stripe.com/7sY28r5L8dW544U1LMdby05" data-annual-href="https://buy.stripe.com/dRm3cv0qO2dneJyeyydby07" target="_blank" rel="noopener noreferrer">Start 14-day trial</a></p>
 <p>A payment card is required at Stripe checkout.</p>
 </section>
 <section id="grant-pro">
@@ -116,7 +116,7 @@
 <li>Compliance-matrix export (DOCX, PDF, CSV, Excel)</li>
 </ul>
 <p>Same capabilities as Grant Starter, with more grants per month. Use the consultant workspace to switch between separate client organizations.</p>
-<p class="actions"><a class="button grant-cta" href="https://buy.stripe.com/8x2fZh0qOf09fNCcqqdby03" target="_blank" rel="noopener noreferrer">Start 14-day trial</a></p>
+<p class="actions"><a class="button grant-cta" href="https://buy.stripe.com/8x2fZh0qOf09fNCcqqdby03" data-annual-href="https://buy.stripe.com/8x228r6PcaJTbxmbmmdby08" target="_blank" rel="noopener noreferrer">Start 14-day trial</a></p>
 <p>A payment card is required at Stripe checkout.</p>
 </section>
 <p>Cancel before the 14 days end and nothing is charged. Manage cancellation through the Billing Portal.</p>
@@ -195,7 +195,7 @@
 <p>Refer a customer and earn 20% of their first 12 payments. <a href="/affiliates">Become a partner →</a></p>
 </main>
 <!-- @site-footer -->
-<script type="module">import {loadAuthConfig} from "/assets/auth-journey.mjs";const routes={'https://buy.stripe.com/dRm9AT6PcaJT44U622dby00':'pro','https://buy.stripe.com/eVqfZh4H44lv8laaiidby01':'growth','https://buy.stripe.com/14AdR92yW4lvcBq0HIdby02':'enterprise','https://buy.stripe.com/3cI28r3D0aJTfNCfCCdby04':'grant-starter','https://buy.stripe.com/7sY28r5L8dW544U1LMdby05':'grant-plus','https://buy.stripe.com/8x2fZh0qOf09fNCcqqdby03':'grant-pro'};window.__tcRewriteCheckoutLinks=()=>{if(!window.__tcAuthenticatedCheckout)return;for(const link of document.querySelectorAll('a[href^="https://buy.stripe.com/"]'))if(routes[link.href])link.href='/auth.html?next=checkout&plan='+routes[link.href];};loadAuthConfig().then(authConfig=>{window.__tcAuthenticatedCheckout=!!authConfig?.authenticatedCheckout;if(window.__tcAuthenticatedCheckout)window.__tcRewriteCheckoutLinks();}).catch(()=>{});</script>
+<script type="module">import {loadAuthConfig} from "/assets/auth-journey.mjs";const routes={'https://buy.stripe.com/dRm9AT6PcaJT44U622dby00':'pro','https://buy.stripe.com/eVqfZh4H44lv8laaiidby01':'growth','https://buy.stripe.com/14AdR92yW4lvcBq0HIdby02':'enterprise','https://buy.stripe.com/3cI28r3D0aJTfNCfCCdby04':'grant-starter','https://buy.stripe.com/7sY28r5L8dW544U1LMdby05':'grant-plus','https://buy.stripe.com/8x2fZh0qOf09fNCcqqdby03':'grant-pro','https://buy.stripe.com/3cI14n7TgcS130Q3TUdby06':'grant-starter','https://buy.stripe.com/dRm3cv0qO2dneJyeyydby07':'grant-plus','https://buy.stripe.com/8x228r6PcaJTbxmbmmdby08':'grant-pro'};window.__tcRewriteCheckoutLinks=()=>{if(!window.__tcAuthenticatedCheckout)return;for(const link of document.querySelectorAll('a[href^="https://buy.stripe.com/"]'))if(routes[link.href])link.href='/auth.html?next=checkout&plan='+routes[link.href];};loadAuthConfig().then(authConfig=>{window.__tcAuthenticatedCheckout=!!authConfig?.authenticatedCheckout;if(window.__tcAuthenticatedCheckout)window.__tcRewriteCheckoutLinks();}).catch(()=>{});</script>
 <script type="module">const monthly=document.getElementById('grant-monthly'),annual=document.getElementById('grant-annual');if(monthly&&annual){const setMode=mode=>{const isAnnual=mode==='annual';monthly.setAttribute('aria-pressed',String(!isAnnual));annual.setAttribute('aria-pressed',String(isAnnual));for(const el of document.querySelectorAll('.grant-price-num'))el.textContent=el.getAttribute(isAnnual?'data-annual':'data-monthly');for(const el of document.querySelectorAll('.grant-price-period'))el.textContent=el.getAttribute(isAnnual?'data-annual':'data-monthly');document.getElementById('grant-annual-note').hidden=!isAnnual;for(const a of document.querySelectorAll('.grant-cta')){if(isAnnual){a.dataset.monthlyHref=a.getAttribute('href');const annualHref=a.getAttribute('data-annual-href');if(annualHref){a.setAttribute('href',annualHref);a.textContent='Start 14-day trial';a.removeAttribute('aria-disabled');}else{a.removeAttribute('href');a.textContent='Annual billing coming soon';a.setAttribute('aria-disabled','true');}}else{if(a.dataset.monthlyHref)a.setAttribute('href',a.dataset.monthlyHref);a.textContent='Start 14-day trial';a.removeAttribute('aria-disabled');}}if(!isAnnual&&window.__tcRewriteCheckoutLinks)window.__tcRewriteCheckoutLinks();};monthly.addEventListener('click',()=>setMode('monthly'));annual.addEventListener('click',()=>setMode('annual'));}</script>
 </body>
 </html>
