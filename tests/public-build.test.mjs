@@ -39,6 +39,11 @@ test("public build excludes internal source and preserves public module dependen
   assert.equal(protectedResource.resource, "https://www.tendercrestai.com/mcp");
   assert.deepEqual(protectedResource.authorization_servers, ["https://www.tendercrestai.com"]);
   assert.deepEqual(protectedResource.scopes_supported, ["mcp:read"]);
+  // OpenAI apps domain challenge (Nov 25, 2026): the token file is published
+  // verbatim at /.well-known/openai-apps-challenge, plain text, no redirect.
+  assert.ok(files.includes(".well-known/openai-apps-challenge"), ".well-known/openai-apps-challenge");
+  assert.equal(await readFile(new URL("dist/.well-known/openai-apps-challenge", root), "utf8"), "4xWKwVCRKtt8t-8aEvgeO3zrWb0SP4rWGBiYCW8dm2Y");
+  assert.match(config, /for\s*=\s*"\/\.well-known\/openai-apps-challenge"/);
   // llms.txt files for AI search and citation (Nov 20, 2026): plain .txt, so
   // the no-.json rule above still holds and no Content-Type header is needed.
   assert.ok(files.includes("llms.txt"), "llms.txt");

@@ -73,6 +73,14 @@
   [headers.values]
     Content-Type = "text/plain"
 
+# OpenAI apps domain challenge is an extensionless static file (see
+# scripts/build-site.mjs), so its Content-Type is set explicitly here.
+# OpenAI requires plain text, no redirect; the token is the file's only content.
+[[headers]]
+  for = "/.well-known/openai-apps-challenge"
+  [headers.values]
+    Content-Type = "text/plain"
+
 # Search Console change of address (Nov 13, 2026): the old Netlify subdomain must
 # 301-redirect to the custom domain, or Google refuses the move. Placed first so it
 # wins over the path-only rewrites below. Deploy previews use a different host
