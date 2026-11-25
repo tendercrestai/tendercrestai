@@ -71,6 +71,7 @@ globalThis.prompt = () => { throw new Error("native prompt called"); };
 globalThis.alert = () => { throw new Error("native alert called"); };
 
 let assigned = null;
+let failCheckout = false;
 globalThis.location = { assign: (url) => { assigned = url; } };
 globalThis.fetch = async (url) => {
   if (String(url).includes("/auth-config")) {
@@ -80,6 +81,7 @@ globalThis.fetch = async (url) => {
     return { ok: false, json: async () => ({}) };
   }
   if (String(url).includes("/customer-care")) {
+    if (failCheckout) return { ok: false, json: async () => ({ error: "Invalid knowledge request." }) };
     return { ok: true, json: async () => ({ url: "https://checkout.stripe.com/pay/cs_test_grant_starter" }) };
   }
   throw new Error("unexpected fetch: " + url);
@@ -130,4 +132,42 @@ test("every plan button uses the in-page confirm, not a native dialog", async ()
     assert.ok(button, plan + " checkout button renders");
   }
   assert.equal(body.children.length, 0, "no dialog is open before any click");
+});
+
+function findAlert(root) {
+  const walk = (node) => {
+    for (const c of node.children) {
+      if (c.attributes.role === "alert") return c;
+      const found = walk(c);
+      if (found) return found;
+    }
+    return null;
+  };
+  return walk(root);
+}
+
+test("a failed checkout shows the server error next to the plan buttons and leaves the button usable", async () => {
+  // Nov 25, 2026: 11 checkout attempts failed with 'Invalid knowledge
+  // request.' (the grant plans were rejected by the checkout database
+  // function) and the failure landed only in the shared status line at the
+  // top of the hub, far from the buttons — nothing near the buttons said so.
+  // The error must now appear in the checkout section itself.
+  failCheckout = true;
+  try {
+    const container = await openHub();
+    const planButton = findButton(container, "Continue to grant-starter checkout");
+    assert.ok(planButton, "grant-starter checkout button renders");
+    const clicked = planButton.onclick();
+    const confirmButton = findButton(body, "Continue to Stripe");
+    assert.ok(confirmButton, "in-page confirm appears");
+    confirmButton.onclick();
+    await clicked;
+    assert.equal(assigned, null, "no redirect after a failed checkout");
+    assert.equal(planButton.disabled, false, "plan button is usable again after a failed checkout");
+    const alert = findAlert(container);
+    assert.ok(alert, "checkout error line renders in the checkout section");
+    assert.match(alert.textContent, /Checkout failed: Invalid knowledge request\./);
+  } finally {
+    failCheckout = false;
+  }
 });
