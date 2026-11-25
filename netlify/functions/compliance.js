@@ -120,7 +120,7 @@ function createHandler(adapters = {}) {
       });
       if (!claimed.done) {
         let output;
-        try { output = await (adapters.analyzeChunk || analyzeChunk)(claimed.chunk, claimed.documents); }
+        try { output = await (adapters.analyzeChunk || analyzeChunk)(claimed.chunk, claimed.documents, undefined, { grant: payload.grant === true }); }
         catch {
           await rpc(config, token, "rfp_compliance_finish", { p_id: a.id, p_user: user.id, p_lease: lease,
             p_requirements: [], p_facts: [], p_error: "chunk_failed" });

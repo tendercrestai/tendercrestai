@@ -1,5 +1,5 @@
 const { RequestError } = require('./rfp-security');
-const QUOTAS = { 'Pro ($299/mo)': 5, 'Growth ($699/mo)': 20, 'Enterprise ($1,299/mo)': 60 };
+const QUOTAS = { 'Pro ($299/mo)': 5, 'Growth ($699/mo)': 20, 'Enterprise ($1,299/mo)': 60, 'Grant Starter ($19/mo)': 1, 'Grant Plus ($49/mo)': 5, 'Grant Pro ($99/mo)': 15 };
 const FAILED = new Set(['Failed', 'Quota Exceeded']);
 
 function monthlyPeriod(createdTime, now = Date.now()) {

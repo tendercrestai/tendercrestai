@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Pricing | TenderCrest AI</title>
-<meta name="description" content="Pro $299, Growth $699, and Enterprise $1,299 per month, each with a 14-day free trial. Plans are billed by proposal volume, not per seat.">
+<meta name="description" content="Pro $299, Growth $699, and Enterprise $1,299 per month, each with a 14-day free trial. Grant plans from $19 a month: 1, 5 or 15 grant proposals. Plans are billed by proposal volume, not per seat.">
 <link rel="canonical" href="https://www.tendercrestai.com/pricing">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Pricing | TenderCrest AI">
-<meta property="og:description" content="Pro $299, Growth $699, and Enterprise $1,299 per month, each with a 14-day free trial. Plans are billed by proposal volume, not per seat.">
+<meta property="og:description" content="Pro $299, Growth $699, and Enterprise $1,299 per month, each with a 14-day free trial. Grant plans from $19 a month: 1, 5 or 15 grant proposals. Plans are billed by proposal volume, not per seat.">
 <meta property="og:url" content="https://www.tendercrestai.com/pricing">
 <meta property="og:image" content="https://www.tendercrestai.com/assets/social/og-default.png">
 <meta property="og:image:width" content="1200">
@@ -17,7 +17,7 @@
 <meta name="twitter:image" content="https://www.tendercrestai.com/assets/social/og-default.png">
 <link rel="stylesheet" href="/assets/public-pages.css">
 <link rel="stylesheet" href="/assets/free-tools.css">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What does the 14-day trial include?","acceptedAnswer":{"@type":"Answer","text":"Your trial includes up to 5 proposals on Pro, 20 on Growth, or 60 on Enterprise across the entire 14-day period. It does not reset during the trial. A payment card is required at Stripe checkout. Unless you cancel before the trial ends, your selected plan automatically starts billing at the monthly price."}},{"@type":"Question","name":"Are plans billed per seat?","acceptedAnswer":{"@type":"Answer","text":"No. Plans are billed by proposal volume, not per seat. Pro, Growth and Enterprise include monthly allowances of 5, 20 and 60 submissions to the existing emailed AI-draft service. Workspace section editing and saved-package exports do not deduct those credits."}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What does the 14-day trial include?","acceptedAnswer":{"@type":"Answer","text":"Your trial includes up to 5 proposals on Pro, 20 on Growth, or 60 on Enterprise across the entire 14-day period. Grant trials include 1 grant proposal on Grant Starter, 5 on Grant Plus, or 15 on Grant Pro. It does not reset during the trial. A payment card is required at Stripe checkout. Unless you cancel before the trial ends, your selected plan automatically starts billing at the monthly price."}},{"@type":"Question","name":"Are plans billed per seat?","acceptedAnswer":{"@type":"Answer","text":"No. Plans are billed by proposal volume, not per seat. Pro, Growth and Enterprise include monthly allowances of 5, 20 and 60 submissions to the existing emailed AI-draft service. Grant Starter, Grant Plus and Grant Pro include monthly allowances of 1, 5 and 15 grant proposals. Workspace section editing and saved-package exports do not deduct those credits."}},{"@type":"Question","name":"What counts as a grant proposal?","acceptedAnswer":{"@type":"Answer","text":"One grant proposal is one submission to the emailed AI-draft service for one funding opportunity (NOFO). Workspace editing and saved-package exports do not use grant credits."}},{"@type":"Question","name":"Can I hold a grant plan and an RFP plan at the same time?","acceptedAnswer":{"@type":"Answer","text":"Not in this release. A customer holds either a grant plan or an RFP plan. Grant plans are standalone: Grant Starter $19, Grant Plus $49, Grant Pro $99 per month."}},{"@type":"Question","name":"Do you train AI on my documents?","acceptedAnswer":{"@type":"Answer","text":"No. Your customer data is not used to train models. Your evidence and drafts stay in your account and are not used to train a shared model. See the Terms and Security pages for data handling."}},{"@type":"Question","name":"Can I get an invoice or pay by purchase order?","acceptedAnswer":{"@type":"Answer","text":"Stripe receipts and invoices are available through the Billing Portal. If your organization needs a purchase order, contact us before checkout and we will confirm what is possible."}},{"@type":"Question","name":"What happens to my drafts if I cancel?","acceptedAnswer":{"@type":"Answer","text":"Canceling stops new grant submissions when the billing period ends. Your saved projects are not deleted by canceling; delete a project explicitly from the workspace if you need it gone. Manage cancellation through the Billing Portal."}}]}</script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -25,7 +25,7 @@
 <main id="main">
 <p class="eyebrow">PRICING</p>
 <h1>Pricing</h1>
-<p class="intro">Pro $299, Growth $699, and Enterprise $1,299 per month, billed monthly. Every plan starts with a 14-day free trial; a payment card is required at checkout. Prices are in USD per month; applicable taxes and currency conversion are shown at checkout.</p>
+<p class="intro">Pro $299, Growth $699, and Enterprise $1,299 per month, billed monthly. Every plan starts with a 14-day free trial; a payment card is required at checkout. Prices are in USD per month; applicable taxes and currency conversion are shown at checkout. Grant plans start at $19 a month for 1 grant proposal; see Grants below.</p>
 <section id="pro">
 <h2>Pro — $299/month</h2>
 <p>Ideal for boutique consultancies, agencies, and specialized contractors bidding on focused RFPs.</p>
@@ -66,6 +66,85 @@
 <p class="actions"><a class="button" href="https://buy.stripe.com/14AdR92yW4lvcBq0HIdby02" target="_blank" rel="noopener noreferrer">Start 14-day free trial</a></p>
 <p>No card? Try the <a href="/demo.html">interactive demo</a> or the <a href="/tools/shredder">free shredder</a> first →</p>
 </section>
+<section id="grants">
+<h2>Grants for nonprofits, small contractors, and grant writers</h2>
+<p>Grant Mode shreds a funding opportunity (NOFO) into a requirements checklist, checks every claim against your evidence, drafts in English or Spanish, and exports the compliance matrix. One number per plan: grants per month. Every plan includes the same capabilities; only the volume changes.</p>
+<p class="actions" role="group" aria-label="Billing period"><button type="button" id="grant-monthly" aria-pressed="true">Monthly</button> <button type="button" id="grant-annual" aria-pressed="false">Annual: save 17%</button></p>
+<p id="grant-annual-note" hidden>Annual billing is not open yet. The annual prices below are the monthly equivalent at 17% off. Trial checkout today is monthly.</p>
+<section id="grant-starter">
+<h3>Grant Starter</h3>
+<p class="grant-meter"><strong>1 grant</strong> per month</p>
+<p class="grant-price"><span class="grant-price-num" data-monthly="$19" data-annual="$16">$19</span> <span class="grant-price-period" data-monthly="USD / month" data-annual="USD / month, billed annually ($192 per year)">USD / month</span></p>
+<p>For a first grant: one complete NOFO proposal a month.</p>
+<ul>
+<li><strong>1 grant proposal</strong> per month</li>
+<li>NOFO shredding into a requirements checklist</li>
+<li>Evidence check with citations; gaps flagged, never invented</li>
+<li>English and Spanish drafting</li>
+<li>Compliance-matrix export (DOCX, PDF, CSV, Excel)</li>
+</ul>
+<p class="actions"><a class="button grant-cta" href="https://buy.stripe.com/3cI28r3D0aJTfNCfCCdby04" target="_blank" rel="noopener noreferrer">Start 14-day trial</a></p>
+<p>A payment card is required at Stripe checkout.</p>
+</section>
+<section id="grant-plus">
+<h3>Grant Plus</h3>
+<p><span class="badge">Most popular</span></p>
+<p class="grant-meter"><strong>5 grants</strong> per month</p>
+<p class="grant-price"><span class="grant-price-num" data-monthly="$49" data-annual="$41">$49</span> <span class="grant-price-period" data-monthly="USD / month" data-annual="USD / month, billed annually ($492 per year)">USD / month</span></p>
+<p>For small nonprofits and grant writers with several live proposals.</p>
+<ul>
+<li><strong>5 grant proposals</strong> per month</li>
+<li>NOFO shredding into a requirements checklist</li>
+<li>Evidence check with citations; gaps flagged, never invented</li>
+<li>English and Spanish drafting</li>
+<li>Compliance-matrix export (DOCX, PDF, CSV, Excel)</li>
+</ul>
+<p>Same capabilities as Grant Starter, with more grants per month. Budget table and narrative, AI-use disclosure note, and plain-English eligibility check are included on every grant plan.</p>
+<p class="actions"><a class="button grant-cta" href="https://buy.stripe.com/7sY28r5L8dW544U1LMdby05" target="_blank" rel="noopener noreferrer">Start 14-day trial</a></p>
+<p>A payment card is required at Stripe checkout.</p>
+</section>
+<section id="grant-pro">
+<h3>Grant Pro</h3>
+<p class="grant-meter"><strong>15 grants</strong> per month</p>
+<p class="grant-price"><span class="grant-price-num" data-monthly="$99" data-annual="$82">$99</span> <span class="grant-price-period" data-monthly="USD / month" data-annual="USD / month, billed annually ($984 per year)">USD / month</span></p>
+<p>For consultants and teams running many grants at once.</p>
+<ul>
+<li><strong>15 grant proposals</strong> per month</li>
+<li>NOFO shredding into a requirements checklist</li>
+<li>Evidence check with citations; gaps flagged, never invented</li>
+<li>English and Spanish drafting</li>
+<li>Compliance-matrix export (DOCX, PDF, CSV, Excel)</li>
+</ul>
+<p>Same capabilities as Grant Starter, with more grants per month. Use the consultant workspace to switch between separate client organizations.</p>
+<p class="actions"><a class="button grant-cta" href="https://buy.stripe.com/8x2fZh0qOf09fNCcqqdby03" target="_blank" rel="noopener noreferrer">Start 14-day trial</a></p>
+<p>A payment card is required at Stripe checkout.</p>
+</section>
+<p>Cancel before the 14 days end and nothing is charged. Manage cancellation through the Billing Portal.</p>
+<p>Not ready to pay? Browse the <a href="/opportunities/grants">Grants.gov feed</a> free and shred a NOFO free with the <a href="/tools/shredder">free shredder</a>. No signup, no card.</p>
+<section aria-labelledby="compare-grants-title">
+<h2 id="compare-grants-title">Compare grant plans</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Feature</th><th>Grant Starter ($19/month)</th><th>Grant Plus ($49/month)</th><th>Grant Pro ($99/month)</th></tr></thead>
+<tbody>
+<tr><td>Grant proposals per month</td><td>1</td><td>5</td><td>15</td></tr>
+<tr><td>NOFO shredding</td><td>Included</td><td>Included</td><td>Included</td></tr>
+<tr><td>Evidence check with citations</td><td>Included</td><td>Included</td><td>Included</td></tr>
+<tr><td>English and Spanish drafting</td><td>Included</td><td>Included</td><td>Included</td></tr>
+<tr><td>Compliance-matrix export</td><td>Included</td><td>Included</td><td>Included</td></tr>
+<tr><td>Budget table and narrative</td><td>Included</td><td>Included</td><td>Included</td></tr>
+<tr><td>AI-use disclosure note</td><td>Included</td><td>Included</td><td>Included</td></tr>
+<tr><td>Grants.gov feed access</td><td>Free for everyone</td><td>Free for everyone</td><td>Free for everyone</td></tr>
+</tbody>
+</table>
+</div>
+<p>Workspace section editing and saved-package exports do not use grant credits on any plan.</p>
+</section>
+<section>
+<h2>What grant support actually costs</h2>
+<p>Hiring a grant writer commonly costs $5,000–$15,000 per proposal and takes 4–8 weeks (Granted AI pricing page, November 2026). Grant-writing tools commonly charge $29–$150 a month (Granted AI $29–$89, Grantable $50–$150, November 2026), and discovery-only tools start at $299 a month. TenderCrest Grant Mode starts at $19 a month for one complete grant proposal, with NOFO shredding, evidence checking, English and Spanish drafting, and the compliance matrix included. No award is guaranteed.</p>
+</section>
+</section>
 <section aria-labelledby="compare-plans-title">
 <h2 id="compare-plans-title">Compare plans</h2>
 <div class="table-wrap">
@@ -88,23 +167,35 @@
 <section>
 <h2>Try your selected plan free for 14 days</h2>
 <p>A payment card is required at Stripe checkout. Use the same email address you use to sign in to TenderCrest AI. Unless you cancel before the trial ends, your selected plan automatically starts billing at the monthly price shown above. Manage cancellation through the Billing Portal.</p>
-<p>Your trial includes up to <strong>5 proposals on Pro, 20 on Growth, or 60 on Enterprise</strong> across the entire 14-day period. It does not reset during the trial. Monthly allowances start with the paid billing period after a successful payment.</p>
+<p>Your trial includes up to <strong>5 proposals on Pro, 20 on Growth, or 60 on Enterprise</strong> across the entire 14-day period. Grant trials include up to <strong>1 grant on Grant Starter, 5 on Grant Plus, or 15 on Grant Pro</strong>. It does not reset during the trial. Monthly allowances start with the paid billing period after a successful payment.</p>
 <p>Existing legacy free trials keep their original expiry and do not automatically become paid subscriptions.</p>
 </section>
 <section>
 <h2>What uses a proposal credit?</h2>
 <p>A submission to the existing emailed AI-draft service uses its plan or trial allowance. The paid plans retain their 5, 20 and 60 monthly proposal allowances. Editing a workspace section or exporting a saved workspace package does not deduct those credits.</p>
+<p>One grant proposal is one submission to the emailed AI-draft service for one funding opportunity. Grant Starter, Grant Plus and Grant Pro include 1, 5 and 15 grant proposals a month. Workspace editing and saved-package exports do not use grant credits.</p>
 </section>
 <section aria-labelledby="faq-heading">
 <h2 id="faq-heading">Questions about pricing</h2>
 <h3>What does the 14-day trial include?</h3>
-<p>Your trial includes up to 5 proposals on Pro, 20 on Growth, or 60 on Enterprise across the entire 14-day period. It does not reset during the trial. A payment card is required at Stripe checkout. Unless you cancel before the trial ends, your selected plan automatically starts billing at the monthly price.</p>
+<p>Your trial includes up to 5 proposals on Pro, 20 on Growth, or 60 on Enterprise across the entire 14-day period. Grant trials include 1 grant proposal on Grant Starter, 5 on Grant Plus, or 15 on Grant Pro. It does not reset during the trial. A payment card is required at Stripe checkout. Unless you cancel before the trial ends, your selected plan automatically starts billing at the monthly price.</p>
 <h3>Are plans billed per seat?</h3>
-<p>No. Plans are billed by proposal volume, not per seat. Pro, Growth and Enterprise include monthly allowances of 5, 20 and 60 submissions to the existing emailed AI-draft service. Workspace section editing and saved-package exports do not deduct those credits.</p>
+<p>No. Plans are billed by proposal volume, not per seat. Pro, Growth and Enterprise include monthly allowances of 5, 20 and 60 submissions to the existing emailed AI-draft service. Grant Starter, Grant Plus and Grant Pro include monthly allowances of 1, 5 and 15 grant proposals. Workspace section editing and saved-package exports do not deduct those credits.</p>
+<h3>What counts as a grant proposal?</h3>
+<p>One grant proposal is one submission to the emailed AI-draft service for one funding opportunity (NOFO). Workspace editing and saved-package exports do not use grant credits.</p>
+<h3>Can I hold a grant plan and an RFP plan at the same time?</h3>
+<p>Not in this release. A customer holds either a grant plan or an RFP plan. Grant plans are standalone: Grant Starter $19, Grant Plus $49, Grant Pro $99 per month.</p>
+<h3>Do you train AI on my documents?</h3>
+<p>No. Your customer data is not used to train models. Your evidence and drafts stay in your account and are not used to train a shared model. See the <a href="/terms.html">Terms</a> and <a href="/security.html">Security</a> pages for data handling.</p>
+<h3>Can I get an invoice or pay by purchase order?</h3>
+<p>Stripe receipts and invoices are available through the Billing Portal. If your organization needs a purchase order, <a href="/contact.html">contact us</a> before checkout and we will confirm what is possible.</p>
+<h3>What happens to my drafts if I cancel?</h3>
+<p>Canceling stops new grant submissions when the billing period ends. Your saved projects are not deleted by canceling; delete a project explicitly from the workspace if you need it gone. Manage cancellation through the Billing Portal.</p>
 </section>
 <p>Refer a customer and earn 20% of their first 12 payments. <a href="/affiliates">Become a partner →</a></p>
 </main>
 <!-- @site-footer -->
-<script type="module">import {loadAuthConfig} from "/assets/auth-journey.mjs";loadAuthConfig().then(authConfig=>{if(authConfig?.authenticatedCheckout){const routes={'https://buy.stripe.com/dRm9AT6PcaJT44U622dby00':'pro','https://buy.stripe.com/eVqfZh4H44lv8laaiidby01':'growth','https://buy.stripe.com/14AdR92yW4lvcBq0HIdby02':'enterprise'};for(const link of document.querySelectorAll('a[href^="https://buy.stripe.com/"]'))if(routes[link.href])link.href='/auth.html?next=checkout&plan='+routes[link.href];}}).catch(()=>{});</script>
+<script type="module">import {loadAuthConfig} from "/assets/auth-journey.mjs";const routes={'https://buy.stripe.com/dRm9AT6PcaJT44U622dby00':'pro','https://buy.stripe.com/eVqfZh4H44lv8laaiidby01':'growth','https://buy.stripe.com/14AdR92yW4lvcBq0HIdby02':'enterprise','https://buy.stripe.com/3cI28r3D0aJTfNCfCCdby04':'grant-starter','https://buy.stripe.com/7sY28r5L8dW544U1LMdby05':'grant-plus','https://buy.stripe.com/8x2fZh0qOf09fNCcqqdby03':'grant-pro'};window.__tcRewriteCheckoutLinks=()=>{if(!window.__tcAuthenticatedCheckout)return;for(const link of document.querySelectorAll('a[href^="https://buy.stripe.com/"]'))if(routes[link.href])link.href='/auth.html?next=checkout&plan='+routes[link.href];};loadAuthConfig().then(authConfig=>{window.__tcAuthenticatedCheckout=!!authConfig?.authenticatedCheckout;if(window.__tcAuthenticatedCheckout)window.__tcRewriteCheckoutLinks();}).catch(()=>{});</script>
+<script type="module">const monthly=document.getElementById('grant-monthly'),annual=document.getElementById('grant-annual');if(monthly&&annual){const setMode=mode=>{const isAnnual=mode==='annual';monthly.setAttribute('aria-pressed',String(!isAnnual));annual.setAttribute('aria-pressed',String(isAnnual));for(const el of document.querySelectorAll('.grant-price-num'))el.textContent=el.getAttribute(isAnnual?'data-annual':'data-monthly');for(const el of document.querySelectorAll('.grant-price-period'))el.textContent=el.getAttribute(isAnnual?'data-annual':'data-monthly');document.getElementById('grant-annual-note').hidden=!isAnnual;for(const a of document.querySelectorAll('.grant-cta')){if(isAnnual){a.dataset.monthlyHref=a.getAttribute('href');a.removeAttribute('href');a.textContent='Annual billing coming soon';a.setAttribute('aria-disabled','true');}else{if(a.dataset.monthlyHref)a.setAttribute('href',a.dataset.monthlyHref);a.textContent='Start 14-day trial';a.removeAttribute('aria-disabled');}}if(!isAnnual&&window.__tcRewriteCheckoutLinks)window.__tcRewriteCheckoutLinks();};monthly.addEventListener('click',()=>setMode('monthly'));annual.addEventListener('click',()=>setMode('annual'));}</script>
 </body>
 </html>

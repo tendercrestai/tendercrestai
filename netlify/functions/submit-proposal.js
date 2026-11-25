@@ -96,13 +96,30 @@ function validateRequest(event) {
     });
   }
 
+  // Grant submissions are marked by the caller so the quota path and the
+  // queued row can tell them apart. The Airtable Proposals Pipeline row
+  // carries the marker in its Proposal Sector field
+  // ("Grant / Non-Profit Application"); no new Airtable field is used.
+  const grant = payload.grant;
+  if (grant !== undefined && typeof grant !== "boolean") {
+    return reply(400, {
+      error: "Grant must be true or false when supplied."
+    });
+  }
+  if (grant === true && proposalSector !== "Grant / Non-Profit Application") {
+    return reply(400, {
+      error: "Grant submissions use the Grant / Non-Profit Application proposal type."
+    });
+  }
+
   return {
     proposalName,
     cleanEmail,
     rfpText,
     orgName,
     proposalSector,
-    qualifications
+    qualifications,
+    grant: grant === true
   };
 }
 

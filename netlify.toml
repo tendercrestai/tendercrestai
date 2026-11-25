@@ -114,6 +114,24 @@
   force = true
 
 [[redirects]]
+  from = "/compare/grantable"
+  to = "/compare-grantable.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/compare/granted-ai"
+  to = "/compare-granted-ai.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/compare/grantparty"
+  to = "/compare-grantparty.html"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/compare"
   to = "/compare.html"
   status = 200

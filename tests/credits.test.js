@@ -50,3 +50,11 @@ test('a linked Stripe trial never falls back to the legacy Enterprise allowance 
   const company={fields:{Status:'Trialing','Stripe Subscription ID':'sub_trial','Billing Period Start':'2026-10-01','Billing Period End':'2026-10-15','Subscription Tier':'Unknown'}};
   assert.throws(()=>entitlement(company,Date.parse('2026-10-02')),e=>e.status===503);
 });
+test('grant tiers resolve to their 1/5/15 allowances for active accounts and linked Stripe trials', () => {
+  for (const [tier, quota] of [['Grant Starter ($19/mo)', 1], ['Grant Plus ($49/mo)', 5], ['Grant Pro ($99/mo)', 15]]) {
+    const active = { createdTime: '2026-10-01T00:00:00Z', fields: { Status: 'Active', 'Stripe Subscription ID': 'sub_paid', 'Subscription Tier': tier, 'Billing Period Start': '2026-10-01T00:00:00Z', 'Billing Period End': '2026-11-01T00:00:00Z' } };
+    assert.equal(entitlement(active, Date.parse('2026-10-15T00:00:00Z')).quota, quota);
+    const trial = { createdTime: '2026-10-01T00:00:00Z', fields: { Status: 'Trialing', 'Stripe Subscription ID': 'sub_trial', 'Subscription Tier': tier, 'Billing Period Start': '2026-10-01T00:00:00Z', 'Billing Period End': '2026-10-15T00:00:00Z' } };
+    assert.equal(entitlement(trial, Date.parse('2026-10-01T00:00:00Z')).quota, quota);
+  }
+});

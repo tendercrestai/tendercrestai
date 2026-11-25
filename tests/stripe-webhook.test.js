@@ -114,3 +114,23 @@ test('a zero-dollar trial invoice is not recorded as a paid billing date', async
   assert.equal((await handler(event('customer.subscription.created',{id:'sub_current'}))).statusCode,200);
   assert.ok(!('Last Billing Date' in writes[0].records[0].fields));
 });
+test('a live grant price maps to its grant tier and amount', async () => {
+  sub.items.data[0].price = { id: 'price_1UfZQtFinOspVJZ4VRoOq73B' };
+  assert.equal((await handler(event())).statusCode, 200);
+  const fields = writes[0].records[0].fields;
+  assert.equal(fields['Subscription Tier'], 'Grant Plus ($49/mo)');
+  assert.equal(fields['Amount Paid'], 4900);
+});
+test('a test-mode grant subscription maps through the test plan and its test price', async () => {
+  Object.assign(process.env, { CUSTOMER_CARE_TEST_MODE: 'true', SUPABASE_URL: 'https://wcrrywzleylmdsqqlise.supabase.co', STRIPE_TEST_WEBHOOK_SECRET: 'whsec_test_fixture', STRIPE_TEST_KEY: 'sk_test_fixture', AIRTABLE_TEST_PAT: 'test-pat' });
+  sub.livemode = false;
+  sub.metadata = { tendercrest_test: 'true', tendercrest_plan: 'grant-plus' };
+  sub.items.data[0].price = { id: 'price_1UfZWUFinOspVJZ4s2NTyjrK', unit_amount: 4900, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } };
+  const body = JSON.stringify({ type: 'invoice.paid', livemode: false, data: { object: { parent: { subscription_details: { subscription: 'sub_current' } } } } });
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const signature = createHmac('sha256', process.env.STRIPE_TEST_WEBHOOK_SECRET).update(timestamp + '.' + body).digest('hex');
+  assert.equal((await handler({ httpMethod: 'POST', body, headers: { 'stripe-signature': 't=' + timestamp + ',v1=' + signature } })).statusCode, 200);
+  const fields = writes[0].records[0].fields;
+  assert.equal(fields['Subscription Tier'], 'Grant Plus ($49/mo)');
+  assert.equal(fields['Amount Paid'], 4900);
+});

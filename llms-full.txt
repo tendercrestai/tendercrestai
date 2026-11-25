@@ -2,13 +2,14 @@
 
 > TenderCrest AI helps proposal teams answer RFPs from evidence they already trust. It shreds a solicitation into a numbered requirement list, maps approved company evidence to each requirement, builds a compliance matrix, and drafts a proposal for human review. Every claim in a draft traces back to evidence a person approved, and every requirement is checked before the proposal goes out. Exports to DOCX and PDF.
 
-TenderCrest AI is a B2B SaaS founded in October 2026, headquartered in Seattle, Washington. It serves consultancies, agencies, government contractors, and capture teams that respond to government and commercial RFPs. It uses its own AI pipeline, built specifically for proposal work, with leading language models doing the extraction and people doing the review.
+TenderCrest AI is a B2B SaaS founded in October 2026, headquartered in Seattle, Washington. It serves consultancies, agencies, government contractors, and capture teams that respond to government and commercial RFPs, and nonprofits, small contractors, and grant writers that apply for grants. It uses its own AI pipeline, built specifically for proposal work, with leading language models doing the extraction and people doing the review.
 
 ## Product
 
 - [TenderCrest AI](https://www.tendercrestai.com/): Evidence-backed RFP and proposal software.
 - [Product](https://www.tendercrestai.com/product.html): How the workflow works, from shredding to a reviewed proposal package.
-- [Pricing](https://www.tendercrestai.com/pricing): Pro $299/month (5 proposals), Growth $699/month (20 proposals), Enterprise $1,299/month (60 proposals). Plans are billed by proposal volume, not per seat. Month-to-month, 14-day trial (card required, Stripe).
+- [Pricing](https://www.tendercrestai.com/pricing): Pro $299/month (5 proposals), Growth $699/month (20 proposals), Enterprise $1,299/month (60 proposals). Plans are billed by proposal volume, not per seat. Month-to-month, 14-day trial (card required, Stripe). Grant plans: Grant Starter $19/month (1 grant), Grant Plus $49/month (5 grants), Grant Pro $99/month (15 grants), each with a 14-day trial.
+- [Grant Mode](https://www.tendercrestai.com/pricing#grants): NOFO shredding into a requirements checklist, evidence checking with citations, English and Spanish drafting, and compliance-matrix export for grant proposals. Federal grant opportunities: [Grants.gov feed](https://www.tendercrestai.com/opportunities/grants).
 - [Interactive demo](https://www.tendercrestai.com/demo.html): Try the product with no signup.
 - [Security](https://www.tendercrestai.com/security.html): How TenderCrest AI handles your documents and data.
 - [Samples](https://www.tendercrestai.com/samples.html): Example outputs from the shredder and workspace.

@@ -3,7 +3,10 @@ const ROOT = 'https://api.airtable.com/v0/appsaqdp3UZdhB2VH/tbliWnP6ThqA02G5L';
 const PLANS = {
   price_1UJqs7FinOspVJZ4xHjda0xZ: ['Pro ($299/mo)', 29900],
   price_1UJquQFinOspVJZ4MQWPDG5c: ['Growth ($699/mo)', 69900],
-  price_1UJqwTFinOspVJZ4VPhpCVcG: ['Enterprise ($1,299/mo)', 129900]
+  price_1UJqwTFinOspVJZ4VPhpCVcG: ['Enterprise ($1,299/mo)', 129900],
+  price_1UfZQtFinOspVJZ4GAFUfR9E: ['Grant Starter ($19/mo)', 1900],
+  price_1UfZQtFinOspVJZ4VRoOq73B: ['Grant Plus ($49/mo)', 4900],
+  price_1UfZQtFinOspVJZ4xeJ09OEA: ['Grant Pro ($99/mo)', 9900]
 };
 const EVENTS = new Set(['checkout.session.completed', 'checkout.session.async_payment_succeeded', 'customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted', 'customer.subscription.paused', 'customer.subscription.resumed', 'invoice.paid', 'invoice.payment_failed']);
 const response = (statusCode, message) => ({statusCode, headers:{'Content-Type':'application/json','Cache-Control':'no-store'},body:JSON.stringify({message})});
@@ -46,7 +49,7 @@ exports.handler = async event => {
     const customer=await stripe('customers/'+encodeURIComponent(customerId));
     if(customer.deleted || !customer.email) throw new Error('Billing customer requires review');
     const items=sub.items?.data||[];
-    const testPlan=isTest&&sub.metadata?.tendercrest_test==='true'&&{pro:['Pro ($299/mo)',29900],growth:['Growth ($699/mo)',69900],enterprise:['Enterprise ($1,299/mo)',129900]}[sub.metadata?.tendercrest_plan];
+    const testPlan=isTest&&sub.metadata?.tendercrest_test==='true'&&{pro:['Pro ($299/mo)',29900],growth:['Growth ($699/mo)',69900],enterprise:['Enterprise ($1,299/mo)',129900],'grant-starter':['Grant Starter ($19/mo)',1900],'grant-plus':['Grant Plus ($49/mo)',4900],'grant-pro':['Grant Pro ($99/mo)',9900]}[sub.metadata?.tendercrest_plan];
     const testPrice=items[0]?.price;const testPriceValid=testPlan&&testPrice?.currency==='usd'&&testPrice.unit_amount===testPlan[1]&&testPrice.recurring?.interval==='month'&&testPrice.recurring?.interval_count===1;
     const plan=items.length===1 && items[0].quantity===1 && (isTest?(testPriceValid&&testPlan):PLANS[id(items[0].price)]);
     if(!plan) throw new Error('Unsupported price requires review');

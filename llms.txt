@@ -6,7 +6,8 @@
 
 - [TenderCrest AI](https://www.tendercrestai.com/): Evidence-backed RFP and proposal software.
 - [Product](https://www.tendercrestai.com/product.html): How the workflow works, from shredding to a reviewed proposal package.
-- [Pricing](https://www.tendercrestai.com/pricing): Pro $299/month (5 proposals), Growth $699/month (20 proposals), Enterprise $1,299/month (60 proposals). Month-to-month, 14-day trial.
+- [Pricing](https://www.tendercrestai.com/pricing): Pro $299/month (5 proposals), Growth $699/month (20 proposals), Enterprise $1,299/month (60 proposals). Month-to-month, 14-day trial. Grant plans: Grant Starter $19/month (1 grant), Grant Plus $49/month (5 grants), Grant Pro $99/month (15 grants), each with a 14-day trial.
+- [Grant Mode](https://www.tendercrestai.com/pricing#grants): NOFO shredding into a requirements checklist, evidence checking with citations, English and Spanish drafting, and compliance-matrix export for grant proposals. Federal grant opportunities: [Grants.gov feed](https://www.tendercrestai.com/opportunities/grants).
 - [Interactive demo](https://www.tendercrestai.com/demo.html): Try the product with no signup.
 - [Security](https://www.tendercrestai.com/security.html): How TenderCrest AI handles your documents and data.
 

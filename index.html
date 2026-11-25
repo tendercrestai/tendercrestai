@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TenderCrest AI | Evidence-backed Proposals Reviewed Together</title>
-  <meta name="description" content="Review RFP requirements, match approved company evidence, assess bid fit, and collaborate on a proposal package with DOCX, PDF and compliance exports.">
+  <meta name="description" content="Review RFP requirements, match approved company evidence, assess bid fit, and collaborate on a proposal package with DOCX, PDF and compliance exports. Grant Mode shreds NOFOs into checklists and drafts grant proposals from your evidence, from $19 a month.">
   <link rel="canonical" href="https://www.tendercrestai.com/">
   <link rel="stylesheet" href="/assets/product-film.css">
   <meta property="og:type" content="website">
@@ -579,6 +579,14 @@
           <a class="btn btn-outline" href="/tools/shredder">Shred an RFP free — no signup</a>
         </div>
 
+        <form class="grant-search" action="/opportunities/grants" method="get" role="search">
+          <label for="grant-keyword">Search federal grants</label>
+          <input id="grant-keyword" name="keyword" type="search" placeholder="Search federal grants by keyword, e.g. housing, workforce, climate" autocomplete="off">
+          <button class="btn btn-primary" type="submit">Search Grants.gov</button>
+        </form>
+        <p class="agency-chips" aria-label="Sources"><span class="badge-pill">Grants.gov</span> <span class="badge-pill">NOFO</span> <span class="badge-pill">SAM.gov</span></p>
+        <p class="grant-hero-note">Applying for a grant? <a href="/opportunities/grants">Browse the Grants.gov feed free, no account</a>, shred a NOFO free, or <a href="/pricing#grants">see Grant Mode from $19 a month</a>.</p>
+
         <p class="review-note">
           Sign-in and project access are required. You remain responsible for evidence,
           compliance decisions and final submission. No contract award is guaranteed.
@@ -688,6 +696,25 @@
         <p><a href="/product.html">Read the full workflow and its limits</a> · <a href="/security.html">Review data handling and access</a></p>
         <p>The existing emailed AI-draft service is also available separately. Its proposal allowances and the team workspace are explained below.</p>
       </div>
+
+      <div class="workflow" aria-labelledby="chatbot-grant-title">
+        <h2 id="chatbot-grant-title">A generic chatbot vs Grant Mode</h2>
+        <p>A chatbot can rewrite text. Grant Mode is built for a funding opportunity: it shreds the NOFO, checks every claim against your evidence, and exports a package you can submit.</p>
+        <div class="table-wrap">
+        <table>
+          <thead><tr><th></th><th>Generic AI chatbot</th><th>TenderCrest Grant Mode</th></tr></thead>
+          <tbody>
+            <tr><td>Knows the NOFO</td><td>Pastes text; no requirement extraction</td><td>Shreds the NOFO into a numbered requirements checklist</td></tr>
+            <tr><td>Evidence</td><td>May invent qualifications</td><td>Every claim traces to evidence you approved; gaps are flagged, never invented</td></tr>
+            <tr><td>Compliance check</td><td>None</td><td>Compliance matrix shows every requirement covered or missing</td></tr>
+            <tr><td>Drafting</td><td>Generic, English only</td><td>English and Spanish drafting from your evidence</td></tr>
+            <tr><td>Export</td><td>Copy and paste</td><td>DOCX, PDF and compliance matrix (XLSX/CSV)</td></tr>
+            <tr><td>Submission</td><td>None</td><td>Submission guidance and Grants.gov tracking note; TenderCrest does not submit for you</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p><a href="/pricing#grants">See Grant Mode from $19 a month</a> · <a href="/opportunities/grants">Browse the Grants.gov feed free</a></p>
+      </div>
     </section>
 
     <!-- PRICING -->
@@ -705,7 +732,7 @@
       <div class="workflow" id="trial-policy">
         <h2>Try your selected plan free for 14 days</h2>
         <p>A payment card is required at Stripe checkout. Use the same email address you use to sign in to TenderCrest AI. Unless you cancel before the trial ends, your selected plan automatically starts billing at the monthly price shown below. Manage cancellation through the Billing Portal.</p>
-        <p>Your trial includes up to <strong>5 proposals on Pro, 20 on Growth, or 60 on Enterprise</strong> across the entire 14-day period. It does not reset during the trial. Monthly allowances start with the paid billing period after a successful payment.</p>
+        <p>Your trial includes up to <strong>5 proposals on Pro, 20 on Growth, or 60 on Enterprise</strong> across the entire 14-day period. Grant trials include up to <strong>1 grant on Grant Starter, 5 on Grant Plus, or 15 on Grant Pro</strong>. It does not reset during the trial. Monthly allowances start with the paid billing period after a successful payment.</p>
         <p>The standalone free Enterprise offer is no longer available. Existing legacy free trials keep their original expiry and do not automatically become paid subscriptions.</p>
       </div>
       <div class="pricing-grid">
@@ -753,6 +780,22 @@
           </div>
           <p><strong>60 proposals</strong> per month — $21.65 per proposal.</p>
           <p><a href="/pricing#enterprise">See Enterprise plan details &rarr;</a></p>
+        </div>
+
+        <!-- GRANT MODE -->
+        <div class="pricing-card">
+          <div class="card-title">Grant Mode</div>
+          <div class="card-desc">
+            For nonprofits, small contractors, and grant writers applying for
+            grants (NOFOs): NOFO shredding, evidence checking, English and
+            Spanish drafting, and compliance-matrix export.
+          </div>
+          <div class="price-wrap">
+            <span class="price-num">$19</span>
+            <span class="price-period">USD / month</span>
+          </div>
+          <p><strong>1, 5 or 15 grants</strong> per month, from $19, $49 or $99 a month.</p>
+          <p><a href="/pricing#grants">See grant plan details &rarr;</a></p>
         </div>
       </div>
 

@@ -32,3 +32,11 @@ test('formula changes cannot extend trials or grant access to canceled/expired a
  for(const formula of Object.values(formulas))assert.ok(!/NOW\(|DATEADD\(|Billing Period|Quota Status/.test(formula));
  assert.equal(quota({Status:'Canceled','Stripe Subscription ID':'sub_canceled','Subscription Tier':'Pro ($299/mo)'}).quota,5); // display limit only; unchanged Quota Status blocks eligibility.
 });
+test('grant tiers assign their 1/5/15 limits for trials and paid plans, with amount fallback',()=>{
+ for(const [tier,limit] of [['Grant Starter ($19/mo)',1],['Grant Plus ($49/mo)',5],['Grant Pro ($99/mo)',15]]){
+  assert.deepEqual(quota({Status:'Trialing','Stripe Subscription ID':'sub_trial','Subscription Tier':tier,'Amount Paid':0}),{tier,quota:limit});
+  assert.deepEqual(quota({Status:'Active','Stripe Subscription ID':'sub_paid','Subscription Tier':tier,'Amount Paid':0}),{tier,quota:limit});
+  assert.deepEqual(quota({Status:'Trialing','Stripe Subscription ID':'','Subscription Tier':tier,'Amount Paid':0}),{tier:'Enterprise ($1,299/mo)',quota:60});
+ }
+ for(const [amount,tier,limit] of [[1900,'Grant Starter ($19/mo)',1],[4900,'Grant Plus ($49/mo)',5],[9900,'Grant Pro ($99/mo)',15]])assert.deepEqual(quota({Status:'Active','Amount Paid':amount}),{tier,quota:limit});
+});
