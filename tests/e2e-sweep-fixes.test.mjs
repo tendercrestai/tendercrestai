@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {
   createActionQueue, truncate, isNeedsInputOnly, partitionJobs, dedupeDraftJobs,
-  matchEvidenceOutcome, formatWarningReview, checklistCountsLine, formatActivityDate,
+  matchEvidenceOutcome, matchOutcomeSurvivesTabChange, planCardId,
+  knowledgeDocumentStatusText, formatFileSize,
+  formatWarningReview, checklistCountsLine, formatActivityDate,
   shortId, countText, bidFactorLabel, shouldShowTrialCheckout, sourceLineText,
 } from '../assets/ui-helpers.mjs';
 
@@ -80,8 +82,10 @@ test('truncate adds an ellipsis only when the text is actually cut', () => {
 test('pasted-text sources with no section and no page get no source line', () => {
   assert.equal(sourceLineText({}), null);
   assert.equal(sourceLineText({section: null, page: null}), null);
-  assert.equal(sourceLineText({section: 'Section 2', page: null}), 'Section 2 · Page unavailable');
-  assert.equal(sourceLineText({section: null, page: 3}), 'Section unavailable · PDF page 3');
+  // A missing part is omitted, never labelled unavailable: a .txt source
+  // has no PDF page, and a section without a page is still a section.
+  assert.equal(sourceLineText({section: 'Section 2', page: null}), 'Section 2');
+  assert.equal(sourceLineText({section: null, page: 3}), 'PDF page 3');
   assert.equal(sourceLineText({section: 'Section 2', page: 3}), 'Section 2 · PDF page 3');
 });
 
@@ -201,12 +205,18 @@ test('footer settings buttons carry their own small outlined style on every page
 test('sticky status banners are height-capped so they cannot cover content below', async () => {
   // The cap is 96px, not 56px: a one-line message plus padding sat right at
   // the old cap and grew its own nested scrollbar (final E2E sweep #5).
-  // 96px still bounds the banner, and the sticky tabs sit at the same 96px
-  // so a tall banner never overlaps them.
-  for (const file of ['assets/workspace.css', 'assets/knowledge.css', 'assets/compliance.css']) {
+  // Nov 25 full-site review, logged-in #6: the workspace banner is no
+  // longer sticky at all — it was a fixed 96px offset under a variable-
+  // height sticky message, so it overlapped content. The tabs are now the
+  // only sticky bar (top:0), and the message flows in place above them.
+  for (const file of ['assets/knowledge.css', 'assets/compliance.css']) {
     const css = await read(file);
     assert.match(css, /#message\{[^}]*max-height:96px;overflow:auto/, file);
   }
+  const workspaceCss = await read('assets/workspace.css');
+  assert.match(workspaceCss, /#message\{position:static;[^}]*max-height:96px;overflow:auto/, 'workspace.css');
+  assert.match(workspaceCss, /#tabs\{position:sticky;top:0;[^}]*\}/, 'workspace.css');
+  assert.doesNotMatch(workspaceCss, /#tabs\{[^}]*top:96px/, 'workspace.css');
 });
 
 test('free-tool pages load the fictional sample inline instead of linking away', async () => {
@@ -222,4 +232,49 @@ test('build publishes the shared UI helpers the workspace imports', async () => 
   assert.match(build, /"ui-helpers\.mjs"/);
   const workspace = await read('assets/workspace.mjs');
   assert.match(workspace, /from '\.\/ui-helpers\.mjs'/);
+});
+
+// --- Nov 25 full-site review, logged-in #11: current-plan marking ------
+// The plan string comes from the account-usage endpoint, never from
+// client-side guessing. Grant plans are checked first: "Grant Pro" starts
+// with "Pro" too, so a plain prefix match would map it to the RFP Pro card.
+test('planCardId maps the account plan string to a pricing section id', () => {
+  assert.equal(planCardId('Grant Starter ($19/mo)'), 'grant-starter');
+  assert.equal(planCardId('Grant Plus ($49/mo)'), 'grant-plus');
+  assert.equal(planCardId('Grant Pro ($99/mo)'), 'grant-pro');
+  assert.equal(planCardId('Pro ($299/mo)'), 'pro');
+  assert.equal(planCardId('Growth ($699/mo)'), 'growth');
+  assert.equal(planCardId('Enterprise ($1,299/mo)'), 'enterprise');
+  assert.equal(planCardId('Enterprise'), 'enterprise');
+  assert.equal(planCardId('Something else'), null);
+  assert.equal(planCardId(''), null);
+  assert.equal(planCardId(null), null);
+});
+
+// --- Nov 25 full-site review, logged-in #1: match outcome survives -----
+// render() used to clear the match outcome on every tab change, including
+// the switch TO the Evidence tab that the match itself triggered.
+test('the evidence-match outcome survives only the switch to the Evidence tab', () => {
+  assert.equal(matchOutcomeSurvivesTabChange('Evidence'), true);
+  assert.equal(matchOutcomeSurvivesTabChange('Requirements'), false);
+  assert.equal(matchOutcomeSurvivesTabChange('Overview'), false);
+});
+
+// --- Nov 25 full-site review, logged-in #7: failed KB source detail -----
+test('a failed knowledge source explains itself even with no recorded error code', () => {
+  assert.equal(knowledgeDocumentStatusText({status: 'Ready'}), 'Ready');
+  assert.equal(knowledgeDocumentStatusText({status: 'Pending'}), 'Processing');
+  assert.match(knowledgeDocumentStatusText({status: 'Failed'}), /no error detail was recorded/);
+  assert.match(knowledgeDocumentStatusText({status: 'Failed'}), /Process \/ retry/);
+  assert.match(knowledgeDocumentStatusText({status: 'Failed', error_code: 'extraction_failed'}), /could not extract text/);
+  assert.match(knowledgeDocumentStatusText({status: 'Failed', error_code: 'embedding_failed'}), /could not embed/);
+  assert.match(knowledgeDocumentStatusText({status: 'Failed', error_code: 'kb_timeout'}), /kb_timeout/);
+});
+
+test('file sizes render as KB below 1 MB and MB above', () => {
+  assert.equal(formatFileSize(1536), '1.5 KB');
+  assert.equal(formatFileSize(1048576), '1.0 MB');
+  assert.equal(formatFileSize(2560000), '2.4 MB');
+  assert.equal(formatFileSize(null), null);
+  assert.equal(formatFileSize(-1), null);
 });

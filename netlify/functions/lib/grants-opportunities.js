@@ -50,9 +50,48 @@ function money(value) {
  const amount = Number(text.replace(/[$,]/g, ''));
  return Number.isFinite(amount) ? amount : null;
 }
+// Grants.gov titles and agency names arrive with raw HTML entities
+// (&ndash; &mdash; &rsquo; …). The frontend renders them with textContent,
+// so an undecided entity shows literally. Decode the common named
+// entities plus numeric ones; unknown entities are left as-is rather than
+// dropped. Single pass only: a double-encoded "&amp;ndash;" decodes to the
+// literal "&ndash;", never to a dash, so markup can never be smuggled in.
+const NAMED_ENTITIES = {
+ '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&apos;': "'",
+ '&ndash;': '–', '&mdash;': '—', '&rsquo;': '’', '&lsquo;': '‘', '&rdquo;': '”', '&ldquo;': '“',
+ '&hellip;': '…', '&copy;': '©', '&reg;': '®', '&trade;': '™', '&bull;': '•', '&middot;': '·',
+ '&eacute;': 'é', '&egrave;': 'è', '&aacute;': 'á', '&agrave;': 'à', '&iacute;': 'í', '&oacute;': 'ó',
+ '&uacute;': 'ú', '&ntilde;': 'ñ', '&ccedil;': 'ç', '&uuml;': 'ü', '&ouml;': 'ö', '&auml;': 'ä',
+ '&sect;': '§', '&para;': '¶', '&deg;': '°', '&plusmn;': '±', '&times;': '×', '&divide;': '÷',
+ '&frac12;': '½', '&frac14;': '¼', '&frac34;': '¾', '&larr;': '←', '&rarr;': '→', '&harr;': '↔',
+ '&darr;': '↓', '&uarr;': '↑', '&ne;': '≠', '&le;': '≤', '&ge;': '≥', '&infin;': '∞',
+ '&alpha;': 'α', '&beta;': 'β', '&gamma;': 'γ', '&delta;': 'δ', '&pi;': 'π', '&sigma;': 'σ', '&omega;': 'ω',
+};
+function decodeEntities(value) {
+ if (typeof value !== 'string') return value;
+ return value.replace(/&(#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]+);/g, (m, body) => {
+  if (body[0] === '#') {
+   const code = body[1] === 'x' || body[1] === 'X' ? parseInt(body.slice(2), 16) : Number(body.slice(1));
+   return code > 31 && code < 0x110000 ? String.fromCodePoint(code) : '';
+  }
+  const named = NAMED_ENTITIES['&' + body + ';'];
+  return named !== undefined ? named : m;
+ });
+}
+// Word-boundary truncation: never cut a word in half, so long titles end
+// on a whole word. Falls back to a hard cut for one long word. (Mirror of
+// truncateWord in assets/ui-helpers.mjs, which the CommonJS backend
+// cannot import.)
+function truncateWord(value, max) {
+ const text = String(value ?? '');
+ if (text.length <= max) return text;
+ const cut = text.lastIndexOf(' ', max);
+ if (cut <= 0) return text.slice(0, max) + '…';
+ return text.slice(0, cut) + '…';
+}
 function plain(value) {
  if (typeof value !== 'string') return '';
- return value.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, '').replace(/<\/(p|div|li|h[1-6])>/gi, '\n').replace(/<br\s*\/?\s*>/gi, '\n').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'").replace(/&#(\d+);/g, (m, n) => { const c = Number(n); return c > 31 && c < 0x110000 ? String.fromCodePoint(c) : ''; }).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '').trim();
+ return decodeEntities(value.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, '').replace(/<\/(p|div|li|h[1-6])>/gi, '\n').replace(/<br\s*\/?\s*>/gi, '\n').replace(/<[^>]*>/g, ' ')).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '').trim();
 }
 function normalize(hit) {
  if (!hit || typeof hit !== 'object') return null;
@@ -66,7 +105,7 @@ function normalize(hit) {
  const posted = grantDate(hit.openDate);
  if (!posted) return null;
  const agency = typeof hit.agencyName === 'string' && hit.agencyName.trim() ? hit.agencyName.trim() : (typeof hit.agency === 'string' && hit.agency.trim() ? hit.agency.trim() : (typeof hit.agencyCode === 'string' && hit.agencyCode.trim() ? hit.agencyCode.trim() : 'Agency not supplied'));
- return {id, number: number.slice(0, 200), title: hit.title.trim().slice(0, 500), agency: agency.slice(0, 500), posted, deadline: grantDate(hit.closeDate), status, url: DETAIL_PAGE + id, provider: 'grants'};
+ return {id, number: decodeEntities(number).slice(0, 200), title: truncateWord(decodeEntities(hit.title.trim()), 500), agency: truncateWord(decodeEntities(agency), 500), posted, deadline: grantDate(hit.closeDate), status, url: DETAIL_PAGE + id, provider: 'grants'};
 }
 async function cached(c, key, fetcher) {
  const rows = await F.db(c, 'ft_cache?key=eq.' + key + '&expires_at=gt.' + encodeURIComponent(new Date().toISOString()));
@@ -103,7 +142,12 @@ async function search(c, event, p) {
   return {items: d.oppHits.map(normalize).filter(Boolean), total: Number.isSafeInteger(d.hitCount) ? d.hitCount : null, checkedAt: new Date().toISOString()};
  });
  const today = new Date().toISOString().slice(0, 10);
- const open = data.items.filter(x => !x.deadline || x.deadline >= today);
+ const yearAgo = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
+ // Grants.gov sometimes returns records with no close date that were
+ // posted years ago; the feed showed 2011–2017 items as "open now". A
+ // no-deadline item is only current if it was posted within the last year.
+ // Items with a real close date are filtered by the deadline.
+ const open = data.items.filter(x => x.deadline ? x.deadline >= today : x.posted >= yearAgo);
  return {...data, items: open, notice: SEARCH_NOTICE, guide: GUIDE};
 }
 async function detail(c, event, value) {
@@ -120,8 +164,8 @@ async function detail(c, event, value) {
   let text = plain(block.synopsisDesc || block.description || block.forecastDesc || '');
   let notice = DETAIL_NOTICE;
   if (text.length > 100000) { text = ''; notice += ' The source description exceeds the tool input limit.'; }
-  return {item: {id, number: d.opportunityNumber.trim().slice(0, 200), title: d.opportunityTitle.trim().slice(0, 500), agency: agency.slice(0, 500), posted: detailDate(block.postingDateStr) || detailDate(block.postingDate), deadline: detailDate(block.responseDate) || detailDate(block.responseDateDesc), status: d.docType === 'forecast' ? 'forecasted' : 'posted', url: DETAIL_PAGE + id, provider: 'grants', awardCeiling: money(block.awardCeiling), awardFloor: money(block.awardFloor), eligibility: typeof block.applicantEligibilityDesc === 'string' ? plain(block.applicantEligibilityDesc).slice(0, 1000) : null, assistanceListings: alns}, text, notice};
+  return {item: {id, number: decodeEntities(d.opportunityNumber.trim()).slice(0, 200), title: truncateWord(decodeEntities(d.opportunityTitle.trim()), 500), agency: truncateWord(decodeEntities(agency), 500), posted: detailDate(block.postingDateStr) || detailDate(block.postingDate), deadline: detailDate(block.responseDate) || detailDate(block.responseDateDesc), status: d.docType === 'forecast' ? 'forecasted' : 'posted', url: DETAIL_PAGE + id, provider: 'grants', awardCeiling: money(block.awardCeiling), awardFloor: money(block.awardFloor), eligibility: typeof block.applicantEligibilityDesc === 'string' ? plain(block.applicantEligibilityDesc).slice(0, 1000) : null, assistanceListings: alns}, text, notice};
  });
  return data;
 }
-module.exports = {grantId, grantDate, detailDate, money, plain, normalize, search, detail, SEARCH_URL, DETAIL_URL, DETAIL_PAGE, GUIDE};
+module.exports = {grantId, grantDate, detailDate, money, plain, decodeEntities, truncateWord, normalize, search, detail, SEARCH_URL, DETAIL_URL, DETAIL_PAGE, GUIDE};

@@ -121,7 +121,7 @@ test("website redesign: affiliates and about pages, shared chrome, pricing table
   assert.match(pricing, /\$59\.80 per proposal/);
   assert.match(pricing, /\$34\.95 per proposal/);
   assert.match(pricing, /\$21\.65 per proposal/);
-  assert.match(pricing, /No card\? Try the/);
+  assert.match(pricing, /Not ready for a trial\? Try the/);
   assert.match(pricing, /Refer a customer and earn 20% of their first 12 payments/);
   // Site fixes Nov 22: the comparison table states what every plan
   // includes (KB on all plans), with the two missing rows added, and
@@ -140,8 +140,10 @@ test("website redesign: affiliates and about pages, shared chrome, pricing table
   assert.match(pricing, /buy\.stripe\.com\/14AdR92yW4lvcBq0HIdby02/);
 
   // Shared chrome: every public page renders one header and one footer
-  // from the single partial, with the new nav and footer links.
-  for (const page of ["index.html", "pricing.html", "partners.html", "affiliates.html", "about.html", "demo.html", "teardowns/index.html"]) {
+  // from the single partial, with the new nav and footer links. The two
+  // gated app pages (knowledge, compliance) use the same chrome since the
+  // Nov 25 full-site review replaced their minimal custom headers.
+  for (const page of ["index.html", "pricing.html", "partners.html", "affiliates.html", "about.html", "demo.html", "knowledge.html", "compliance.html", "teardowns/index.html"]) {
     const html = await readFile(new URL("dist/" + page, root), "utf8");
     assert.ok(!html.includes("<!-- @site-header -->"), page + " header placeholder must be replaced");
     assert.ok(!html.includes("<!-- @site-footer -->"), page + " footer placeholder must be replaced");

@@ -2,7 +2,7 @@ import {customerFetch} from './customer-request.mjs';
 import {identifyUsage} from './analytics.mjs';
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm';
 import {validateFile} from './rfp-document.mjs';
-import {createActionQueue,formatActivityDate,shortId} from './ui-helpers.mjs';
+import {createActionQueue,formatActivityDate,shortId,sourceLineText,knowledgeDocumentStatusText,formatFileSize} from './ui-helpers.mjs';
 import {askConfirm} from './in-page-confirm.mjs';
 const $=id=>document.getElementById(id);
 const node=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e;};
@@ -64,7 +64,7 @@ async function organizations(selectedOrg){
  if(selection){$('organizations').value=selection;await choose();}else guide();
 }
 async function choose(){const value=$('organizations').value,selectedRole=$('organizations').selectedOptions[0]?.dataset.role;clearOrg();if(!value)return;org=value;$('org-workspace').hidden=false;updateRole(selectedRole);await refresh();}
-function citationLabel(c){return (c.file_name||'Source')+(c.page?' · physical page '+c.page:c.section?'':' · page unavailable')+(c.section?' · '+c.section:'');}
+function citationLabel(c){const line=sourceLineText(c);return (c.file_name||'Source')+(line?' · '+line:'');}
 async function viewSource(id){const data=await api({action:'source',orgId:requireOrg(),documentId:id});source=data.document;$('source-content').replaceChildren();for(const chunk of data.chunks)$('source-content').append(node('p',citationLabel({...chunk,file_name:source.file_name})),node('blockquote',chunk.content));for(const warning of source.warnings||[])$('source-content').append(node('p','Warning: '+warning));$('source-dialog').showModal();}
 function paginate(id,data,load,label='results'){
  const container=$(id);container.replaceChildren();const previous=button('Previous',()=>load(data.page-1),true),next=button('Next',()=>load(data.page+1),true);previous.disabled=data.page===0;next.disabled=!data.hasMore;
@@ -73,7 +73,7 @@ function paginate(id,data,load,label='results'){
 function empty(container,text){container.append(node(container.tagName==='UL'?'li':'p',text));container.lastChild.className='empty';}
 function renderDocuments(items,container){
  container.replaceChildren();if(!items.length){empty(container,'No documents match. Adjust the filters or upload your first source.');return;}
- for(const d of items){const codeText={extraction_failed:'Extraction failed — try Process / retry, or re-upload the file',embedding_failed:'Embedding failed — the provider denied access, or its quota is exhausted. Ask the organization administrator to verify the provider key and model, then use Process / retry.'};const li=node('li',d.file_name+' — '+d.status+(d.error_code?' ('+(codeText[d.error_code]||d.error_code)+')':''));for(const w of d.warnings||[])li.append(node('p','Review warning: '+w));
+ for(const d of items){const size=formatFileSize(d.size_bytes);const li=node('li',d.file_name+(size?' ('+size+')':'')+' — '+knowledgeDocumentStatusText(d));for(const w of d.warnings||[])li.append(node('p','Review warning: '+w));
   if(d.status==='Ready')li.append(button('Verify source',()=>viewSource(d.id)));
   if(['Uploaded','Processing','Failed'].includes(d.status)&&['owner','editor'].includes(role))li.append(button('Process / retry',async()=>{if(!$('consent').checked)throw Error('Tick the consent box in the upload form above, then use Process / retry.');await process(d.id);await refresh();}));
   if(d.status!=='Archived'&&['owner','editor'].includes(role))li.append(button('Archive',async()=>{if(!await askConfirm('Archive this source and revoke dependent approvals?'))return;await api({action:'archive',orgId:org,documentId:d.id});clearSearch();resetAnswer();await refresh();},true));

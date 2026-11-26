@@ -19,7 +19,13 @@ export function createAccountUsage(container,getSession){
     container.append(node('p',usage.state==='trial'?'Trial ends: '+date+'. The allowance does not reset during the trial.':'Next billing reset: '+date+' (after successful renewal).'));
     if(usage.periodStart)container.append(node('p',usage.state==='trial'?'Trial started: '+new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(usage.periodStart))+'.':'This billing period started '+new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(usage.periodStart))+'. Submissions before then were in the previous period.'));
     if(!usage.remaining)container.append(node('p','Your proposal allowance has been reached.'));
-    container.append(node('p','This balance covers the emailed AI-draft service. Workspace editing and exports do not use these credits.'));
+    container.append(node('p','This balance covers the emailed AI-draft service. Workspace editing and exports do not use these credits. Grant projects in the workspace do not draw on this balance; it covers emailed AI drafts only.'));
+    // Nov 25 full-site review, logged-in #9: the pricing FAQ used to say a
+    // customer holds either a grant plan or an RFP plan, which reads as a
+    // contradiction for an RFP-plan account that holds a grant project.
+    // One subscription covers emailed drafts of either kind; grant-priced
+    // plans are the lower-volume options.
+    if(usage.plan&&!usage.plan.startsWith('Grant'))container.append(node('p','Your plan covers emailed drafts for RFP and grant projects alike; grant-priced plans (Grant Starter $19, Grant Plus $49, Grant Pro $99 per month) are the lower-volume options.'));
     container.append(node('p','Checked '+new Intl.DateTimeFormat(undefined,{timeStyle:'short'}).format(new Date(usage.asOf))+'. Pending proposals count toward usage; failed proposals are excluded.'));
     container.append(node('h3','Usage history'),node('p','Review proposal credits by job or project.'));
     const ledgerStatus=node('p','Loading your usage history…');ledgerStatus.setAttribute('role','status');const ledgerList=node('div');container.append(ledgerStatus,ledgerList);

@@ -623,9 +623,13 @@
           <a class="btn btn-outline" href="/tools/shredder">Shred an RFP free — no signup</a>
         </div>
 
+      <a class="ph-badge" href="https://www.producthunt.com/products/tendercrest-ai?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-tendercrest-ai" target="_blank" rel="noopener noreferrer" aria-label="View TenderCrest AI on Product Hunt (opens in a new tab)">
+        <img alt="TenderCrest AI - Evidence-backed RFP responses, reviewed together | Product Hunt" width="250" height="54" loading="lazy" decoding="async" referrerpolicy="no-referrer" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1302089&amp;theme=light&amp;t=1793649933551">
+      </a>
+
         <form class="grant-search" action="/opportunities/grants" method="get" role="search">
           <label for="grant-keyword">Search federal grants</label>
-          <input id="grant-keyword" name="keyword" type="search" placeholder="Search federal grants by keyword, e.g. housing, workforce, climate" autocomplete="off">
+          <input id="grant-keyword" name="keyword" type="search" placeholder="e.g. housing, workforce, climate" autocomplete="off">
           <button class="btn btn-primary" type="submit">Search Grants.gov</button>
         </form>
         <p class="agency-chips" aria-label="Sources"><span class="badge-pill">Grants.gov</span> <span class="badge-pill">NOFO</span> <span class="badge-pill">SAM.gov</span></p>
@@ -646,9 +650,6 @@
         <a href="/demo.html" class="nav-portal-link">Product tour</a>
       </nav>
 
-      <a class="ph-badge" href="https://www.producthunt.com/products/tendercrest-ai?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-tendercrest-ai" target="_blank" rel="noopener noreferrer" aria-label="View TenderCrest AI on Product Hunt (opens in a new tab)">
-        <img alt="TenderCrest AI - Evidence-backed RFP responses, reviewed together | Product Hunt" width="250" height="54" loading="lazy" decoding="async" referrerpolicy="no-referrer" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1302089&amp;theme=light&amp;t=1793649933551">
-      </a>
 
       <section id="product-film" class="film-showcase" data-product-film aria-labelledby="film-title">
         <div class="film-copy">
@@ -1422,7 +1423,7 @@ if(authConfig){
       void supabase.auth.getSession().then(({data})=>identifyGooglePurchase(data.session?.access_token||null)).catch(()=>{});
 
       if (authenticatedUser) {
-        authLink.textContent = '👤 My Account';
+        authLink.textContent = 'My Account';
         document.getElementById('signed-in-email').textContent =
           'Signed in as: ' + authenticatedUser.email;
         document.getElementById('submitter-email').value =
@@ -1434,7 +1435,7 @@ if(authConfig){
       } else {
         statusTracker.stop();
         document.getElementById('status-alert').textContent = '';
-        authLink.textContent = '👤 Customer Login / Sign Up';
+        authLink.textContent = 'My Account';
         workspace.hidden = true;
       }
 

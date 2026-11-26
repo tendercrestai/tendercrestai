@@ -14,11 +14,14 @@ function fakeStorage(entries) {
     getItem: (k) => (map.has(k) ? map.get(k) : null),
   };
 }
-function fakeDoc(link) {
-  return { querySelector: (sel) => (sel === ".site-login-link" ? link : null) };
+function fakeDoc(link, trial) {
+  return {
+    querySelector: (sel) =>
+      sel === ".site-login-link" ? link : sel === ".site-trial-link" ? trial ?? null : null,
+  };
 }
 
-const { syncSiteHeaderSessionLink } = await import("../assets/site-session.mjs");
+const { syncSiteHeaderSessionLink, hasStoredSession } = await import("../assets/site-session.mjs");
 
 test("stored Supabase session flips the header link to My account", () => {
   const link = { textContent: "Log in" };
@@ -49,4 +52,31 @@ test("a page without the header link is a no-op", () => {
     ["sb-abc-auth-token", JSON.stringify({ access_token: "eyJ.test" })],
   ]);
   assert.equal(syncSiteHeaderSessionLink({ querySelector: () => null }, storage), false);
+});
+
+test("a signed-in header retargets the trial link to Open workspace", () => {
+  const link = { textContent: "Log in" };
+  const trial = { textContent: "Start trial", href: "/pricing" };
+  const storage = fakeStorage([
+    ["sb-vfdwaqgfepvoujprtuww-auth-token", JSON.stringify({ access_token: "eyJ.test", expires_at: 9999999999 })],
+  ]);
+  assert.equal(syncSiteHeaderSessionLink(fakeDoc(link, trial), storage), true);
+  assert.equal(trial.textContent, "Open workspace");
+  assert.equal(trial.href, "/workspace.html");
+});
+
+test("a signed-out header leaves the trial link alone", () => {
+  const link = { textContent: "Log in" };
+  const trial = { textContent: "Start trial", href: "/pricing" };
+  assert.equal(syncSiteHeaderSessionLink(fakeDoc(link, trial), fakeStorage([])), false);
+  assert.equal(trial.textContent, "Start trial");
+  assert.equal(trial.href, "/pricing");
+});
+
+test("hasStoredSession reads the same stored token the header reads", () => {
+  assert.equal(hasStoredSession(fakeStorage([["sb-abc-auth-token", JSON.stringify({ access_token: "eyJ.test" })]])), true);
+  assert.equal(hasStoredSession(fakeStorage([])), false);
+  assert.equal(hasStoredSession(fakeStorage([["sb-abc-auth-token", "not json{"]])), false);
+  assert.equal(hasStoredSession(fakeStorage([["sb-abc-auth-token", JSON.stringify({ refresh_token: "x" })]])), false);
+  assert.equal(hasStoredSession(null), false);
 });

@@ -75,11 +75,13 @@ export function formatAgencyName(value) {
   return truncateWord(words.join(" "), 120);
 }
 // Opportunities feed count line: say how many are on this page, how many
-// exist in total, and the page size, so "8 on page 1" is never confused
-// with "25 per page".
+// exist in total, and the page size. The old "8 of 200 open opportunities"
+// wording was read as "8 open opportunities exist" when the handler had
+// filtered the 25-record page down to 8, so the total is now labelled as
+// the matching-notice total, not the page count.
 export function opportunityCountLine(shown, total, page, pageSize = 25) {
-  const totalText = Number.isSafeInteger(total) ? " of " + total : "";
-  return shown + totalText + " open opportunities · page " + (page + 1) + " (" + pageSize + " per page)";
+  const totalText = Number.isSafeInteger(total) ? " · " + total.toLocaleString("en-US") + " matching notices in total" : "";
+  return shown + " open opportunities on this page" + totalText + " · page " + (page + 1) + " (" + pageSize + " per page)";
 }
 
 // --- Draft preview with no draftable evidence (sweep finding #4) ---------
@@ -129,6 +131,15 @@ export function matchEvidenceOutcome(state, requirementId) {
     (e) => e.requirementId === requirementId && e.decision === "suggested"
   ).length;
   return {suggested, found: suggested > 0};
+}
+// Nov 25 full-site review, logged-in #1: render() used to clear the
+// match outcome whenever the tab changed, including the switch TO the
+// Evidence tab that the match itself triggered — so the tab never opened
+// and the matched requirement was never highlighted. The outcome survives
+// exactly one tab change, and only into the Evidence tab; any other tab
+// change clears it as before.
+export function matchOutcomeSurvivesTabChange(newTab) {
+  return newTab === "Evidence";
 }
 
 // --- Source review record (sweep finding #13) ----------------------------
@@ -204,6 +215,24 @@ export function shouldShowTrialCheckout(usage) {
   if (!usage || typeof usage.available !== "boolean") return true;
   return usage.available === false;
 }
+// Nov 25 full-site review, logged-in #11: the pricing page must mark the
+// plan the signed-in account already holds, so the account is never
+// offered a trial for its own plan. The plan string comes from the
+// account-usage endpoint (the same source the hub reads), never from
+// client-side guessing. Grant plans are checked first: "Grant Pro" starts
+// with "Pro" too, so a plain prefix match would map it to the RFP Pro
+// card. Returns the pricing section id, or null when the plan is unknown.
+export function planCardId(plan) {
+  const value = String(plan || "").trim();
+  if (!value) return null;
+  if (value.startsWith("Grant Starter")) return "grant-starter";
+  if (value.startsWith("Grant Plus")) return "grant-plus";
+  if (value.startsWith("Grant Pro")) return "grant-pro";
+  if (value.startsWith("Enterprise")) return "enterprise";
+  if (value.startsWith("Growth")) return "growth";
+  if (value.startsWith("Pro")) return "pro";
+  return null;
+}
 
 // --- Free-tool source lines (sweep finding #6) ---------------------------
 // Pasted-text sources have no section and no page, so the result printed
@@ -211,8 +240,45 @@ export function shouldShowTrialCheckout(usage) {
 export function sourceLineText(source) {
   const section = source?.section || null;
   const page = source?.page ?? null;
-  if (!section && (page === null || page === undefined)) return null;
-  return (section || "Section unavailable") + " · " + (page ? "PDF page " + page : "Page unavailable");
+  const parts = [];
+  if (section) parts.push(section);
+  if (page) parts.push("PDF page " + page);
+  return parts.length ? parts.join(" · ") : null;
+}
+// Nov 25 full-site review, logged-in #7: a failed knowledge source showed
+// only "Failed" with no reason. The backend selects error_code and the
+// client already explains the two known codes; a failure with no code
+// recorded gets an honest fallback instead of a bare label, and a failed
+// source is never rendered as if it were ready.
+const KB_STATUS_TEXT = {
+  Ready: "Ready",
+  Pending: "Processing",
+  Failed: "Failed",
+  Archived: "Archived",
+};
+export function knowledgeDocumentStatusText(document) {
+  const status = document?.status || "Pending";
+  const label = KB_STATUS_TEXT[status] || status;
+  if (status === "Failed" && !document?.error_code) {
+    return label + " — no error detail was recorded. Use Process / retry; if it fails again, contact support.";
+  }
+  if (status === "Failed" && document.error_code === "extraction_failed") {
+    return label + " — could not extract text from the file. Try Process / retry, or re-upload the file.";
+  }
+  if (status === "Failed" && document.error_code === "embedding_failed") {
+    return label + " — could not embed the extracted text. The provider may have denied access, or its quota is exhausted. Ask the organization administrator to verify the provider key and model, then use Process / retry.";
+  }
+  if (status === "Failed" && document.error_code) {
+    return label + " — " + document.error_code + ".";
+  }
+  return label;
+}
+// File sizes for the knowledge-source list (the backend stores size_bytes
+// but the list never showed it). One decimal, KB below 1 MB, MB above.
+export function formatFileSize(bytes) {
+  if (typeof bytes !== "number" || !Number.isFinite(bytes) || bytes < 0) return null;
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / 1048576).toFixed(1) + " MB";
 }
 
 // --- List search and pagination (sweep findings #7 and #8) --------------
@@ -386,10 +452,13 @@ export function excludedRequirement(r) {
 // Reviewer merge candidates (sweep finding #20): the workspace view already
 // carries similarPairs from similarPairs() (Jaccard >= 0.8). Keep only pairs
 // both sides of which are still live requirements in this project, neither
-// already merged nor excluded, and de-duplicate reversed pairs.
+// already merged nor excluded, and de-duplicate reversed pairs. A requirement
+// appears in at most one kept pair: the same requirement in several groups
+// reads as several different duplicates. After a merge the pair reappears
+// on the next render, so no information is lost permanently.
 export function mergeablePairs(pairs, requirements) {
   const byId = new Map((requirements || []).map((r) => [r.id, r]));
-  const seen = new Set(), out = [];
+  const seen = new Set(), used = new Set(), out = [];
   for (const pair of pairs || []) {
     if (!Array.isArray(pair) || pair.length !== 2) continue;
     const a = byId.get(pair[0]), b = byId.get(pair[1]);
@@ -398,7 +467,10 @@ export function mergeablePairs(pairs, requirements) {
     if (excludedRequirement(a) || excludedRequirement(b)) continue;
     const key = [a.id, b.id].sort().join("|");
     if (seen.has(key)) continue;
+    if (used.has(a.id) || used.has(b.id)) continue;
     seen.add(key);
+    used.add(a.id);
+    used.add(b.id);
     out.push([a, b]);
   }
   return out;
