@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
   sourceNeedsReview, sourceReviewNote, requirementSourceNeedsReview,
-  mergeablePairs, sectionLooksLikeFragment, looksLikeHeading,
+  mergeablePairs, sectionLooksLikeFragment, looksLikeHeading, sourceLineText,
 } from "../assets/ui-helpers.mjs";
 
 // Regression tests for sweep findings #18 (generic/wrong source snippets)
@@ -94,14 +94,20 @@ test("mergeablePairs keeps live pairs and drops merged, excluded, missing and re
   assert.deepEqual(mergeablePairs([["a", "b"], ["b", "a"]], reqs), [[keeper, dup]]);
   assert.deepEqual(mergeablePairs([["a", "c"], ["a", "d"], ["a", "missing"], ["a", "a"]], reqs), []);
   assert.deepEqual(mergeablePairs(null, reqs), []);
+  // Nov 25 full-site review, logged-in #12: the same requirement in several
+  // pairs reads as several different duplicates. Each requirement appears in
+  // at most one kept pair; the dropped pair reappears after a merge.
+  const third = {id: "e", stableId: "REQ-E", text: "Joint venture partners must submit a joint venture agreement now."};
+  assert.deepEqual(mergeablePairs([["a", "b"], ["a", "e"], ["b", "e"]], [...reqs, third]), [[keeper, dup]]);
 });
 
 async function loadSources() {
   const source = await readFile(new URL("assets/workspace.mjs", root), "utf8");
   const code = extractFunction(source, "sources");
-  return new Function("node", "shortId", "sourceNeedsReview", "sourceReviewNote", code + "; return sources;")(
+  return new Function("node", "shortId", "sourceLineText", "sourceNeedsReview", "sourceReviewNote", code + "; return sources;")(
     (tag, text) => makeEl(tag, text),
     (id) => String(id || "").slice(0, 8),
+    sourceLineText,
     sourceNeedsReview, sourceReviewNote);
 }
 

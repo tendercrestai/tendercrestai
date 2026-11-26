@@ -26,6 +26,11 @@
       border-radius: 16px;
       box-shadow: 0 8px 30px #00000012;
     }
+    /* Nov 25 full-site review, logged-in #15: the account view (allowance,
+       usage history, deletion requests) is far wider than a login form; a
+       440px column made its buttons wrap for lines. The account view uses
+       an 880px card; the login/signup/reset views keep the narrow card. */
+    .card.wide { max-width: 880px; }
     h1 { color: #2563eb; margin-bottom: 6px; }
     h2 { margin-top: 20px; }
     p { color: #64748b; line-height: 1.5; }
@@ -184,6 +189,11 @@ if(authConfig){
       views.forEach(id => $(id).classList.toggle("hidden", id !== view));
       $("message").textContent = "";
       $("message").className = "";
+      // Nov 25 full-site review, logged-in #15: the tab title said
+      // "Customer Login" while the heading said "My account", and the
+      // account view was squeezed into the 440px login card.
+      document.title = view === "account" ? "My account | TenderCrest AI" : "Customer Login | TenderCrest AI";
+      document.querySelector("main.card").classList.toggle("wide", view === "account");
     }
 
     function notify(text, error = false) {

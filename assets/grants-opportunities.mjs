@@ -1,25 +1,44 @@
 import {api,node}from './free-tools.mjs';
+import {truncateWord} from './ui-helpers.mjs';
 const $=id=>document.getElementById(id);
 let page=0,data=null,run=0;
-function sourceDate(value){const d=new Date(value||'');return Number.isNaN(d.getTime())?String(value||'Not supplied'):d.toLocaleString();}
+function sourceDate(value){const d=new Date(value||'');return Number.isNaN(d.getTime())?String(value||'Not supplied'):d.toLocaleDateString();}
 function closeLine(item){return item.deadline?('Close date: '+sourceDate(item.deadline)+' · Verify the exact closing time on the source.'):'Close date not stated.';}
 function daysLeft(deadline){if(!deadline)return null;const today=new Date();const start=Date.UTC(today.getUTCFullYear(),today.getUTCMonth(),today.getUTCDate());const end=Date.parse(deadline+'T00:00:00Z');if(!Number.isFinite(end))return null;return Math.round((end-start)/86400000);}
 function money(value){return typeof value==='number'?('$'+value.toLocaleString('en-US')):null;}
 // "Start a grant proposal" routes by session: signed in goes to a new grant
 // project in the workspace (grant preselected, title filled in); signed out
 // — or when the session check cannot run — goes to the free shredder with
-// the grant synopsis. The link itself always points at the shredder, so it
-// stays usable when JavaScript session checks are unavailable.
-async function grantDestination(item){
- const shred='/tools/shredder?provider=grants&notice='+encodeURIComponent(item.id);
- try{
-  const {loadAuthConfig}=await import('./auth-journey.mjs');
-  const config=await loadAuthConfig();
-  const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm');
-  const client=createClient(config.url,config.key);
-  const {data}=await client.auth.getSession();
-  if(data?.session)return '/workspace.html?grant=1&notice='+encodeURIComponent(item.id)+'&title='+encodeURIComponent(item.title.slice(0,200));
- }catch{}
+// the grant synopsis. Nov 25 full-site review, logged-in #3: the link used
+// to always point at the shredder while the click went to the workspace,
+// so the href lied about the destination. The session is now resolved once
+// at load; when it lands, every start link's href is rewritten to the
+// workspace URL, so hover, copy and the click all agree. Until then the
+// shredder href stays (and the click handler still routes correctly).
+let signedIn = null; // null = not yet known
+async function checkSignedIn() {
+ try {
+  const {loadAuthConfig} = await import('./auth-journey.mjs');
+  const config = await loadAuthConfig();
+  const {createClient} = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm');
+  const client = createClient(config.url, config.key);
+  const {data} = await client.auth.getSession();
+  return !!data?.session;
+ } catch { return false; }
+}
+function workspaceGrantUrl(item) {
+ return '/workspace.html?grant=1&notice=' + encodeURIComponent(item.id) + '&title=' + encodeURIComponent(item.title.slice(0, 200));
+}
+function applyGrantStartHrefs() {
+ if (signedIn !== true) return;
+ for (const a of document.querySelectorAll('.grant-start')) {
+  a.href = '/workspace.html?grant=1&notice=' + encodeURIComponent(a.dataset.notice || '') + '&title=' + encodeURIComponent(a.dataset.title || '');
+ }
+}
+void checkSignedIn().then((value) => { signedIn = value; applyGrantStartHrefs(); });
+async function grantDestination(item) {
+ const shred = '/tools/shredder?provider=grants&notice=' + encodeURIComponent(item.id);
+ if (await checkSignedIn()) return workspaceGrantUrl(item);
  return shred;
 }
 function render(){
@@ -32,8 +51,8 @@ function render(){
   if(item.status==='forecasted')card.append(node('p','Forecasted: announced, not yet open. The full NOFO may not be published yet.'));
   card.append(node('p','Eligibility and award amounts are on the original grant page. Check them before drafting.'));
   const original=node('a','View original grant on Grants.gov');original.href=item.url;original.target='_blank';original.rel='noopener noreferrer';const shred=node('a','Shred this');shred.className='button secondary';shred.href='/tools/shredder?provider=grants&notice='+encodeURIComponent(item.id);
-  const start=node('a','Start a grant proposal');start.className='button';start.href=shred.href;start.onclick=e=>{e.preventDefault();start.textContent='Opening…';grantDestination(item).then(url=>{location.href=url;}).catch(()=>{location.href=shred.href;});};
-  const amounts=node('button','Award amounts and eligibility');amounts.type='button';amounts.className='secondary';amounts.onclick=async()=>{amounts.disabled=true;amounts.textContent='Loading award details…';try{const d=await api({action:'detail',notice:item.id},'grants-opportunities');const ceiling=money(d.item.awardCeiling),floor=money(d.item.awardFloor);const lines=[];if(ceiling||floor)lines.push('Award ceiling: '+(ceiling||'not stated')+' · Award floor: '+(floor||'not stated')+'.');else lines.push('No award ceiling or floor in the Grants.gov record.');if(d.item.eligibility)lines.push('Eligibility: '+d.item.eligibility.slice(0,300));card.append(node('p',lines.join(' ')));amounts.remove();}catch(error){amounts.disabled=false;amounts.textContent='Award amounts and eligibility';card.append(node('p','Award details could not be loaded. Open the original grant on Grants.gov.'));}};
+  const start=node('a','Start a grant proposal');start.className='button grant-start';start.dataset.notice=item.id;start.dataset.title=item.title.slice(0,200);start.href=signedIn===true?workspaceGrantUrl(item):shred.href;start.onclick=e=>{e.preventDefault();start.textContent='Opening…';grantDestination(item).then(url=>{location.href=url;}).catch(()=>{location.href=shred.href;});};
+  const amounts=node('button','Award amounts and eligibility');amounts.type='button';amounts.className='secondary';amounts.onclick=async()=>{amounts.disabled=true;amounts.textContent='Loading award details…';try{const d=await api({action:'detail',notice:item.id},'grants-opportunities');const ceiling=money(d.item.awardCeiling),floor=money(d.item.awardFloor);const lines=[];if(ceiling||floor)lines.push('Award ceiling: '+(ceiling||'not stated')+' · Award floor: '+(floor||'not stated')+'.');else lines.push('No award ceiling or floor in the Grants.gov record.');if(d.item.eligibility)lines.push('Eligibility: '+truncateWord(d.item.eligibility,300));card.append(node('p',lines.join(' ')));amounts.remove();}catch(error){amounts.disabled=false;amounts.textContent='Award amounts and eligibility';card.append(node('p','Award details could not be loaded. Open the original grant on Grants.gov.'));}};
   const actions=node('div');actions.className='actions';actions.append(original,shred,start,amounts);card.append(actions);box.append(card);}
  $('grants-previous').disabled=page===0;$('grants-next').disabled=page>=9||data?.total===null||(page+1)*25>=(data?.total||0);
  $('grants-source-status').textContent=(data?.total!==null&&data?.total!==undefined?data.total+' active opportunities · ':'')+'Updated: '+(data?.checkedAt?new Date(data.checkedAt).toLocaleString():'not available')+(data?.cached?' · Cached response.':'')+' · '+(data?.notice||'')+' Closed grants and grants past their close date are excluded from this list.';

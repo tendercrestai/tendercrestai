@@ -53,6 +53,9 @@ const COLUMNS = [
     ['Qvidian', '/compare/qvidian'],
     ['Xait', '/compare/xait'],
     ['ChatGPT & Claude', '/compare/chatgpt'],
+    ['Grantable', '/compare/grantable'],
+    ['Granted AI', '/compare/granted-ai'],
+    ['GrantParty', '/compare/grantparty'],
   ] },
   { title: 'Trust', links: [
     ['Security & Data Handling', '/security.html'],

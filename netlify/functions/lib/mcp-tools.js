@@ -124,7 +124,7 @@ const TOOL_DEFINITIONS = [
     name: 'search_opportunities',
     title: 'Search SAM.gov opportunities',
     annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: true },
-    description: 'Search live SAM.gov federal opportunities from the past 364 days. Returns up to 25 notices per page with title, agency, deadline, NAICS, PSC, set-aside, and the canonical SAM.gov link. Federal notices only; no contract value bands are published. Free, no sign-in. Limited to 10 searches per day, shared with the web feed.',
+    description: 'Search live SAM.gov federal opportunities from the past year. Returns up to 25 notices per page with title, agency, deadline, NAICS, PSC, set-aside, and the canonical SAM.gov link. Federal notices only; no contract value bands are published. Free, no sign-in. Limited to 10 searches per day, shared with the web feed.',
     requiresAuth: false,
     inputSchema: {
       type: 'object',

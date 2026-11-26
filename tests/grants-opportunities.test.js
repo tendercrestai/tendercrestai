@@ -19,6 +19,34 @@ test('normalization rejects closed grants and missing identity, keeps forecasts,
  for(const change of [{oppStatus:'closed'},{oppStatus:'archived'},{id:'not-numeric'},{number:''},{title:''},{openDate:''},{openDate:'02/30/2026'}])assert.equal(G.normalize({...hit(),...change}),null);
  assert.equal(G.plain('<p>Text &amp; source.</p><script>ignore</script>'), 'Text & source.');
 });
+
+test('plain text and titles decode raw HTML entities instead of showing them literally', () => {
+ assert.equal(G.plain('A &ndash; B &mdash; C &rsquo;s &ldquo;quote&rdquo; &hellip;'), 'A – B — C ’s “quote” …');
+ assert.equal(G.plain('Fish &amp; Chips'), 'Fish & Chips');
+ assert.equal(G.plain('&#8211; dash'), '– dash');
+ assert.equal(G.decodeEntities('A &ndash; B'), 'A – B');
+ assert.equal(G.decodeEntities('A &bogus; B'), 'A &bogus; B');
+ const n = G.normalize(hit({title: 'Fictional grant &ndash; workforce development programme', agencyName: 'Fictional &amp; Sons Agency'}));
+ assert.equal(n.title, 'Fictional grant – workforce development programme');
+ assert.equal(n.agency, 'Fictional & Sons Agency');
+ // Long titles are cut at a word boundary, never mid-word.
+ const long = G.normalize(hit({title: 'word '.repeat(120).trim()}));
+ assert.ok(long.title.length <= 501 && long.title.endsWith('…'), 'long title ends with an ellipsis');
+ assert.ok(!long.title.slice(0, -1).endsWith(' '), 'no trailing space before the ellipsis');
+ assert.ok(long.title.slice(0, -1).endsWith('word'), 'the last word is whole, not cut mid-word');
+});
+
+test('search drops no-deadline grants posted more than a year ago, keeps recent ones', async () => {
+ const h = fixtureHarness(), s = h.state;
+ // closeDate '' means no deadline; openDate 01/01/2020 is over a year old.
+ s.hits = [hit(), {...hit({id: '1234568', number: 'TEST-26-002', openDate: '01/01/2020', closeDate: ''})}, {...hit({id: '1234569', number: 'TEST-26-003', openDate: '01/01/2026', closeDate: ''})}];
+ s.hitCount = 3;
+ try {
+  const first = await G.search(h.c, h.e, {keyword: '', page: 0});
+  assert.deepEqual(first.items.map((x) => x.id), ['1234567', '1234569']);
+  assert.equal(first.total, 3);
+ } finally { h.restore(); }
+});
 function fixtureHarness(){
  const kb=require('../netlify/functions/lib/knowledge-base'),F=require('../netlify/functions/lib/free-tools');
  const saved={fetch:global.fetch,rpc:kb.rpc,db:F.db};

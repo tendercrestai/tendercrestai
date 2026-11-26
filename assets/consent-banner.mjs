@@ -100,7 +100,7 @@ function ensureBanner() {
   banner.id = 'consent-banner';
   banner.setAttribute('aria-label', 'Privacy choices');
   banner.hidden = true;
-  banner.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:200;max-height:52vh;display:flex;flex-direction:column;background:#fff;color:#17243b;border-top:1px solid #94a3b8;box-shadow:0 -4px 16px rgb(0 0 0/.12);padding:8px 16px;font:inherit';
+  banner.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:200;max-height:40vh;display:flex;flex-direction:column;background:#fff;color:#17243b;border-top:1px solid #94a3b8;box-shadow:0 -4px 16px rgb(0 0 0/.12);padding:8px 16px;font:inherit';
   d.body.append(banner);
   if (typeof window !== 'undefined' && !resizeListenerAdded) {
     resizeListenerAdded = true;

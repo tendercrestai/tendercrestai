@@ -186,7 +186,10 @@ test("banner reserves bottom space while visible so the footer stays reachable",
   el.offsetHeight = 420;
   banner.showConsentBanner();
   assert.equal(document.body.style.paddingBottom, "420px", "visible banner reserves its height as bottom padding");
-  assert.match(el.style.cssText, /max-height:52vh/);
+  // Nov 25 full-site review, logged-out #13: 52vh covered over half the
+  // hero on a short viewport. 40vh still fits the heading, intro and two
+  // pinned actions; the provider rows scroll inside the banner.
+  assert.match(el.style.cssText, /max-height:40vh/);
   assert.match(el.style.cssText, /padding:8px 16px/);
   const row = bannerRows(el).find((c) => c.attributes["data-consent-id"] === "google");
   assert.match(row.style.cssText, /padding:6px 0/);

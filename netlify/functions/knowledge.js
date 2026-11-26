@@ -11,7 +11,7 @@ function createHandler(adapters={}) {
    const org=kb.uuid(p.orgId);const role=await kb.membership(config,token,user,org);
    const actor={p_org:org,p_user:user.id};
    if(p.action==='list') {
-    kb.exact(p,['action','orgId']);const [documents,answers]=await Promise.all([kb.database(config,'kb_documents?org_id=eq.'+org+'&select=id,file_name,status,warnings,error_code,created_at&order=created_at.desc&limit=100',{token}),kb.database(config,'kb_answers?org_id=eq.'+org+'&select=id,question,answer,revision,approved_revision,approved_by,approved_at,kb_answer_citations(chunk_id)&order=updated_at.desc&limit=100',{token})]);return kb.reply(200,{role,documents,answers});
+    kb.exact(p,['action','orgId']);const [documents,answers]=await Promise.all([kb.database(config,'kb_documents?org_id=eq.'+org+'&select=id,file_name,status,warnings,error_code,size_bytes,created_at&order=created_at.desc&limit=100',{token}),kb.database(config,'kb_answers?org_id=eq.'+org+'&select=id,question,answer,revision,approved_revision,approved_by,approved_at,kb_answer_citations(chunk_id)&order=updated_at.desc&limit=100',{token})]);return kb.reply(200,{role,documents,answers});
    }
    if(p.action==='audit') {kb.exact(p,['action','orgId']);return kb.reply(200,{events:await kb.database(config,'kb_audit_events?org_id=eq.'+org+'&select=action,target_id,revision,created_at,actor_id&order=created_at.desc&limit=100',{token})});}
    if(p.action==='register') {

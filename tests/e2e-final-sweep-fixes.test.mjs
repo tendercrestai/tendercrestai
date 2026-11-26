@@ -65,8 +65,9 @@ test('word-boundary truncation never cuts a word in half', () => {
 });
 
 test('opportunity count line states page size, page, and total', () => {
-  assert.equal(opportunityCountLine(8, 200, 0), '8 of 200 open opportunities · page 1 (25 per page)');
-  assert.equal(opportunityCountLine(8, null, 0), '8 open opportunities · page 1 (25 per page)');
+  assert.equal(opportunityCountLine(8, 200, 0), '8 open opportunities on this page · 200 matching notices in total · page 1 (25 per page)');
+  assert.equal(opportunityCountLine(8, null, 0), '8 open opportunities on this page · page 1 (25 per page)');
+  assert.equal(opportunityCountLine(23, 6152, 0), '23 open opportunities on this page · 6,152 matching notices in total · page 1 (25 per page)');
 });
 
 test('readiness classifies blockers so the checklist total explains itself', () => {
